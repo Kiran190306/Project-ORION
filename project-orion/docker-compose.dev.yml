@@ -1,0 +1,41 @@
+# Development infrastructure for Project ORION.
+# Provides local PostgreSQL and Redis only — no production services.
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: orion-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: orion
+      POSTGRES_PASSWORD: orion
+      POSTGRES_DB: orion_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - orion_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orion -d orion_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: orion-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - orion_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  orion_postgres_data:
+  orion_redis_data:

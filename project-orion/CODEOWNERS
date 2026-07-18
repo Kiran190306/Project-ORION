@@ -1,0 +1,40 @@
+# Code Owners for Project ORION
+
+# Global owners
+* @platform-team @tech-lead
+
+# Directory owners
+apps/ @platform-team @frontend-team
+services/ @backend-team
+libraries/ @platform-team
+shared/ @platform-team
+sdk/ @platform-team
+api/ @api-team
+infrastructure/ @devops-team
+deployment/ @devops-team
+docker/ @devops-team
+kubernetes/ @devops-team
+monitoring/ @devops-team
+security/ @security-team
+configs/ @devops-team
+scripts/ @platform-team
+tools/ @platform-team
+workers/ @backend-team
+plugins/ @quant-team
+research/ @quant-team
+backtesting/ @quant-team
+paper-trading/ @quant-team
+analytics/ @analytics-team
+ai/ @ai-team
+dashboard/ @frontend-team
+mobile/ @mobile-team
+desktop/ @desktop-team
+notifications/ @backend-team
+gateway/ @api-team
+broker/ @integration-team
+storage/ @data-team
+database/ @data-team
+tests/ @qa-team
+benchmarks/ @performance-team
+examples/ @platform-team
+docs/ @documentation-team

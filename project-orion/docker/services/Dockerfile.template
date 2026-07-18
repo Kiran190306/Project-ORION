@@ -1,0 +1,31 @@
+# Service Dockerfile Template
+# TODO: Customize for each service
+
+FROM project-orion/base:latest
+
+# TODO: Copy service code
+# TODO: Install service dependencies
+# TODO: Configure service
+
+LABEL maintainer="platform-team@orion.example.com"
+LABEL service="{{SERVICE_NAME}}"
+
+# TODO: Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD python -c "import requests; requests.get('http://localhost:8000/health')"
+
+# TODO: Set working directory
+WORKDIR /app
+
+# TODO: Copy requirements
+# COPY requirements.txt .
+# RUN pip install -r requirements.txt
+
+# TODO: Copy source code
+# COPY . .
+
+# TODO: Expose ports
+# EXPOSE 8000
+
+# TODO: Run service
+# CMD ["python", "main.py"]

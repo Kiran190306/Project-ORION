@@ -1,0 +1,13 @@
+{
+  "name": "@orion/sdk-javascript",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Project ORION JavaScript/TypeScript SDK",
+  "main": "orion/index.ts",
+  "scripts": {
+    "lint": "eslint orion --ext .ts",
+    "format": "prettier --write \"orion/**/*.ts\"",
+    "build": "tsc --noEmit",
+    "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\""
+  }
+}

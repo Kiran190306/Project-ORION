@@ -1,0 +1,119 @@
+# CI/CD Pipeline for Project ORION
+# Triggered on push and pull requests to main branches
+
+name: CI
+
+on:
+  push:
+    branches: [main, develop, "release/*"]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  ci:
+    name: CI Pipeline
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: orion
+          POSTGRES_PASSWORD: orion
+          POSTGRES_DB: orion_dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U orion -d orion_dev
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Python setup ──────────────────────────────────────────
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        run: |
+          pip install --upgrade pip
+          pip install poetry
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create true
+          poetry config virtualenvs.in-project false
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install Python dependencies
+        run: poetry install --no-interaction
+
+      # ── Python quality gates ──────────────────────────────────
+      - name: Check formatting (black)
+        run: poetry run black --check shared libraries tests
+
+      - name: Check import ordering (isort)
+        run: poetry run isort --check-only shared libraries tests
+
+      - name: Lint (pylint)
+        run: poetry run pylint shared libraries
+
+      - name: Type check (mypy)
+        run: poetry run mypy shared libraries tests
+
+      # ── Python tests ──────────────────────────────────────────
+      - name: Run tests
+        run: poetry run pytest --cov=shared --cov=libraries --cov-report=term-missing
+        env:
+          POSTGRES_DSN: postgresql://orion:orion@localhost:5432/orion_dev
+          REDIS_DSN: redis://localhost:6379/0
+
+      # ── Node.js setup (if SDK exists) ─────────────────────────
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          cache-dependency-path: project-orion/package-lock.json
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        continue-on-error: true
+
+      - name: Lint frontend
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build frontend
+        run: npm run build
+        continue-on-error: true

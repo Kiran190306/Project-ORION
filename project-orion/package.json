@@ -1,0 +1,24 @@
+{
+  "name": "project-orion",
+  "version": "0.1.0",
+  "description": "Institutional-grade automated Forex trading platform",
+  "private": true,
+  "workspaces": [
+    "sdk/javascript"
+  ],
+  "scripts": {
+    "lint": "npm run lint --workspace=@orion/sdk-javascript",
+    "format": "npm run format --workspace=@orion/sdk-javascript",
+    "build": "npm run build --workspace=@orion/sdk-javascript",
+    "test": "echo \"Node.js tests are not configured yet\"",
+    "clean": "npm run clean --workspace=@orion/sdk-javascript --if-present"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^8.45.0",
+    "js-yaml": "^5.2.1",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.0"
+  }
+}

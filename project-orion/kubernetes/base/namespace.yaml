@@ -1,0 +1,10 @@
+# Namespace Configuration
+# TODO: Configure namespaces for Project ORION
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: orion
+  labels:
+    name: orion
+    environment: production
