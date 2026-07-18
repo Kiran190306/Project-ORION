@@ -148,7 +148,9 @@ class SerializationRegistry:
     def get_serializer(self, format_name: str) -> Serializer:
         """Get serializer by format name."""
         if format_name not in self._serializers:
-            raise SerializationError(f"No serializer registered for format: {format_name}")
+            raise SerializationError(
+                f"No serializer registered for format: {format_name}"
+            )
         return self._serializers[format_name]
 
     def list_formats(self) -> list[str]:

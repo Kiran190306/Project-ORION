@@ -193,7 +193,9 @@ class ServiceRegistry:
 
         for service_id, instance in self._services.items():
             try:
-                heartbeat_time = datetime.fromisoformat(instance.last_heartbeat).timestamp()
+                heartbeat_time = datetime.fromisoformat(
+                    instance.last_heartbeat
+                ).timestamp()
                 if now - heartbeat_time > timeout_seconds:
                     instance.status = ServiceStatus.DEGRADED
                     stale.append(service_id)
@@ -209,7 +211,9 @@ class ServiceRegistry:
         by_type: dict[str, int] = {}
 
         for instance in self._services.values():
-            by_status[instance.status.value] = by_status.get(instance.status.value, 0) + 1
+            by_status[instance.status.value] = (
+                by_status.get(instance.status.value, 0) + 1
+            )
             by_type[instance.service_type] = by_type.get(instance.service_type, 0) + 1
 
         return {

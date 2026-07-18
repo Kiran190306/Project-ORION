@@ -243,7 +243,9 @@ class MetricCollector(Protocol):
     def increment(self, metric: str, tags: Optional[dict[str, str]] = None) -> None:
         ...
 
-    def gauge(self, metric: str, value: float, tags: Optional[dict[str, str]] = None) -> None:
+    def gauge(
+        self, metric: str, value: float, tags: Optional[dict[str, str]] = None
+    ) -> None:
         ...
 
     def timing(

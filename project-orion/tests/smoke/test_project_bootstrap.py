@@ -34,13 +34,17 @@ REQUIRED_FILES = (
 @pytest.mark.parametrize("directory", REQUIRED_TOP_LEVEL_DIRS)
 def test_required_top_level_directory_exists(directory: str) -> None:
     """Verify core repository directories from the architecture blueprint exist."""
-    assert (PROJECT_ROOT / directory).is_dir(), f"Missing required directory: {directory}"
+    assert (
+        PROJECT_ROOT / directory
+    ).is_dir(), f"Missing required directory: {directory}"
 
 
 @pytest.mark.parametrize("relative_path", REQUIRED_FILES)
 def test_required_bootstrap_file_exists(relative_path: str) -> None:
     """Verify bootstrap tooling files exist."""
-    assert (PROJECT_ROOT / relative_path).is_file(), f"Missing required file: {relative_path}"
+    assert (
+        PROJECT_ROOT / relative_path
+    ).is_file(), f"Missing required file: {relative_path}"
 
 
 def test_pyproject_toml_is_valid() -> None:

@@ -25,26 +25,16 @@ from libraries.data.compression import compress, decompress
 from libraries.data.datasets import DatasetManager
 from libraries.data.metadata import MetadataManager
 from libraries.data.normalizers import OHLCNormalizer, TickNormalizer
-from libraries.data.pipelines import (
-    IngestionPipeline,
-    PipelineEngine,
-    ProcessingPipeline,
-    StoragePipeline,
-    ValidationPipeline,
-)
-from libraries.data.providers import DataProvider, ProviderConfig, ProviderRegistry
+from libraries.data.pipelines import (IngestionPipeline, PipelineEngine,
+                                      ProcessingPipeline, StoragePipeline,
+                                      ValidationPipeline)
+from libraries.data.providers import (DataProvider, ProviderConfig,
+                                      ProviderRegistry)
 from libraries.data.quality import QualityManager
 from libraries.data.replay import ReplayController
-from libraries.data.schemas import (
-    OHLC,
-    DatasetRegistry,
-    DatasetType,
-    Holiday,
-    LifecycleStage,
-    Session,
-    SymbolMetadata,
-    Tick,
-)
+from libraries.data.schemas import (OHLC, DatasetRegistry, DatasetType,
+                                    Holiday, LifecycleStage, Session,
+                                    SymbolMetadata, Tick)
 from libraries.data.serialization import deserialize, serialize
 from libraries.data.storage import FileSystemStorage, StorageManager
 from libraries.data.transform import DataTransformer
@@ -148,7 +138,9 @@ class DataPlatform:
         """Register an adapter class."""
         self.adapter_factory.register_adapter(provider_type, adapter_class)
 
-    def create_ingestion_pipeline(self, provider_config: ProviderConfig) -> IngestionPipeline:
+    def create_ingestion_pipeline(
+        self, provider_config: ProviderConfig
+    ) -> IngestionPipeline:
         """Create an ingestion pipeline."""
         pipeline = IngestionPipeline(self.adapter_factory, provider_config)
         pipeline.setup()

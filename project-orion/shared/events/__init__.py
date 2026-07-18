@@ -290,7 +290,9 @@ def event_from_dict(data: dict[str, Any]) -> DomainEvent:
         event_id=data.get("event_id", generate_id("evt")),
         event_type=event_type,
         timestamp=(
-            datetime.fromisoformat(data["timestamp"]) if "timestamp" in data else datetime.utcnow()
+            datetime.fromisoformat(data["timestamp"])
+            if "timestamp" in data
+            else datetime.utcnow()
         ),
         source=data.get("source", "unknown"),
         priority=EventPriority(data.get("priority", EventPriority.NORMAL.value)),

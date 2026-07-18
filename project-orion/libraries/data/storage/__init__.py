@@ -268,14 +268,17 @@ class S3Storage(StorageBackend):
         """List files with prefix in S3."""
         try:
             key_prefix = self._get_s3_key(prefix)
-            response = self._get_client().list_objects_v2(Bucket=self.bucket, Prefix=key_prefix)
+            response = self._get_client().list_objects_v2(
+                Bucket=self.bucket, Prefix=key_prefix
+            )
             contents = response.get("Contents")
             if not isinstance(contents, list):
                 return []
             return [
                 key
                 for item in contents
-                if isinstance(item, Mapping) and isinstance((key := item.get("Key")), str)
+                if isinstance(item, Mapping)
+                and isinstance((key := item.get("Key")), str)
             ]
         except Exception as e:
             if isinstance(e, StorageError):

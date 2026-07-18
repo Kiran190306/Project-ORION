@@ -22,16 +22,9 @@ Dependency Notes:
 from datetime import datetime
 from typing import List, Optional
 
-from libraries.data.schemas import (
-    ChangeType,
-    DataLineage,
-    DatasetRegistry,
-    DatasetType,
-    DatasetVersion,
-    DateRange,
-    LifecycleStage,
-    Transformation,
-)
+from libraries.data.schemas import (ChangeType, DataLineage, DatasetRegistry,
+                                    DatasetType, DatasetVersion, DateRange,
+                                    LifecycleStage, Transformation)
 from libraries.data.storage import StorageManager
 from libraries.data.validators import QualityChecker
 from shared.errors import OrionError
@@ -244,7 +237,9 @@ class DatasetManager:
 
     def _save_registry(self, registry: DatasetRegistry) -> bool:
         """Save dataset registry."""
-        path = f"registry/{registry.dataset_id}/{registry.dataset_version}/registry.json"
+        path = (
+            f"registry/{registry.dataset_id}/{registry.dataset_version}/registry.json"
+        )
         self.storage.write(path, registry)
         return True
 

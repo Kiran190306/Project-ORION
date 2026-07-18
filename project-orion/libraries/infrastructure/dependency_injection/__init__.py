@@ -151,7 +151,9 @@ class Container:
             if registration.factory:
                 return cast(T, registration.factory())
 
-        raise DependencyInjectionError(f"Cannot resolve {interface.__name__}: invalid registration")
+        raise DependencyInjectionError(
+            f"Cannot resolve {interface.__name__}: invalid registration"
+        )
 
     def has(self, interface: type) -> bool:
         """Check if a service is registered."""

@@ -34,7 +34,9 @@ def test_settings_load_environment_nested_configuration_and_validation(
     environment = load("libraries.infrastructure.environment")
     environment.set_environment(environment.Environment.TEST)
     settings = settings_module.Settings()
-    settings.define(settings_module.SettingDefinition("service.port", default=8080, type_cast=int))
+    settings.define(
+        settings_module.SettingDefinition("service.port", default=8080, type_cast=int)
+    )
     monkeypatch.setenv("ORION_SERVICE__PORT", "9090")
 
     settings.load_from_env()
@@ -101,7 +103,9 @@ def test_health_registry_converts_exceptions_to_unhealthy_results() -> None:
     assert summary["unhealthy"] == 1
 
 
-def test_dependency_container_honors_singleton_transient_and_factory_lifetimes() -> None:
+def test_dependency_container_honors_singleton_transient_and_factory_lifetimes() -> (
+    None
+):
     di = load("libraries.infrastructure.dependency_injection")
 
     class Port:

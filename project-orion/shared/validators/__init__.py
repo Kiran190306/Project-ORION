@@ -49,19 +49,23 @@ def validate_string(
     if len(value) < min_length:
         return failure(
             ValueError(
-                f"{field_name} must be at least {min_length} characters, " f"got {len(value)}"
+                f"{field_name} must be at least {min_length} characters, "
+                f"got {len(value)}"
             )
         )
 
     if max_length is not None and len(value) > max_length:
         return failure(
             ValueError(
-                f"{field_name} must not exceed {max_length} characters, " f"got {len(value)}"
+                f"{field_name} must not exceed {max_length} characters, "
+                f"got {len(value)}"
             )
         )
 
     if pattern is not None and not re.match(pattern, value):
-        return failure(ValueError(f"{field_name} does not match required pattern: {pattern}"))
+        return failure(
+            ValueError(f"{field_name} does not match required pattern: {pattern}")
+        )
 
     return success(value)
 
@@ -123,7 +127,9 @@ def validate_in_enum(
         return result
 
     if value not in enum_values:
-        return failure(ValueError(f"{field_name} must be one of {enum_values}, got '{value}'"))
+        return failure(
+            ValueError(f"{field_name} must be one of {enum_values}, got '{value}'")
+        )
 
     return success(value)
 
@@ -186,10 +192,14 @@ def validate_percentage(
         return result
 
     if not allow_negative and percentage < 0:
-        return failure(ValueError(f"{field_name} must be non-negative, got {percentage}"))
+        return failure(
+            ValueError(f"{field_name} must be non-negative, got {percentage}")
+        )
 
     if percentage > 1.0:
-        return failure(ValueError(f"{field_name} must be <= 1.0 (100%), got {percentage}"))
+        return failure(
+            ValueError(f"{field_name} must be <= 1.0 (100%), got {percentage}")
+        )
 
     return success(percentage)
 
@@ -208,7 +218,9 @@ def validate_email(email: str) -> Result[Any, Exception]:
 
 def validate_uuid(uuid_str: str) -> Result[Any, Exception]:
     """Validate a UUID string."""
-    pattern = r"^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    pattern = (
+        r"^[0-9a-f]{32}$|^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    )
     return validate_string(
         uuid_str,
         min_length=32,
@@ -233,7 +245,9 @@ def validate_datetime(
             return failure(ValueError(f"Invalid {field_name} format: {exc}"))
 
     return failure(
-        ValueError(f"{field_name} must be a datetime or ISO string, " f"got {type(dt_value)}")
+        ValueError(
+            f"{field_name} must be a datetime or ISO string, " f"got {type(dt_value)}"
+        )
     )
 
 
@@ -304,6 +318,8 @@ def validate_dict(
                 validated[field_name] = value
             case Failure():
                 return failure(
-                    ValueError(f"Validation failed for '{field_name}': {result.message}")
+                    ValueError(
+                        f"Validation failed for '{field_name}': {result.message}"
+                    )
                 )
     return success(validated)

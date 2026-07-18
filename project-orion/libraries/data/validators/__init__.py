@@ -32,16 +32,9 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import List, Optional, Tuple
 
-from libraries.data.schemas import (
-    OHLC,
-    DataQualityReport,
-    Holiday,
-    QualityCheck,
-    QualityIssue,
-    Session,
-    SymbolMetadata,
-    Tick,
-)
+from libraries.data.schemas import (OHLC, DataQualityReport, Holiday,
+                                    QualityCheck, QualityIssue, Session,
+                                    SymbolMetadata, Tick)
 from shared.errors import ValidationError
 
 
@@ -276,7 +269,10 @@ class QualityChecker:
 
     @staticmethod
     def check_timestamp_consistency(
-        ordering_score: float, alignment_score: float, gap_score: float, timezone_score: float
+        ordering_score: float,
+        alignment_score: float,
+        gap_score: float,
+        timezone_score: float,
     ) -> QualityCheck:
         """Check timestamp consistency."""
         score = (

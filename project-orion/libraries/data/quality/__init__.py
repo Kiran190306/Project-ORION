@@ -20,8 +20,10 @@ Dependency Notes:
 from datetime import datetime
 from typing import List, Optional
 
-from libraries.data.schemas import OHLC, DataQualityReport, QualityCheck, QualityIssue, Tick
-from libraries.data.validators import OHLCValidator, QualityChecker, TickValidator
+from libraries.data.schemas import (OHLC, DataQualityReport, QualityCheck,
+                                    QualityIssue, Tick)
+from libraries.data.validators import (OHLCValidator, QualityChecker,
+                                       TickValidator)
 from shared.errors import OrionError
 
 
@@ -55,7 +57,9 @@ class QualityManager:
 
             # Missing data check
             # TODO: Implement missing data detection
-            missing_check = self.quality_checker.check_missing_candles(len(ticks), len(ticks))
+            missing_check = self.quality_checker.check_missing_candles(
+                len(ticks), len(ticks)
+            )
             checks.append(missing_check)
 
             # Duplicate check
@@ -65,7 +69,9 @@ class QualityManager:
 
             # Timestamp consistency check
             timestamp_errors = self.tick_validator.validate_tick_sequence(ticks)
-            timestamp_score = 1.0 - (len(timestamp_errors) / len(ticks)) if ticks else 1.0
+            timestamp_score = (
+                1.0 - (len(timestamp_errors) / len(ticks)) if ticks else 1.0
+            )
             timestamp_check = self.quality_checker.check_timestamp_consistency(
                 timestamp_score, 1.0, 1.0, 1.0
             )
@@ -78,7 +84,9 @@ class QualityManager:
 
             # Checksum check
             # TODO: Implement checksum validation
-            checksum_check = self.quality_checker.check_checksum("calculated", "calculated")
+            checksum_check = self.quality_checker.check_checksum(
+                "calculated", "calculated"
+            )
             checks.append(checksum_check)
 
             # Calculate overall score
@@ -144,7 +152,9 @@ class QualityManager:
 
             # Timestamp consistency check
             # TODO: Implement timestamp validation
-            timestamp_check = self.quality_checker.check_timestamp_consistency(1.0, 1.0, 1.0, 1.0)
+            timestamp_check = self.quality_checker.check_timestamp_consistency(
+                1.0, 1.0, 1.0, 1.0
+            )
             checks.append(timestamp_check)
 
             # Outlier check
@@ -154,7 +164,9 @@ class QualityManager:
 
             # Checksum check
             # TODO: Implement checksum validation
-            checksum_check = self.quality_checker.check_checksum("calculated", "calculated")
+            checksum_check = self.quality_checker.check_checksum(
+                "calculated", "calculated"
+            )
             checks.append(checksum_check)
 
             # Calculate overall score

@@ -16,19 +16,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Generic,
-    List,
-    Optional,
-    Protocol,
-    Tuple,
-    TypedDict,
-    TypeVar,
-    Union,
-)
+from typing import (Any, Callable, Dict, Generic, List, Optional, Protocol,
+                    Tuple, TypedDict, TypeVar, Union)
 
 # Re-export for unit tests / public contract compatibility
 __all__ = [

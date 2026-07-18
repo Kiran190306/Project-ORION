@@ -128,7 +128,10 @@ class CacheKeyGenerator:
 
     @staticmethod
     def generate_dataset_key(
-        dataset_id: str, version: str, symbol: Optional[str] = None, timeframe: Optional[str] = None
+        dataset_id: str,
+        version: str,
+        symbol: Optional[str] = None,
+        timeframe: Optional[str] = None,
     ) -> str:
         """Generate cache key for dataset."""
         parts = ["dataset", dataset_id, version]

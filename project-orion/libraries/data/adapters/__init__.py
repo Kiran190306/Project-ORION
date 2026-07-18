@@ -19,7 +19,8 @@ from abc import ABC
 from datetime import datetime
 from typing import Optional
 
-from libraries.data.providers import DataProvider, ProviderConfig, ProviderMetadata
+from libraries.data.providers import (DataProvider, ProviderConfig,
+                                      ProviderMetadata)
 from libraries.data.schemas import OHLC, SymbolMetadata, Tick
 from shared.errors import OrionError
 
@@ -63,7 +64,9 @@ class BaseAdapter(DataProvider):
         # TODO: Implement metadata retrieval
         pass
 
-    def fetch_ticks(self, symbol: str, start_time: datetime, end_time: datetime) -> list[Tick]:
+    def fetch_ticks(
+        self, symbol: str, start_time: datetime, end_time: datetime
+    ) -> list[Tick]:
         """Fetch tick data for symbol and time range."""
         # TODO: Implement tick fetching
         return []
@@ -93,7 +96,9 @@ class AdapterFactory:
         """Initialize adapter factory."""
         self._adapter_classes: dict[str, type[BaseAdapter]] = {}
 
-    def register_adapter(self, provider_type: str, adapter_class: type[BaseAdapter]) -> None:
+    def register_adapter(
+        self, provider_type: str, adapter_class: type[BaseAdapter]
+    ) -> None:
         """Register an adapter class."""
         self._adapter_classes[provider_type] = adapter_class
 
@@ -101,7 +106,9 @@ class AdapterFactory:
         """Create adapter instance from configuration."""
         adapter_class = self._adapter_classes.get(config.provider_type)
         if not adapter_class:
-            raise AdapterError(f"No adapter registered for provider type: {config.provider_type}")
+            raise AdapterError(
+                f"No adapter registered for provider type: {config.provider_type}"
+            )
         return adapter_class(config)
 
     def list_adapters(self) -> list[str]:

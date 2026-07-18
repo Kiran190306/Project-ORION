@@ -57,7 +57,9 @@ def test_every_epic_source_file_parses_as_python() -> None:
         try:
             ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except SyntaxError as error:
-            failures.append(f"{path.relative_to(PROJECT_ROOT)}:{error.lineno}: {error.msg}")
+            failures.append(
+                f"{path.relative_to(PROJECT_ROOT)}:{error.lineno}: {error.msg}"
+            )
     assert not failures, "\n".join(failures)
 
 
@@ -96,7 +98,9 @@ def test_internal_imports_use_the_declared_monorepo_package_roots() -> None:
         "libraries/data",
     ],
 )
-def test_package_boundaries_have_explicit_python_package_markers(package_path: str) -> None:
+def test_package_boundaries_have_explicit_python_package_markers(
+    package_path: str,
+) -> None:
     root = PROJECT_ROOT / package_path
 
     excluded_dir_names = {

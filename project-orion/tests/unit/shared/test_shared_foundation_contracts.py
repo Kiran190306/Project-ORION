@@ -7,20 +7,17 @@ from decimal import Decimal
 from typing import Any, Callable
 
 import pytest
-
-from shared.common.decorators import async_retry, retry, singleton, validate_args
-from shared.common.result import Failure, Result, Success, attempt_async, failure, success
+from shared.common.decorators import (async_retry, retry, singleton,
+                                      validate_args)
+from shared.common.result import (Failure, Result, Success, attempt_async,
+                                  failure, success)
 from shared.events import TickReceivedEvent, create_event, event_from_dict
 from shared.identifiers import EntityId, generate_id, is_valid_id
 from shared.responses import ApiResponse, PaginatedResponse
-from shared.validators import (
-    Validator,
-    validate_dict,
-    validate_email,
-    validate_price,
-    validate_symbol,
-)
-from shared.value_objects import Money, PriceValue, RiskRewardRatio, Spread, Symbol
+from shared.validators import (Validator, validate_dict, validate_email,
+                               validate_price, validate_symbol)
+from shared.value_objects import (Money, PriceValue, RiskRewardRatio, Spread,
+                                  Symbol)
 from shared.versioning import Version, VersionRange, is_compatible
 
 
@@ -110,7 +107,9 @@ def test_value_objects_validate_and_apply_domain_arithmetic() -> None:
     assert PriceValue(Decimal("1.23456")).to_dict()["value"] == "1.23456"
     assert Symbol("EUR", "USD").name == "EUR/USD"
     assert Spread(Decimal("1.1002"), Decimal("1.1000")).value == Decimal("0.0002")
-    assert RiskRewardRatio(amount, Money(Decimal("20"), "USD")).ratio == pytest.approx(2)
+    assert RiskRewardRatio(amount, Money(Decimal("20"), "USD")).ratio == pytest.approx(
+        2
+    )
 
     with pytest.raises(ValueError, match="Cannot add"):
         amount + Money(Decimal("1"), "EUR")
@@ -154,7 +153,9 @@ def test_events_round_trip_through_the_public_serialization_contract() -> None:
 def test_response_and_version_public_contracts() -> None:
     response = ApiResponse.from_result(success({"id": "1"}), success_message="created")
     assert response.to_dict()["data"] == {"id": "1"}
-    error_response: ApiResponse[None] = ApiResponse.from_result(failure(ValueError("bad")))
+    error_response: ApiResponse[None] = ApiResponse.from_result(
+        failure(ValueError("bad"))
+    )
     assert error_response.error is not None
     assert error_response.error["code"] == "ValueError"
 
