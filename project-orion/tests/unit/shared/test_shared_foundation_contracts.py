@@ -7,6 +7,7 @@ from decimal import Decimal
 from typing import Any, Callable
 
 import pytest
+
 from shared.common.decorators import async_retry, retry, singleton, validate_args
 from shared.common.result import Failure, Result, Success, attempt_async, failure, success
 from shared.events import TickReceivedEvent, create_event, event_from_dict

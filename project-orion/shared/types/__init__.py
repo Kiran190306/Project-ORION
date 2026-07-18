@@ -182,9 +182,11 @@ class Serializable(Protocol):
 class Comparable(Protocol):
     """Protocol for comparable objects."""
 
-    def __lt__(self, other: object) -> bool: ...
+    def __lt__(self, other: object) -> bool:
+        ...
 
-    def __eq__(self, other: object) -> bool: ...
+    def __eq__(self, other: object) -> bool:
+        ...
 
 
 class HasId(Protocol):

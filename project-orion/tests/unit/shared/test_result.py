@@ -3,6 +3,7 @@ Tests for the Result monad pattern.
 """
 
 import pytest
+
 from shared.common.result import Failure, Success, attempt, failure, success
 
 

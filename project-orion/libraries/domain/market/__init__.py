@@ -16,9 +16,9 @@ from .interfaces import (
 )
 from .manager import MarketDataManager
 from .models import (
+    OHLC,
     MarketDataKind,
     MarketDataSnapshot,
-    OHLC,
     RawTick,
     Symbol,
     Tick,
