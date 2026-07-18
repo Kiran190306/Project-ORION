@@ -4,25 +4,55 @@ Unit tests for shared.errors module.
 Tests error hierarchy, error properties, and error serialization.
 """
 
-from shared.errors import (AccountLockedError, AuthenticationError,
-                           AuthorizationError, CacheError, ConfigNotFoundError,
-                           ConfigurationError, ConfigValidationError,
-                           ConflictError, ConstraintViolationError,
-                           DatabaseError, DataError, DataGapError,
-                           DataQualityError, ExecutionError, ExposureError,
-                           FeatureNotAvailableError, InfrastructureError,
-                           InsufficientFundsError, InvalidCredentialsError,
-                           InvalidInputError, InvalidSignalError,
-                           InvalidStateError, LicenseExpiredError,
-                           LicensingError, LimitBreachError, MarginCallError,
-                           MarketError, MFARequiredError, NotFoundError,
-                           OrderError, OrderRejectedError, OrionError,
-                           PermissionDeniedError, PositionError, ProviderError,
-                           RateLimitExceededError, RiskError, SignalError,
-                           StrategyError, StrategyExecutionError,
-                           StrategyLoadError, StrategyValidationError,
-                           TimeoutError, TokenExpiredError, TradingError,
-                           UsageLimitExceededError, ValidationError)
+from shared.errors import (
+    AccountLockedError,
+    AuthenticationError,
+    AuthorizationError,
+    CacheError,
+    ConfigNotFoundError,
+    ConfigurationError,
+    ConfigValidationError,
+    ConflictError,
+    ConstraintViolationError,
+    DatabaseError,
+    DataError,
+    DataGapError,
+    DataQualityError,
+    ExecutionError,
+    ExposureError,
+    FeatureNotAvailableError,
+    InfrastructureError,
+    InsufficientFundsError,
+    InvalidCredentialsError,
+    InvalidInputError,
+    InvalidSignalError,
+    InvalidStateError,
+    LicenseExpiredError,
+    LicensingError,
+    LimitBreachError,
+    MarginCallError,
+    MarketError,
+    MFARequiredError,
+    NotFoundError,
+    OrderError,
+    OrderRejectedError,
+    OrionError,
+    PermissionDeniedError,
+    PositionError,
+    ProviderError,
+    RateLimitExceededError,
+    RiskError,
+    SignalError,
+    StrategyError,
+    StrategyExecutionError,
+    StrategyLoadError,
+    StrategyValidationError,
+    TimeoutError,
+    TokenExpiredError,
+    TradingError,
+    UsageLimitExceededError,
+    ValidationError,
+)
 
 
 class TestOrionError:
@@ -170,9 +200,7 @@ class TestMarketErrors:
 
     def test_data_gap_error(self):
         """Test DataGapError."""
-        error = DataGapError(
-            "EUR/USD", "2024-01-01T00:00:00", "2024-01-01T01:00:00", 3600
-        )
+        error = DataGapError("EUR/USD", "2024-01-01T00:00:00", "2024-01-01T01:00:00", 3600)
         assert error.code == "DATA_GAP_ERROR"
         assert error.details["symbol"] == "EUR/USD"
         assert error.details["gap_duration_seconds"] == 3600
@@ -290,9 +318,7 @@ class TestStrategyErrors:
 
     def test_strategy_validation_error(self):
         """Test StrategyValidationError."""
-        error = StrategyValidationError(
-            "my_strategy", ["Invalid parameter", "Missing field"]
-        )
+        error = StrategyValidationError("my_strategy", ["Invalid parameter", "Missing field"])
         assert error.code == "STRATEGY_VALIDATION_ERROR"
         assert error.details["strategy_name"] == "my_strategy"
         assert error.details["errors"] == ["Invalid parameter", "Missing field"]
@@ -310,9 +336,7 @@ class TestLicensingErrors:
 
     def test_feature_not_available_error(self):
         """Test FeatureNotAvailableError."""
-        error = FeatureNotAvailableError(
-            "advanced_analytics", "ENTERPRISE", "PROFESSIONAL"
-        )
+        error = FeatureNotAvailableError("advanced_analytics", "ENTERPRISE", "PROFESSIONAL")
         assert error.code == "FEATURE_NOT_AVAILABLE"
         assert error.details["feature"] == "advanced_analytics"
         assert error.details["required_tier"] == "ENTERPRISE"

@@ -133,9 +133,7 @@ class DataProvider(ABC):
         pass
 
     @abstractmethod
-    def fetch_ticks(
-        self, symbol: str, start_time: datetime, end_time: datetime
-    ) -> list[Tick]:
+    def fetch_ticks(self, symbol: str, start_time: datetime, end_time: datetime) -> list[Tick]:
         """Fetch tick data for symbol and time range."""
         pass
 
@@ -175,9 +173,7 @@ class ProviderRegistry:
         """Create provider instance from configuration."""
         provider_class = self._provider_classes.get(config.provider_type)
         if not provider_class:
-            raise ProviderError(
-                f"No provider class registered for type: {config.provider_type}"
-            )
+            raise ProviderError(f"No provider class registered for type: {config.provider_type}")
         return provider_class(config)
 
     def register_provider(self, provider_id: str, provider: DataProvider) -> None:
@@ -209,8 +205,6 @@ def get_provider_registry() -> ProviderRegistry:
     return _registry
 
 
-def register_provider_class(
-    provider_type: str, provider_class: type[DataProvider]
-) -> None:
+def register_provider_class(provider_type: str, provider_class: type[DataProvider]) -> None:
     """Register a provider class."""
     _registry.register_provider_class(provider_type, provider_class)

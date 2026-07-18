@@ -71,9 +71,7 @@ def validate_args(
             for idx, validator in enumerate(validators):
                 if idx < len(args):
                     if not validator(args[idx]):
-                        raise ValueError(
-                            f"{error_msg}: argument {idx} failed validation"
-                        )
+                        raise ValueError(f"{error_msg}: argument {idx} failed validation")
             return func(*args, **kwargs)
 
         return wrapper
@@ -210,9 +208,7 @@ def log_call(func: Callable[P, T]) -> Callable[P, T]:
 
     @functools.wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-        logger.debug(
-            "Calling %s with args=%s kwargs=%s", func.__qualname__, args, kwargs
-        )
+        logger.debug("Calling %s with args=%s kwargs=%s", func.__qualname__, args, kwargs)
         try:
             result = func(*args, **kwargs)
             logger.debug("%s returned %s", func.__qualname__, result)

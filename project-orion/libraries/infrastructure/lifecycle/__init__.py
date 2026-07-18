@@ -194,9 +194,7 @@ class ApplicationLifecycle:
         self._state = LifecycleState.STARTING
         self._start_time = time.monotonic()
 
-        logger.info(
-            "Starting application with %d startup hooks", len(self._startup_hooks)
-        )
+        logger.info("Starting application with %d startup hooks", len(self._startup_hooks))
 
         for hook in self._startup_hooks:
             logger.info("Executing startup hook: %s", hook.name)

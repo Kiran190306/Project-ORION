@@ -42,27 +42,21 @@ class _S3Body(Protocol):
 class _S3Client(Protocol):
     """Typed surface used from the optional boto3 S3 client."""
 
-    def put_object(self, **kwargs: object) -> object:
-        ...
+    def put_object(self, **kwargs: object) -> object: ...
 
-    def get_object(self, **kwargs: object) -> Mapping[str, object]:
-        ...
+    def get_object(self, **kwargs: object) -> Mapping[str, object]: ...
 
-    def head_object(self, **kwargs: object) -> object:
-        ...
+    def head_object(self, **kwargs: object) -> object: ...
 
-    def delete_object(self, **kwargs: object) -> object:
-        ...
+    def delete_object(self, **kwargs: object) -> object: ...
 
-    def list_objects_v2(self, **kwargs: object) -> Mapping[str, object]:
-        ...
+    def list_objects_v2(self, **kwargs: object) -> Mapping[str, object]: ...
 
 
 class _Boto3Module(Protocol):
     """Typed surface used from the optional :mod:`boto3` package."""
 
-    def client(self, service_name: str) -> _S3Client:
-        ...
+    def client(self, service_name: str) -> _S3Client: ...
 
 
 def _load_boto3() -> _Boto3Module:
@@ -268,17 +262,14 @@ class S3Storage(StorageBackend):
         """List files with prefix in S3."""
         try:
             key_prefix = self._get_s3_key(prefix)
-            response = self._get_client().list_objects_v2(
-                Bucket=self.bucket, Prefix=key_prefix
-            )
+            response = self._get_client().list_objects_v2(Bucket=self.bucket, Prefix=key_prefix)
             contents = response.get("Contents")
             if not isinstance(contents, list):
                 return []
             return [
                 key
                 for item in contents
-                if isinstance(item, Mapping)
-                and isinstance((key := item.get("Key")), str)
+                if isinstance(item, Mapping) and isinstance((key := item.get("Key")), str)
             ]
         except Exception as e:
             if isinstance(e, StorageError):

@@ -32,9 +32,16 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import List, Optional, Tuple
 
-from libraries.data.schemas import (OHLC, DataQualityReport, Holiday,
-                                    QualityCheck, QualityIssue, Session,
-                                    SymbolMetadata, Tick)
+from libraries.data.schemas import (
+    OHLC,
+    DataQualityReport,
+    Holiday,
+    QualityCheck,
+    QualityIssue,
+    Session,
+    SymbolMetadata,
+    Tick,
+)
 from shared.errors import ValidationError
 
 

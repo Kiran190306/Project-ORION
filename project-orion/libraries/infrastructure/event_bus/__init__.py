@@ -84,9 +84,7 @@ class InMemoryEventBus(EventBus):
 
     def __init__(self, max_queue_size: int = 1000) -> None:
         self._subscriptions: dict[str, list[Subscription]] = {}
-        self._queue: asyncio.Queue[tuple[str, DomainEvent]] = asyncio.Queue(
-            maxsize=max_queue_size
-        )
+        self._queue: asyncio.Queue[tuple[str, DomainEvent]] = asyncio.Queue(maxsize=max_queue_size)
         self._running = False
         self._worker_task: Optional[asyncio.Task[None]] = None
 

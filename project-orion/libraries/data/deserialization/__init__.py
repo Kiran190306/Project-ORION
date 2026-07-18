@@ -106,12 +106,8 @@ class JSONDeserializer(Deserializer):
         """Deserialize JSON bytes to dictionary."""
         try:
             result = json.loads(data.decode("utf-8"))
-            if not isinstance(result, dict) or not all(
-                isinstance(key, str) for key in result
-            ):
-                raise DeserializationError(
-                    "JSON payload must be an object with string keys"
-                )
+            if not isinstance(result, dict) or not all(isinstance(key, str) for key in result):
+                raise DeserializationError("JSON payload must be an object with string keys")
             return {key: value for key, value in result.items()}
         except Exception as e:
             raise DeserializationError(f"JSON deserialization failed: {str(e)}")

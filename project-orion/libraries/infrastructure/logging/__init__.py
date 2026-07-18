@@ -228,9 +228,7 @@ class StructuredLogger:
         """Log a critical message (Python logging compatible)."""
         self._log(logging.CRITICAL, message, extra, exc_info=False, args=args)
 
-    def exception(
-        self, message: str, exception: Exception, *args: Any, **extra: Any
-    ) -> None:
+    def exception(self, message: str, exception: Exception, *args: Any, **extra: Any) -> None:
         """Log an exception with stacktrace.
 
         Compatible with Python logging formatting via positional args.
@@ -256,9 +254,7 @@ class StructuredLogger:
 
         # Legacy key/value pairs: all args must be usable as key/value pairs.
         if args:
-            if len(args) % 2 == 0 and all(
-                isinstance(args[i], str) for i in range(0, len(args), 2)
-            ):
+            if len(args) % 2 == 0 and all(isinstance(args[i], str) for i in range(0, len(args), 2)):
                 it = iter(args)
                 extra_dict.update({str(k): v for k, v in zip(it, it)})
                 fmt_args: tuple[Any, ...] = ()

@@ -23,8 +23,14 @@ from datetime import date, datetime
 from typing import Dict, List, Optional
 
 from libraries.data.cache import CacheManager
-from libraries.data.schemas import (AssetClass, DaylightSavingConfig, Holiday,
-                                    Session, SymbolMetadata, TradingHours)
+from libraries.data.schemas import (
+    AssetClass,
+    DaylightSavingConfig,
+    Holiday,
+    Session,
+    SymbolMetadata,
+    TradingHours,
+)
 from libraries.data.storage import StorageManager
 from shared.errors import OrionError
 
@@ -78,11 +84,7 @@ class MetadataManager:
             if metadata is not None:
                 # Cache the result
                 self.cache.set(cache_key, metadata)
-                return (
-                    SymbolMetadata(**metadata)
-                    if isinstance(metadata, dict)
-                    else metadata
-                )
+                return SymbolMetadata(**metadata) if isinstance(metadata, dict) else metadata
 
             return None
         except Exception as e:
@@ -92,9 +94,7 @@ class MetadataManager:
         """List all symbols with metadata."""
         try:
             files = self.storage.list("metadata/symbols/")
-            return [
-                f.replace("metadata/symbols/", "").replace(".json", "") for f in files
-            ]
+            return [f.replace("metadata/symbols/", "").replace(".json", "") for f in files]
         except Exception as e:
             raise MetadataError(f"Failed to list symbols: {str(e)}")
 

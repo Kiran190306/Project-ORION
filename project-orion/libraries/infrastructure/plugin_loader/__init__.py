@@ -157,9 +157,7 @@ class PluginLoader:
             for entry_point in entry_points(group=group):
                 try:
                     plugin_class = entry_point.load()
-                    if inspect.isclass(plugin_class) and issubclass(
-                        plugin_class, PluginBase
-                    ):
+                    if inspect.isclass(plugin_class) and issubclass(plugin_class, PluginBase):
                         self.register(entry_point.name, plugin_class)
                         discovered.append(entry_point.name)
                 except Exception as exc:
@@ -241,9 +239,7 @@ class PluginLoader:
         try:
             instance = plugin_class(**kwargs)
             if not isinstance(instance, PluginBase):
-                raise PluginValidationError(
-                    f"Plugin {name} does not implement PluginBase"
-                )
+                raise PluginValidationError(f"Plugin {name} does not implement PluginBase")
             self._loaded[name] = instance
             self._plugin_info[name] = instance.plugin_info
             logger.info("Loaded plugin: %s (v%s)", name, instance.plugin_info.version)

@@ -215,9 +215,7 @@ class SymbolMetadata:
     holidays: List[Holiday] = field(default_factory=list)
     daylight_saving: DaylightSavingConfig = field(default_factory=DaylightSavingConfig)
     margin_requirements: MarginRequirements = field(default_factory=MarginRequirements)
-    commission_structure: CommissionStructure = field(
-        default_factory=CommissionStructure
-    )
+    commission_structure: CommissionStructure = field(default_factory=CommissionStructure)
     swap_rates: SwapRates = field(default_factory=SwapRates)
     active: bool = True
     listed_date: Optional[datetime] = None

@@ -119,9 +119,7 @@ class FeatureFlagManager:
                 name=name,
                 description=config.get("description", ""),
                 status=FlagStatus(config.get("status", "disabled")),
-                enabled_environments=[
-                    Environment(e) for e in config.get("environments", [])
-                ],
+                enabled_environments=[Environment(e) for e in config.get("environments", [])],
                 rollout_percentage=config.get("rollout_percentage", 0),
                 enabled_users=config.get("enabled_users", []),
                 dependencies=config.get("dependencies", []),

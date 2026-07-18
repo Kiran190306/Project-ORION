@@ -28,8 +28,14 @@ from libraries.data.datasets import DatasetManager
 from libraries.data.normalizers import OHLCNormalizer, TickNormalizer
 from libraries.data.providers import ProviderConfig
 from libraries.data.quality import QualityManager
-from libraries.data.schemas import (OHLC, DataQualityReport, DatasetRegistry,
-                                    DatasetType, LifecycleStage, Tick)
+from libraries.data.schemas import (
+    OHLC,
+    DataQualityReport,
+    DatasetRegistry,
+    DatasetType,
+    LifecycleStage,
+    Tick,
+)
 from libraries.data.storage import StorageManager
 from libraries.data.transform import DataTransformer
 from libraries.data.validators import OHLCValidator, TickValidator
@@ -100,9 +106,7 @@ class Pipeline(ABC):
 class IngestionPipeline(Pipeline):
     """Pipeline for data ingestion from providers."""
 
-    def __init__(
-        self, adapter_factory: AdapterFactory, provider_config: ProviderConfig
-    ):
+    def __init__(self, adapter_factory: AdapterFactory, provider_config: ProviderConfig):
         """Initialize ingestion pipeline.
 
         Args:
@@ -140,9 +144,7 @@ class IngestionPipeline(Pipeline):
             return tick_data
 
         timeframe = context.get("timeframe", "M1")
-        ohlc_data = adapter.fetch_ohlc(
-            symbol, cast(str, timeframe), start_time, end_time
-        )
+        ohlc_data = adapter.fetch_ohlc(symbol, cast(str, timeframe), start_time, end_time)
         context["raw_data"] = ohlc_data
         return ohlc_data
 
@@ -272,9 +274,7 @@ class ValidationPipeline(Pipeline):
 class StoragePipeline(Pipeline):
     """Pipeline for data storage and dataset registration."""
 
-    def __init__(
-        self, storage_manager: StorageManager, dataset_manager: DatasetManager
-    ):
+    def __init__(self, storage_manager: StorageManager, dataset_manager: DatasetManager):
         """Initialize storage pipeline.
 
         Args:
@@ -326,9 +326,7 @@ class StoragePipeline(Pipeline):
         """Update dataset lifecycle stage."""
         dataset_id = _required_string(context, "dataset_id")
         dataset_version = cast(str, context.get("dataset_version", "1.0.0"))
-        quality_report = cast(
-            Optional[DataQualityReport], context.get("quality_report")
-        )
+        quality_report = cast(Optional[DataQualityReport], context.get("quality_report"))
 
         if quality_report and quality_report.approved:
             self.dataset_manager.update_lifecycle_stage(

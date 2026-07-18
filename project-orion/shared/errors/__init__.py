@@ -364,10 +364,7 @@ class DataQualityError(MarketError):
     ) -> None:
         super().__init__(
             message=message
-            or (
-                f"Data quality score {quality_score} "
-                f"below minimum threshold {min_threshold}"
-            ),
+            or (f"Data quality score {quality_score} " f"below minimum threshold {min_threshold}"),
             code="DATA_QUALITY_ERROR",
             details={
                 **(details or {}),
@@ -782,9 +779,7 @@ class StrategyValidationError(StrategyError):
     ) -> None:
         super().__init__(
             message=message
-            or (
-                f"Strategy '{strategy_name}' validation failed: " f"{'; '.join(errors)}"
-            ),
+            or (f"Strategy '{strategy_name}' validation failed: " f"{'; '.join(errors)}"),
             code="STRATEGY_VALIDATION_ERROR",
             details={
                 **(details or {}),
@@ -871,10 +866,7 @@ class UsageLimitExceededError(LicensingError):
     ) -> None:
         super().__init__(
             message=message
-            or (
-                f"Usage limit exceeded for '{limit_name}': "
-                f"{current_usage}/{max_allowed}"
-            ),
+            or (f"Usage limit exceeded for '{limit_name}': " f"{current_usage}/{max_allowed}"),
             code="USAGE_LIMIT_EXCEEDED",
             details={
                 **(details or {}),
@@ -899,8 +891,7 @@ class TimeoutError(OrionError):
         details: Optional[dict[str, Any]] = None,
     ) -> None:
         super().__init__(
-            message=message
-            or (f"Operation '{operation}' timed out after {timeout_seconds}s"),
+            message=message or (f"Operation '{operation}' timed out after {timeout_seconds}s"),
             code="TIMEOUT",
             details={
                 **(details or {}),
@@ -952,10 +943,7 @@ class NotFoundError(OrionError):
     ) -> None:
         super().__init__(
             message=message
-            or (
-                f"{resource_type} not found"
-                + (f": {resource_id}" if resource_id else "")
-            ),
+            or (f"{resource_type} not found" + (f": {resource_id}" if resource_id else "")),
             code="NOT_FOUND",
             details={
                 **(details or {}),

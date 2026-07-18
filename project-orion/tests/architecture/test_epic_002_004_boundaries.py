@@ -57,9 +57,7 @@ def test_every_epic_source_file_parses_as_python() -> None:
         try:
             ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         except SyntaxError as error:
-            failures.append(
-                f"{path.relative_to(PROJECT_ROOT)}:{error.lineno}: {error.msg}"
-            )
+            failures.append(f"{path.relative_to(PROJECT_ROOT)}:{error.lineno}: {error.msg}")
     assert not failures, "\n".join(failures)
 
 

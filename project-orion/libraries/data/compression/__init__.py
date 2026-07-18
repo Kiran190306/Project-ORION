@@ -224,9 +224,7 @@ class CompressionRegistry:
     def get_compressor(self, algorithm_name: str) -> Compressor:
         """Get compressor by algorithm name."""
         if algorithm_name not in self._compressors:
-            raise CompressionError(
-                f"No compressor registered for algorithm: {algorithm_name}"
-            )
+            raise CompressionError(f"No compressor registered for algorithm: {algorithm_name}")
         return self._compressors[algorithm_name]
 
     def list_algorithms(self) -> list[str]:

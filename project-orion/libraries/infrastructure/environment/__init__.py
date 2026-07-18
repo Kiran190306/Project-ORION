@@ -129,8 +129,7 @@ def require_environment(*allowed: Environment) -> None:
     if current not in allowed:
         allowed_names = ", ".join(e.value for e in allowed)
         raise RuntimeError(
-            f"Environment '{current.value}' not allowed. "
-            f"Must be one of: {allowed_names}"
+            f"Environment '{current.value}' not allowed. " f"Must be one of: {allowed_names}"
         )
 
 

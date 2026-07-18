@@ -16,8 +16,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import (Any, Callable, Dict, Generic, List, Optional, Protocol,
-                    Tuple, TypedDict, TypeVar, Union)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generic,
+    List,
+    Optional,
+    Protocol,
+    Tuple,
+    TypedDict,
+    TypeVar,
+    Union,
+)
 
 # Re-export for unit tests / public contract compatibility
 __all__ = [
@@ -171,11 +182,9 @@ class Serializable(Protocol):
 class Comparable(Protocol):
     """Protocol for comparable objects."""
 
-    def __lt__(self, other: object) -> bool:
-        ...
+    def __lt__(self, other: object) -> bool: ...
 
-    def __eq__(self, other: object) -> bool:
-        ...
+    def __eq__(self, other: object) -> bool: ...
 
 
 class HasId(Protocol):

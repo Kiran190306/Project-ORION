@@ -1,45 +1,59 @@
-"""
-Market Domain Library
+"""Production-ready async domain engine for real-time market data."""
 
-Module Description:
-This library contains market domain models and business logic.
-It includes tick models, OHLC models, symbol models, session models, and market enums.
+from .exceptions import (
+    DuplicateSymbolError,
+    EngineNotRunningError,
+    InvalidMarketDataError,
+    InvalidSessionError,
+    MarketDataEngineError,
+    UnknownSymbolError,
+)
+from .interfaces import (
+    MarketDataPublisher,
+    SessionManagerPort,
+    SymbolRegistryPort,
+    ValidationEnginePort,
+)
+from .manager import MarketDataManager
+from .models import (
+    MarketDataKind,
+    MarketDataSnapshot,
+    OHLC,
+    RawTick,
+    Symbol,
+    Tick,
+    TradingSession,
+    ValidationIssue,
+    ValidationReport,
+)
+from .normalization import NormalizationEngine
+from .session_manager import SessionManager
+from .symbol_registry import SymbolRegistry
+from .validation import ValidationEngine
 
-Implementation Checklist:
-- [ ] Tick models
-- [ ] OHLC models
-- [ ] Symbol models
-- [ ] Session models
-- [ ] Market enums
-- [ ] Market errors
-
-TODO:
-- Implement tick models
-- Implement OHLC models
-- Implement symbol models
-- Add session models
-- Add error definitions
-
-Dependency Notes:
-- Depends on: shared/
-- Used by: market-data, market-intelligence, historical-data
-"""
-
-
-# TODO: Implement market domain models
-class Tick:
-    """Tick model placeholder."""
-
-    pass
-
-
-class OHLC:
-    """OHLC model placeholder."""
-
-    pass
-
-
-class Symbol:
-    """Symbol model placeholder."""
-
-    pass
+__all__ = [
+    "DuplicateSymbolError",
+    "EngineNotRunningError",
+    "InvalidMarketDataError",
+    "InvalidSessionError",
+    "MarketDataEngineError",
+    "MarketDataKind",
+    "MarketDataManager",
+    "MarketDataPublisher",
+    "MarketDataSnapshot",
+    "NormalizationEngine",
+    "OHLC",
+    "RawTick",
+    "SessionManager",
+    "SessionManagerPort",
+    "Symbol",
+    "SymbolRegistry",
+    "SymbolRegistryPort",
+    "Tick",
+    "TradingSession",
+    "UnknownSymbolError",
+    "ValidationEngine",
+    "ValidationEnginePort",
+    "ValidationIssue",
+    "ValidationReport",
+]

@@ -78,9 +78,7 @@ class TickToOHLCAggregator:
 
         return candles
 
-    def _group_ticks_by_timeframe(
-        self, ticks: list[Tick]
-    ) -> dict[datetime, list[Tick]]:
+    def _group_ticks_by_timeframe(self, ticks: list[Tick]) -> dict[datetime, list[Tick]]:
         """Group ticks by timeframe intervals."""
         groups: defaultdict[datetime, list[Tick]] = defaultdict(list)
 
@@ -95,14 +93,10 @@ class TickToOHLCAggregator:
         """Calculate candle start time for given timestamp."""
         timestamp = timestamp.replace(tzinfo=None)
         seconds = timestamp.timestamp()
-        candle_seconds = (
-            int(seconds // self._timeframe_seconds) * self._timeframe_seconds
-        )
+        candle_seconds = int(seconds // self._timeframe_seconds) * self._timeframe_seconds
         return datetime.fromtimestamp(candle_seconds)
 
-    def _aggregate_group(
-        self, ticks: list[Tick], symbol: str, candle_start: datetime
-    ) -> OHLC:
+    def _aggregate_group(self, ticks: list[Tick], symbol: str, candle_start: datetime) -> OHLC:
         """Aggregate a group of ticks into an OHLC candle."""
         if not ticks:
             raise TransformError("Cannot aggregate empty tick group")
@@ -110,8 +104,7 @@ class TickToOHLCAggregator:
         # Calculate OHLC from bid/ask midpoints
         midpoints = [(t.bid_price + t.ask_price) / 2 for t in ticks]
         volumes = [
-            (tick.bid_size or Decimal("0")) + (tick.ask_size or Decimal("0"))
-            for tick in ticks
+            (tick.bid_size or Decimal("0")) + (tick.ask_size or Decimal("0")) for tick in ticks
         ]
 
         open_price = midpoints[0]
@@ -206,9 +199,7 @@ class DataTransformer:
         self.ohlc_aggregator = TickToOHLCAggregator("M1")
         self.multi_tf_generator = MultiTimeframeGenerator()
 
-    def ticks_to_ohlc(
-        self, ticks: list[Tick], symbol: str, timeframe: str = "M1"
-    ) -> list[OHLC]:
+    def ticks_to_ohlc(self, ticks: list[Tick], symbol: str, timeframe: str = "M1") -> list[OHLC]:
         """Convert ticks to OHLC candles."""
         aggregator = TickToOHLCAggregator(timeframe)
         return aggregator.aggregate(ticks, symbol)

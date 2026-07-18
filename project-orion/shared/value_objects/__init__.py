@@ -111,9 +111,7 @@ class PriceValue:
         return PriceValue(self.value - other.value, self.precision, self.symbol)
 
     def __mul__(self, factor: Decimal | float | int) -> PriceValue:
-        return PriceValue(
-            self.value * Decimal(str(factor)), self.precision, self.symbol
-        )
+        return PriceValue(self.value * Decimal(str(factor)), self.precision, self.symbol)
 
     def round_to_precision(self) -> PriceValue:
         """Round price to configured precision."""
