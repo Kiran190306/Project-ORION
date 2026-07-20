@@ -130,7 +130,10 @@ def async_retry(
     backoff: float = 2.0,
     exceptions: tuple[type[Exception], ...] = (Exception,),
     on_retry: Optional[Callable[[Exception, int], None]] = None,
-) -> Callable[[Callable[P, Coroutine[Any, Any, T]]], Callable[P, Coroutine[Any, Any, T]],]:
+) -> Callable[
+    [Callable[P, Coroutine[Any, Any, T]]],
+    Callable[P, Coroutine[Any, Any, T]],
+]:
     """
     Async retry decorator with exponential backoff.
 

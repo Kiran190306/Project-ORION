@@ -23,10 +23,7 @@ from libraries.infrastructure.broker_connectors.connectors import (
     MT5Connector,
     OANDAConnector,
 )
-from libraries.infrastructure.broker_connectors.factory import (
-    ConnectorFactory,
-    ConnectorSpec,
-)
+from libraries.infrastructure.broker_connectors.factory import ConnectorFactory, ConnectorSpec
 from libraries.infrastructure.broker_connectors.health import ConnectorHealth
 from libraries.infrastructure.broker_connectors.metrics import (
     MetricSample,
@@ -39,11 +36,7 @@ from libraries.infrastructure.broker_connectors.parsers import (
     parse_generic_bid_ask_tick,
     parse_provider_dict_tick,
 )
-from libraries.infrastructure.broker_connectors.retry import (
-    RetryError,
-    RetryPolicy,
-    retry_async,
-)
+from libraries.infrastructure.broker_connectors.retry import RetryError, RetryPolicy, retry_async
 from libraries.infrastructure.broker_connectors.transports import (
     AbstractTransport,
     RESTPollingTransport,

@@ -31,11 +31,9 @@ from shared.errors import OrionError
 class _MessagePackModule(Protocol):
     """Typed surface used from the optional :mod:`msgpack` package."""
 
-    def packb(self, data: object, *, use_bin_type: bool) -> bytes:
-        ...
+    def packb(self, data: object, *, use_bin_type: bool) -> bytes: ...
 
-    def unpackb(self, data: bytes, *, raw: bool) -> Any:
-        ...
+    def unpackb(self, data: bytes, *, raw: bool) -> Any: ...
 
 
 def _load_msgpack() -> _MessagePackModule:
