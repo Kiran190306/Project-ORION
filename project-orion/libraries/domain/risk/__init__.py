@@ -1,37 +1,203 @@
 """
-Risk Domain Library
+Project ORION - Risk Management Engine (EPIC-007 Sprint-1).
 
-Module Description:
-This library contains risk domain models and business logic.
-It includes risk models, limit models, risk enums, and risk errors.
+Enterprise-grade Risk Management Engine that becomes the final approval
+authority before any order reaches the Execution Engine.
 
-Implementation Checklist:
-- [ ] Risk models
-- [ ] Limit models
-- [ ] Risk enums
-- [ ] Risk errors
-- [ ] Risk business logic
-
-TODO:
-- Implement risk models
-- Implement limit models
-- Add risk enums
-- Add error definitions
-
-Dependency Notes:
-- Depends on: shared/
-- Used by: risk-management, decision-engine
+NO trade should execute without passing every enabled risk policy.
 """
 
+from __future__ import annotations
 
-# TODO: Implement risk domain models
-class Risk:
-    """Risk model placeholder."""
+from libraries.domain.risk.context import RiskContext
+from libraries.domain.risk.engine import RiskEngine, RiskEngineConfig
+from libraries.domain.risk.evaluator import RiskEvaluator, RiskEvaluatorConfig
+from libraries.domain.risk.exceptions import (
+    CooldownActiveError,
+    EmergencyAlreadyActiveError,
+    EmergencyModeError,
+    EngineError,
+    EngineNotReadyError,
+    EngineShutdownError,
+    PolicyConfigurationError,
+    PolicyError,
+    PolicyExecutionError,
+    PolicyNotFoundError,
+    PolicyRegistrationError,
+    ProfileError,
+    ProfileNotFoundError,
+    ProfileValidationError,
+    RegistryError,
+    RegistryFullError,
+    RiskError,
+    StatisticsError,
+    TradingLockedError,
+)
+from libraries.domain.risk.interfaces import (
+    AccountDataPort,
+    BrokerHealthPort,
+    EmergencyHandlerPort,
+    MarketDataPort,
+    MarketIntelligencePort,
+    PortfolioDataPort,
+    RiskEnginePort,
+    RiskManagerPort,
+    RiskPolicy,
+    RiskProfilePort,
+)
+from libraries.domain.risk.manager import RiskManager, RiskManagerConfig
+from libraries.domain.risk.models import (
+    AccountProtectionLevel,
+    AccountProtectionStatus,
+    DrawdownMetrics,
+    EmergencyModeStatus,
+    EmergencyTrigger,
+    PolicyCategory,
+    PolicyEvaluation,
+    PolicyResult,
+    PolicySeverity,
+    PortfolioRisk,
+    PositionRisk,
+    RiskDecision,
+    RiskProfileType,
+    RiskResult,
+    RiskScore,
+)
+from libraries.domain.risk.policy import (
+    BaseRiskPolicy,
+    BrokerHealthProtectionPolicy,
+    CooldownTimerPolicy,
+    EmergencyStopPolicy,
+    HardStopPolicy,
+    HolidayProtectionPolicy,
+    LiquidityProtectionPolicy,
+    MarginProtectionPolicy,
+    MarketDataQualityProtectionPolicy,
+    MaximumConsecutiveLossesPolicy,
+    MaximumCurrencyExposurePolicy,
+    MaximumDailyLossPolicy,
+    MaximumDrawdownPolicy,
+    MaximumExposurePolicy,
+    MaximumLeveragePolicy,
+    MaximumMonthlyLossPolicy,
+    MaximumOpenPositionsPolicy,
+    MaximumPositionSizePolicy,
+    MaximumSymbolExposurePolicy,
+    MaximumWeeklyLossPolicy,
+    NewsProtectionPolicy,
+    RecoveryModePolicy,
+    SlippageProtectionPolicy,
+    SoftStopPolicy,
+    SpreadProtectionPolicy,
+    TradingHoursProtectionPolicy,
+    TradingLockPolicy,
+    VolatilityProtectionPolicy,
+    WeekendProtectionPolicy,
+    create_default_policies,
+)
+from libraries.domain.risk.profile import (
+    RiskProfileConfig,
+    RiskProfileManager,
+)
+from libraries.domain.risk.registry import RiskPolicyRegistry
+from libraries.domain.risk.statistics import RiskStatistics, RiskStatsSnapshot
+from libraries.domain.risk.validator import RiskValidator, ValidationReport
 
-    pass
+__all__ = [
+    # Core
+    "RiskEngine",
+    "RiskEngineConfig",
+    "RiskManager",
+    "RiskManagerConfig",
+    "RiskContext",
+    "RiskValidator",
+    "ValidationReport",
+    "RiskEvaluator",
+    "RiskEvaluatorConfig",
+    "RiskPolicyRegistry",
+    "RiskStatistics",
+    "RiskStatsSnapshot",
+    "RiskProfileManager",
+    "RiskProfileConfig",
+    # Models
+    "RiskDecision",
+    "RiskResult",
+    "RiskScore",
+    "PolicyResult",
+    "PolicyEvaluation",
+    "PolicyCategory",
+    "PolicySeverity",
+    "PositionRisk",
+    "PortfolioRisk",
+    "DrawdownMetrics",
+    "AccountProtectionStatus",
+    "EmergencyModeStatus",
+    "EmergencyTrigger",
+    "AccountProtectionLevel",
+    "RiskProfileType",
+    # Interfaces
+    "RiskEnginePort",
+    "RiskManagerPort",
+    "RiskPolicy",
+    "PortfolioDataPort",
+    "AccountDataPort",
+    "MarketDataPort",
+    "BrokerHealthPort",
+    "MarketIntelligencePort",
+    "EmergencyHandlerPort",
+    "RiskProfilePort",
+    # Base Policy
+    "BaseRiskPolicy",
+    # Policies
+    "MaximumPositionSizePolicy",
+    "MaximumDailyLossPolicy",
+    "MaximumWeeklyLossPolicy",
+    "MaximumMonthlyLossPolicy",
+    "MaximumDrawdownPolicy",
+    "MaximumConsecutiveLossesPolicy",
+    "MaximumExposurePolicy",
+    "MaximumSymbolExposurePolicy",
+    "MaximumCurrencyExposurePolicy",
+    "MaximumLeveragePolicy",
+    "MaximumOpenPositionsPolicy",
+    "MarginProtectionPolicy",
+    "SpreadProtectionPolicy",
+    "VolatilityProtectionPolicy",
+    "LiquidityProtectionPolicy",
+    "SlippageProtectionPolicy",
+    "NewsProtectionPolicy",
+    "TradingHoursProtectionPolicy",
+    "WeekendProtectionPolicy",
+    "HolidayProtectionPolicy",
+    "SoftStopPolicy",
+    "HardStopPolicy",
+    "TradingLockPolicy",
+    "CooldownTimerPolicy",
+    "RecoveryModePolicy",
+    "BrokerHealthProtectionPolicy",
+    "MarketDataQualityProtectionPolicy",
+    "EmergencyStopPolicy",
+    # Factory
+    "create_default_policies",
+    # Exceptions
+    "RiskError",
+    "PolicyError",
+    "PolicyNotFoundError",
+    "PolicyRegistrationError",
+    "PolicyExecutionError",
+    "PolicyConfigurationError",
+    "EngineError",
+    "EngineNotReadyError",
+    "EngineShutdownError",
+    "RegistryError",
+    "RegistryFullError",
+    "ProfileError",
+    "ProfileNotFoundError",
+    "ProfileValidationError",
+    "StatisticsError",
+    "EmergencyModeError",
+    "EmergencyAlreadyActiveError",
+    "CooldownActiveError",
+    "TradingLockedError",
+]
 
-
-class Limit:
-    """Limit model placeholder."""
-
-    pass
