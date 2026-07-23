@@ -36,7 +36,9 @@ def executable_decision() -> TradeDecision:
 
 
 class TestOrderBuilder:
-    def test_build_market_order(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_market_order(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         order = builder.build(executable_decision)
         assert order.symbol == "EURUSD"
         assert order.side.value == "buy"
@@ -45,17 +47,27 @@ class TestOrderBuilder:
         assert order.decision_id == "DEC-001"
         assert order.price is None
 
-    def test_build_limit_order(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
-        order = builder.build(executable_decision, order_type=OrderType.LIMIT, price=Decimal("1.10500"))
+    def test_build_limit_order(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
+        order = builder.build(
+            executable_decision, order_type=OrderType.LIMIT, price=Decimal("1.10500")
+        )
         assert order.order_type == OrderType.LIMIT
         assert order.price == Decimal("1.10500")
 
-    def test_build_stop_order(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
-        order = builder.build(executable_decision, order_type=OrderType.STOP, price=Decimal("1.10600"))
+    def test_build_stop_order(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
+        order = builder.build(
+            executable_decision, order_type=OrderType.STOP, price=Decimal("1.10600")
+        )
         assert order.order_type == OrderType.STOP
         assert order.price == Decimal("1.10600")
 
-    def test_build_with_stop_loss_take_profit(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_with_stop_loss_take_profit(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         order = builder.build(executable_decision)
         # stop_loss and take_profit are stored in metadata
         assert order.metadata.get("strategy") is not None
@@ -79,25 +91,35 @@ class TestOrderBuilder:
         with pytest.raises(OrderBuildError):
             builder.build(decision)
 
-    def test_build_with_metadata(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_with_metadata(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         order = builder.build(executable_decision, metadata={"source": "test"})
         assert order.metadata["decision_id"] == "DEC-001"
         assert order.metadata["source"] == "test"
 
-    def test_build_with_broker_symbol(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_with_broker_symbol(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         order = builder.build(executable_decision, broker_symbol="EURUSD.b")
         assert order.symbol == "EURUSD.b"
 
-    def test_build_generates_order_id(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_generates_order_id(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         order = builder.build(executable_decision)
         assert str(order.order_id).startswith("ORD-")
 
-    def test_build_unique_order_ids(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_build_unique_order_ids(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         o1 = builder.build(executable_decision)
         o2 = builder.build(executable_decision)
         assert o1.order_id != o2.order_id
 
-    def test_price_rounding(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_price_rounding(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         decision = TradeDecision(
             symbol="EURUSD",
             outcome=DecisionOutcome.EXECUTE,
@@ -109,7 +131,9 @@ class TestOrderBuilder:
         order = builder.build(decision, order_type=OrderType.LIMIT, price=Decimal("1.123456"))
         assert order.price == Decimal("1.12346")
 
-    def test_volume_rounding(self, builder: OrderBuilder, executable_decision: TradeDecision) -> None:
+    def test_volume_rounding(
+        self, builder: OrderBuilder, executable_decision: TradeDecision
+    ) -> None:
         decision = TradeDecision(
             symbol="EURUSD",
             outcome=DecisionOutcome.EXECUTE,

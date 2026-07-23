@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import pytest
 from datetime import datetime, timezone
+
+import pytest
 
 from libraries.domain.execution.deduplication import (
     DeduplicationConfig,
@@ -89,6 +90,7 @@ class TestOrderDeduplicator:
         dedup = OrderDeduplicator(config=config)
         await dedup.check_and_register("ORD-001", "DEC-001", "EURUSD", "buy")
         import asyncio
+
         await asyncio.sleep(0.01)
         # Should be cleaned up on next check
         assert not await dedup.is_duplicate("DEC-002", "ORD-002", "GBPUSD", "sell")

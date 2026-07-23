@@ -112,11 +112,17 @@ class ExecutionFilter:
 
             reasons = []
             if not spread_ok:
-                reasons.append(f"Spread {spread_pips:.1f}pips exceeds max {self._max_spread_pips}pips")
+                reasons.append(
+                    f"Spread {spread_pips:.1f}pips exceeds max {self._max_spread_pips}pips"
+                )
             if not liquidity_ok:
-                reasons.append(f"Liquidity {liquidity_score:.2f} below min {self._min_liquidity:.2f}")
+                reasons.append(
+                    f"Liquidity {liquidity_score:.2f} below min {self._min_liquidity:.2f}"
+                )
             if not volatility_ok:
-                reasons.append(f"Volatility {volatility_score:.2f} exceeds max {self._max_volatility:.2f}")
+                reasons.append(
+                    f"Volatility {volatility_score:.2f} exceeds max {self._max_volatility:.2f}"
+                )
             if not market_hours_ok:
                 reasons.append("Market is closed")
 

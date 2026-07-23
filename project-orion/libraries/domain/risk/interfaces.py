@@ -27,7 +27,6 @@ from libraries.domain.risk.models import (
     RiskResult,
 )
 
-
 # ─── RiskPolicy Protocol ──────────────────────────────────────────────────
 
 
@@ -375,4 +374,3 @@ class RiskProfilePort(Protocol):
             The resulting profile configuration.
         """
         ...
-

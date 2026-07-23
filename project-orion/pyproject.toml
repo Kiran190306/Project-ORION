@@ -90,5 +90,21 @@ source = ["shared", "libraries"]
 omit = ["tests/*"]
 
 [tool.coverage.report]
-fail_under = 0
+fail_under = 95
 show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.coverage.json]
+output = "coverage.json"

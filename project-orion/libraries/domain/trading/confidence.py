@@ -99,8 +99,13 @@ class ConfidenceScorer:
         """
         async with self._lock:
             factors = await self._compute_factors(
-                signal, market_state, liquidity_score, spread_pips,
-                volatility_score, provider_quality, consensus_quality,
+                signal,
+                market_state,
+                liquidity_score,
+                spread_pips,
+                volatility_score,
+                provider_quality,
+                consensus_quality,
             )
             return factors.composite
 
@@ -117,8 +122,13 @@ class ConfidenceScorer:
         """Compute detailed confidence factors."""
         async with self._lock:
             return await self._compute_factors(
-                signal, market_state, liquidity_score, spread_pips,
-                volatility_score, provider_quality, consensus_quality,
+                signal,
+                market_state,
+                liquidity_score,
+                spread_pips,
+                volatility_score,
+                provider_quality,
+                consensus_quality,
             )
 
     async def _compute_factors(

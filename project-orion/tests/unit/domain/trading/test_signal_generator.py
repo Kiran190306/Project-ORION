@@ -191,8 +191,21 @@ class TestSignalGenerator:
             state2 = await detector.detect("GBP/USD", 0.3, 0.5)
 
             signals = await asyncio.gather(
-                gen.generate("EUR/USD", state1, StrategyType.TREND_FOLLOWING, trend_strength=0.8, price_position=0.7),
-                gen.generate("GBP/USD", state2, StrategyType.MEAN_REVERSION, trend_strength=0.3, rsi=25, price_position=0.2),
+                gen.generate(
+                    "EUR/USD",
+                    state1,
+                    StrategyType.TREND_FOLLOWING,
+                    trend_strength=0.8,
+                    price_position=0.7,
+                ),
+                gen.generate(
+                    "GBP/USD",
+                    state2,
+                    StrategyType.MEAN_REVERSION,
+                    trend_strength=0.3,
+                    rsi=25,
+                    price_position=0.2,
+                ),
             )
 
             assert signals[0] is not None
@@ -201,4 +214,3 @@ class TestSignalGenerator:
             assert signals[1].direction == SignalDirection.BUY
 
         asyncio.run(exercise())
-

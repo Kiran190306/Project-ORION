@@ -1,0 +1,348 @@
+"""
+Project ORION - Institutional Backtesting & Quantitative Research Laboratory (EPIC-010).
+
+Four-layer architecture:
+  Research Layer   — Historical data access, replay engine, event scheduling
+  Simulation Layer — Execution simulation, portfolio simulation, market models
+  Evaluation Layer — Performance metrics, walk-forward, Monte Carlo, optimization
+  Reporting Layer  — Report generation (JSON, CSV, HTML, Markdown)
+
+The BacktestEngine orchestrates these layers via an event-driven pipeline.
+All dependencies are injected through protocol ports.
+No broker-specific logic. No UI code. No hardcoded datasets.
+"""
+
+from __future__ import annotations
+
+from libraries.domain.backtesting.commission_model import (
+    CommissionModel,
+    CommissionModelConfig,
+    CommissionType,
+)
+from libraries.domain.backtesting.context import BacktestContext
+from libraries.domain.backtesting.engine import BacktestEngine, BacktestEngineResult
+from libraries.domain.backtesting.event_scheduler import (
+    BrokerDisconnectEvent,
+    EventScheduler,
+    FlashCrashEvent,
+    GapOpenEvent,
+    HighVolatilityEvent,
+    LowLiquidityEvent,
+    NewsEvent,
+    ScheduledEvent,
+    SpreadSpikeEvent,
+)
+from libraries.domain.backtesting.exceptions import (
+    BacktestError,
+    DataCorruptionError,
+    DataFormatError,
+    DataNotFoundError,
+    EngineNotReadyError,
+    EngineShutdownError,
+    ExecutionSimulationError,
+    HistoricalDataError,
+    MarketSimulationError,
+    OptimizationError,
+    ParameterError,
+    PortfolioSimulationError,
+    ReplayDataError,
+    ReplayError,
+    ReplaySeekError,
+    ReplayStateError,
+    ReportingError,
+    ScenarioError,
+    SimulationError,
+    StatisticsError,
+)
+from libraries.domain.backtesting.execution_simulator import (
+    ExecutionSimulationConfig,
+    ExecutionSimulator,
+)
+from libraries.domain.backtesting.historical_data import (
+    ChunkedIterator,
+    CompressedFileProvider,
+    CsvProvider,
+    DatabaseProvider,
+    DuckDbProvider,
+    HistoricalDataProvider,
+    ParquetProvider,
+    StreamingReplayProvider,
+)
+from libraries.domain.backtesting.interfaces import (
+    BacktestEventHandler,
+    BacktestEventPublisher,
+    BacktestRepositoryPort,
+    ExecutionSimulatorPort,
+    HistoricalDataProviderPort,
+    MarketSimulatorPort,
+    OptimizationHook,
+    PerformanceCalculatorPort,
+    PortfolioSimulatorPort,
+    RandomizerPort,
+    ReplayControllerPort,
+    ReportingPort,
+    ScenarioProviderPort,
+    WalkForwardPort,
+)
+from libraries.domain.backtesting.latency_model import LatencyModel, LatencyModelConfig
+from libraries.domain.backtesting.liquidity_model import LiquidityModel, LiquidityModelConfig
+from libraries.domain.backtesting.manager import BacktestManager
+from libraries.domain.backtesting.market_impact_model import (
+    MarketImpactModel,
+    MarketImpactModelConfig,
+)
+from libraries.domain.backtesting.models import (
+    BacktestConfig,
+    BacktestEvent,
+    BacktestEventType,
+    BacktestRunRecord,
+    BalanceSnapshot,
+    CommissionConfig,
+    DrawdownSnapshot,
+    EquitySnapshot,
+    EvaluationResult,
+    ExecutionMetrics,
+    ExecutionSimulationResult,
+    ExecutionSimulationStatus,
+    HistoricalDataSource,
+    MarketEvent,
+    MetricCategory,
+    MonteCarloConfig,
+    MonteCarloResult,
+    OptimizationAlgorithm,
+    OptimizationConfig,
+    OptimizationConstraint,
+    OptimizationDirection,
+    OptimizationResult,
+    OrderSimulation,
+    OrderSimulationSide,
+    OrderSimulationStatus,
+    OrderSimulationType,
+    PerformanceMetrics,
+    PortfolioMetrics,
+    PortfolioSnapshot,
+    ReplayConfig,
+    ReplayMode,
+    ReplayState,
+    ResearchMetrics,
+    RiskMetrics,
+    ScenarioConfig,
+    ScenarioEffect,
+    ScenarioResult,
+    SimulationConfig,
+    SlippageConfig,
+    SpreadConfig,
+    StatisticalMetrics,
+    SwapConfig,
+    Timeframe,
+    TradeMetrics,
+    WalkForwardConfig,
+    WalkForwardResult,
+)
+from libraries.domain.backtesting.monte_carlo import MonteCarloSimulator
+from libraries.domain.backtesting.parameter_optimizer import (
+    Parameter,
+    ParameterGrid,
+    ParameterOptimizer,
+)
+from libraries.domain.backtesting.performance import (
+    ExecutionMetricsCalculator,
+    PerformanceEngine,
+    PortfolioMetricsCalculator,
+    RiskMetricsCalculator,
+    StatisticalMetricsCalculator,
+    TradeMetricsCalculator,
+)
+from libraries.domain.backtesting.portfolio_simulator import (
+    PortfolioSimulationConfig,
+    PortfolioSimulator,
+)
+from libraries.domain.backtesting.replay_engine import (
+    ReplayEngine,
+    ReplayEngineConfig,
+    ReplayEventHandler,
+)
+from libraries.domain.backtesting.reporting import (
+    CsvReportGenerator,
+    HtmlReportGenerator,
+    JsonReportGenerator,
+    ReportManager,
+)
+from libraries.domain.backtesting.scenario_engine import ScenarioEngine
+from libraries.domain.backtesting.slippage_model import (
+    SlippageModel,
+    SlippageModelConfig,
+    SlippageType,
+)
+from libraries.domain.backtesting.spread_model import SpreadModel, SpreadModelConfig
+from libraries.domain.backtesting.statistics import (
+    ExecutionStatistics,
+    PortfolioStatistics,
+    RiskStatisticsCalculator,
+    ScenarioStatistics,
+    TradeStatistics,
+)
+from libraries.domain.backtesting.swap_model import SwapModel, SwapModelConfig
+from libraries.domain.backtesting.walk_forward import (
+    WalkForwardAnalyzer,
+    WalkForwardWindow,
+)
+
+__all__ = [
+    # ─── Models ────────────────────────────────────────────
+    "Timeframe",
+    "ReplayMode",
+    "ReplayState",
+    "HistoricalDataSource",
+    "BacktestConfig",
+    "ReplayConfig",
+    "SimulationConfig",
+    "CommissionConfig",
+    "SpreadConfig",
+    "SlippageConfig",
+    "SwapConfig",
+    "OrderSimulation",
+    "OrderSimulationSide",
+    "OrderSimulationType",
+    "OrderSimulationStatus",
+    "ExecutionSimulationResult",
+    "ExecutionSimulationStatus",
+    "BalanceSnapshot",
+    "EquitySnapshot",
+    "PortfolioSnapshot",
+    "DrawdownSnapshot",
+    "EvaluationResult",
+    "BacktestEvent",
+    "BacktestEventType",
+    "MarketEvent",
+    "MetricCategory",
+    "TradeMetrics",
+    "PortfolioMetrics",
+    "RiskMetrics",
+    "ExecutionMetrics",
+    "StatisticalMetrics",
+    "ResearchMetrics",
+    "PerformanceMetrics",
+    "WalkForwardConfig",
+    "WalkForwardResult",
+    "MonteCarloConfig",
+    "MonteCarloResult",
+    "OptimizationAlgorithm",
+    "OptimizationDirection",
+    "OptimizationConstraint",
+    "OptimizationConfig",
+    "OptimizationResult",
+    "ScenarioConfig",
+    "ScenarioEffect",
+    "ScenarioResult",
+    "BacktestRunRecord",
+    # ─── Exceptions ────────────────────────────────────────
+    "BacktestError",
+    "ReplayError",
+    "ReplayStateError",
+    "ReplayDataError",
+    "ReplaySeekError",
+    "HistoricalDataError",
+    "DataFormatError",
+    "DataNotFoundError",
+    "DataCorruptionError",
+    "SimulationError",
+    "PortfolioSimulationError",
+    "ExecutionSimulationError",
+    "MarketSimulationError",
+    "ParameterError",
+    "OptimizationError",
+    "ScenarioError",
+    "StatisticsError",
+    "ReportingError",
+    "EngineNotReadyError",
+    "EngineShutdownError",
+    # ─── Interfaces ────────────────────────────────────────
+    "HistoricalDataProviderPort",
+    "ReplayControllerPort",
+    "PortfolioSimulatorPort",
+    "ExecutionSimulatorPort",
+    "MarketSimulatorPort",
+    "PerformanceCalculatorPort",
+    "ReportingPort",
+    "ScenarioProviderPort",
+    "WalkForwardPort",
+    "BacktestEventPublisher",
+    "BacktestEventHandler",
+    "RandomizerPort",
+    "OptimizationHook",
+    "BacktestRepositoryPort",
+    # ─── Context ───────────────────────────────────────────
+    "BacktestContext",
+    # ─── Research Layer ────────────────────────────────────
+    "HistoricalDataProvider",
+    "CsvProvider",
+    "ParquetProvider",
+    "DatabaseProvider",
+    "DuckDbProvider",
+    "CompressedFileProvider",
+    "StreamingReplayProvider",
+    "ChunkedIterator",
+    "ReplayEngine",
+    "ReplayEngineConfig",
+    "ReplayEventHandler",
+    "EventScheduler",
+    "ScheduledEvent",
+    "HighVolatilityEvent",
+    "LowLiquidityEvent",
+    "SpreadSpikeEvent",
+    "FlashCrashEvent",
+    "NewsEvent",
+    "BrokerDisconnectEvent",
+    "GapOpenEvent",
+    # ─── Simulation Layer ──────────────────────────────────
+    "ExecutionSimulator",
+    "ExecutionSimulationConfig",
+    "PortfolioSimulator",
+    "PortfolioSimulationConfig",
+    "SlippageModel",
+    "SlippageModelConfig",
+    "SlippageType",
+    "SpreadModel",
+    "SpreadModelConfig",
+    "CommissionModel",
+    "CommissionModelConfig",
+    "CommissionType",
+    "SwapModel",
+    "SwapModelConfig",
+    "LatencyModel",
+    "LatencyModelConfig",
+    "LiquidityModel",
+    "LiquidityModelConfig",
+    "MarketImpactModel",
+    "MarketImpactModelConfig",
+    # ─── Evaluation Layer ──────────────────────────────────
+    "TradeStatistics",
+    "PortfolioStatistics",
+    "ExecutionStatistics",
+    "RiskStatisticsCalculator",
+    "ScenarioStatistics",
+    "PerformanceEngine",
+    "TradeMetricsCalculator",
+    "PortfolioMetricsCalculator",
+    "RiskMetricsCalculator",
+    "ExecutionMetricsCalculator",
+    "StatisticalMetricsCalculator",
+    "WalkForwardAnalyzer",
+    "WalkForwardWindow",
+    "MonteCarloSimulator",
+    "ParameterOptimizer",
+    "Parameter",
+    "ParameterGrid",
+    "OptimizationHook",
+    "ScenarioEngine",
+    # ─── Reporting Layer ───────────────────────────────────
+    "JsonReportGenerator",
+    "CsvReportGenerator",
+    "HtmlReportGenerator",
+    "ReportManager",
+    # ─── Orchestration ─────────────────────────────────────
+    "BacktestEngine",
+    "BacktestEngineResult",
+    "BacktestManager",
+]

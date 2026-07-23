@@ -85,4 +85,3 @@ class CooldownActiveError(RiskError):
 
 class TradingLockedError(RiskError):
     """Raised when trading is locked and a trade is attempted."""
-

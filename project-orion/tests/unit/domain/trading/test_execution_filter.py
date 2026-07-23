@@ -167,7 +167,9 @@ class TestExecutionFilter:
 
             results = await asyncio.gather(
                 ef.check(signal, state, spread_pips=1.0, liquidity_score=0.8, volatility_score=0.3),
-                ef.check(signal, state, spread_pips=10.0, liquidity_score=0.8, volatility_score=0.3),
+                ef.check(
+                    signal, state, spread_pips=10.0, liquidity_score=0.8, volatility_score=0.3
+                ),
                 ef.check(signal, state, spread_pips=1.0, liquidity_score=0.1, volatility_score=0.3),
             )
             assert results[0].is_allowed

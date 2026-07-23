@@ -17,7 +17,6 @@ from decimal import Decimal
 from enum import IntEnum, StrEnum
 from typing import Any
 
-
 # ─── Enums ────────────────────────────────────────────────────────────────
 
 
@@ -207,11 +206,18 @@ class RiskResult:
     @property
     def summary(self) -> str:
         """Return a human-readable summary."""
-        parts = [f"RiskDecision: {self.decision.value.upper()}", f"Risk Score: {self.risk_score:.1f}/100"]
+        parts = [
+            f"RiskDecision: {self.decision.value.upper()}",
+            f"Risk Score: {self.risk_score:.1f}/100",
+        ]
         if self.rejection_reasons:
-            parts.append(f"Rejections ({len(self.rejection_reasons)}): {'; '.join(self.rejection_reasons)}")
+            parts.append(
+                f"Rejections ({len(self.rejection_reasons)}): {'; '.join(self.rejection_reasons)}"
+            )
         if self.deferred_reasons:
-            parts.append(f"Deferred ({len(self.deferred_reasons)}): {'; '.join(self.deferred_reasons)}")
+            parts.append(
+                f"Deferred ({len(self.deferred_reasons)}): {'; '.join(self.deferred_reasons)}"
+            )
         return " | ".join(parts)
 
 
@@ -299,7 +305,11 @@ class AccountProtectionStatus:
     def can_trade(self) -> bool:
         if self.trading_locked or self.hard_stop_triggered:
             return False
-        if self.cooldown_active and self.cooldown_until and datetime.now(timezone.utc) < self.cooldown_until:
+        if (
+            self.cooldown_active
+            and self.cooldown_until
+            and datetime.now(timezone.utc) < self.cooldown_until
+        ):
             return False
         return True
 
@@ -363,4 +373,3 @@ class RiskScore:
     @property
     def is_dangerous(self) -> bool:
         return self.overall >= 60.0
-

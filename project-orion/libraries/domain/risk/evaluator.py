@@ -20,7 +20,6 @@ from libraries.domain.risk.models import (
     RiskScore,
 )
 
-
 # Default category weights (sum should be ~100)
 DEFAULT_CATEGORY_WEIGHTS: dict[PolicyCategory, float] = {
     PolicyCategory.POSITION_SIZING: 10.0,
@@ -60,10 +59,14 @@ class RiskEvaluatorConfig:
         # Ensure all categories have weights
         for cat in PolicyCategory:
             if cat not in self.category_weights:
-                object.__setattr__(self, "category_weights", {
-                    **self.category_weights,
-                    cat: 5.0,
-                })
+                object.__setattr__(
+                    self,
+                    "category_weights",
+                    {
+                        **self.category_weights,
+                        cat: 5.0,
+                    },
+                )
 
 
 class RiskEvaluator:
@@ -164,9 +167,7 @@ class RiskEvaluator:
                     )
 
             if ev.score < 30.0 and ev.severity >= PolicySeverity.MEDIUM:
-                warnings.append(
-                    f"Low score ({ev.score:.1f}) in policy '{ev.policy_name}'"
-                )
+                warnings.append(f"Low score ({ev.score:.1f}) in policy '{ev.policy_name}'")
 
         # Build policy results from evaluations
         policy_results = tuple(
@@ -207,9 +208,7 @@ class RiskEvaluator:
         weighted_sum = 0.0
 
         for ev in evaluations:
-            category_weight = self._config.category_weights.get(
-                ev.policy_category, 5.0
-            )
+            category_weight = self._config.category_weights.get(ev.policy_category, 5.0)
             severity_mult = (
                 self._config.severity_multipliers.get(ev.severity, 1.0)
                 if self._config.enable_severity_weighting
@@ -243,16 +242,14 @@ class RiskEvaluator:
 
         # Any CRITICAL severity failure = REJECTED
         critical_failures = [
-            e for e in evaluations
-            if not e.passed and e.severity == PolicySeverity.CRITICAL
+            e for e in evaluations if not e.passed and e.severity == PolicySeverity.CRITICAL
         ]
         if critical_failures:
             return RiskDecision.REJECTED
 
         # Any HIGH severity failure = DEFERRED (or REJECTED if score high)
         high_failures = [
-            e for e in evaluations
-            if not e.passed and e.severity == PolicySeverity.HIGH
+            e for e in evaluations if not e.passed and e.severity == PolicySeverity.HIGH
         ]
         if high_failures and risk_score >= self._config.reject_threshold:
             return RiskDecision.REJECTED
@@ -269,8 +266,7 @@ class RiskEvaluator:
 
         # Medium severity failures with score in middle range = DEFERRED
         medium_failures = [
-            e for e in evaluations
-            if not e.passed and e.severity == PolicySeverity.MEDIUM
+            e for e in evaluations if not e.passed and e.severity == PolicySeverity.MEDIUM
         ]
         if medium_failures:
             return RiskDecision.DEFERRED
@@ -279,14 +275,22 @@ class RiskEvaluator:
 
     def _compute_risk_score(self, evaluations: list[PolicyEvaluation]) -> RiskScore:
         """Compute detailed RiskScore breakdown."""
-        position_evals = [e for e in evaluations if e.policy_category == PolicyCategory.POSITION_SIZING]
+        position_evals = [
+            e for e in evaluations if e.policy_category == PolicyCategory.POSITION_SIZING
+        ]
         loss_evals = [e for e in evaluations if e.policy_category == PolicyCategory.LOSS_LIMITS]
         exposure_evals = [e for e in evaluations if e.policy_category == PolicyCategory.EXPOSURE]
         leverage_evals = [e for e in evaluations if e.policy_category == PolicyCategory.LEVERAGE]
-        market_evals = [e for e in evaluations if e.policy_category == PolicyCategory.MARKET_CONDITIONS]
-        account_evals = [e for e in evaluations if e.policy_category == PolicyCategory.ACCOUNT_PROTECTION]
+        market_evals = [
+            e for e in evaluations if e.policy_category == PolicyCategory.MARKET_CONDITIONS
+        ]
+        account_evals = [
+            e for e in evaluations if e.policy_category == PolicyCategory.ACCOUNT_PROTECTION
+        ]
         health_evals = [e for e in evaluations if e.policy_category == PolicyCategory.SYSTEM_HEALTH]
-        compliance_evals = [e for e in evaluations if e.policy_category == PolicyCategory.COMPLIANCE]
+        compliance_evals = [
+            e for e in evaluations if e.policy_category == PolicyCategory.COMPLIANCE
+        ]
 
         def avg_score(evals: list[PolicyEvaluation]) -> float:
             if not evals:
@@ -319,4 +323,3 @@ class RiskEvaluator:
             policy_count=len(evaluations),
             failed_policies=failed,
         )
-

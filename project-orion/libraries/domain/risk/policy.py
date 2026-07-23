@@ -26,7 +26,6 @@ from libraries.domain.risk.models import (
 )
 from libraries.domain.risk.profile import RiskProfileConfig
 
-
 # ─── Base Policy ────────────────────────────────────────────────────────────
 
 
@@ -211,15 +210,17 @@ class MaximumPositionSizePolicy(BaseRiskPolicy):
             if not passed:
                 return await self._record_result(
                     self._make_result(
-                        False, score,
+                        False,
+                        score,
                         f"Position size {current_pct:.2f}% exceeds maximum {max_pct:.1f}%",
                         details=f"Notional: {context.notional_value}, Balance: {context.account_balance}, "
-                                f"Current: {current_pct:.2f}%, Max: {max_pct:.1f}%",
+                        f"Current: {current_pct:.2f}%, Max: {max_pct:.1f}%",
                     )
                 )
             return await self._record_result(
                 self._make_result(
-                    True, score,
+                    True,
+                    score,
                     f"Position size {current_pct:.2f}% within {max_pct:.1f}% limit",
                 )
             )
@@ -250,22 +251,26 @@ class MaximumDailyLossPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_loss = self._config.max_daily_loss_pct
         if max_loss <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Daily loss limit disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Daily loss limit disabled")
+            )
 
         current_loss = context.daily_loss_pct
         passed, score = self._apply_profile_threshold(current_loss, max_loss)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Daily loss {current_loss:.2f}% exceeds {max_loss:.1f}% limit",
                     details=f"Daily PnL: {context.daily_pnl:.2f}, Balance: {context.account_balance}, "
-                            f"Loss: {current_loss:.2f}%, Limit: {max_loss:.1f}%",
+                    f"Loss: {current_loss:.2f}%, Limit: {max_loss:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Daily loss {current_loss:.2f}% within {max_loss:.1f}% limit",
             )
         )
@@ -287,21 +292,25 @@ class MaximumWeeklyLossPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_loss = self._config.max_weekly_loss_pct
         if max_loss <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Weekly loss limit disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Weekly loss limit disabled")
+            )
 
         current_loss = context.weekly_loss_pct
         passed, score = self._apply_profile_threshold(current_loss, max_loss)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Weekly loss {current_loss:.2f}% exceeds {max_loss:.1f}% limit",
                     details=f"Weekly PnL: {context.weekly_pnl:.2f}, Loss: {current_loss:.2f}%, Limit: {max_loss:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Weekly loss {current_loss:.2f}% within {max_loss:.1f}% limit",
             )
         )
@@ -323,21 +332,25 @@ class MaximumMonthlyLossPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_loss = self._config.max_monthly_loss_pct
         if max_loss <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Monthly loss limit disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Monthly loss limit disabled")
+            )
 
         current_loss = context.monthly_loss_pct
         passed, score = self._apply_profile_threshold(current_loss, max_loss)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Monthly loss {current_loss:.2f}% exceeds {max_loss:.1f}% limit",
                     details=f"Monthly PnL: {context.monthly_pnl:.2f}, Loss: {current_loss:.2f}%, Limit: {max_loss:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Monthly loss {current_loss:.2f}% within {max_loss:.1f}% limit",
             )
         )
@@ -359,21 +372,25 @@ class MaximumDrawdownPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_dd = self._config.max_drawdown_pct
         if max_dd <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Drawdown limit disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Drawdown limit disabled")
+            )
 
         current_dd = context.drawdown.current_drawdown if context.drawdown else 0.0
         passed, score = self._apply_profile_threshold(current_dd, max_dd)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Drawdown {current_dd:.2f}% exceeds {max_dd:.1f}% limit",
                     details=f"Current DD: {current_dd:.2f}%, Max Allowed: {max_dd:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Drawdown {current_dd:.2f}% within {max_dd:.1f}% limit",
             )
         )
@@ -395,14 +412,17 @@ class MaximumConsecutiveLossesPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_losses = self._config.max_consecutive_losses
         if max_losses <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Consecutive losses check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Consecutive losses check disabled")
+            )
 
         current = context.consecutive_losses
         if current >= max_losses:
             score = max(0.0, 100.0 - (current / max_losses) * 100.0)
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Consecutive losses {current} meets/exceeds limit {max_losses}",
                     details=f"Current streak: {current}, Maximum allowed: {max_losses}",
                 )
@@ -411,7 +431,8 @@ class MaximumConsecutiveLossesPolicy(BaseRiskPolicy):
         score = 100.0 - (current / max_losses) * 50.0 if current > 0 else 100.0
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Consecutive losses {current} below limit {max_losses}",
             )
         )
@@ -438,14 +459,18 @@ class MaximumExposurePolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_exposure = self._config.max_total_exposure_pct
         if max_exposure <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Exposure check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Exposure check disabled")
+            )
 
         if context.portfolio_risk is not None:
             total_exposure = float(context.portfolio_risk.gross_exposure)
         elif context.account_balance > 0:
-            total_exposure = float(
-                sum(p.notional_value for p in context.current_positions)
-            ) / float(context.account_balance) * 100.0
+            total_exposure = (
+                float(sum(p.notional_value for p in context.current_positions))
+                / float(context.account_balance)
+                * 100.0
+            )
         else:
             return await self._record_result(self._make_result(True, 100.0, "No exposure data"))
 
@@ -453,14 +478,16 @@ class MaximumExposurePolicy(BaseRiskPolicy):
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Total exposure {total_exposure:.2f}% exceeds {max_exposure:.1f}%",
                     details=f"Exposure: {total_exposure:.2f}%, Limit: {max_exposure:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Total exposure {total_exposure:.2f}% within {max_exposure:.1f}%",
             )
         )
@@ -482,7 +509,9 @@ class MaximumSymbolExposurePolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_sym = self._config.max_symbol_exposure_pct
         if max_sym <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Symbol exposure check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Symbol exposure check disabled")
+            )
 
         if context.symbol_position_size and context.account_balance > 0:
             symbol_exposure = float(context.symbol_position_size / context.account_balance * 100)
@@ -495,14 +524,16 @@ class MaximumSymbolExposurePolicy(BaseRiskPolicy):
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Symbol {context.symbol} exposure {symbol_exposure:.2f}% exceeds {max_sym:.1f}%",
                     details=f"Symbol: {context.symbol}, Exposure: {symbol_exposure:.2f}%, Limit: {max_sym:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Symbol {context.symbol} exposure {symbol_exposure:.2f}% within {max_sym:.1f}%",
             )
         )
@@ -524,7 +555,9 @@ class MaximumCurrencyExposurePolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_ccy = self._config.max_currency_exposure_pct
         if max_ccy <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Currency exposure check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Currency exposure check disabled")
+            )
 
         if context.portfolio_risk and context.portfolio_risk.currency_exposure:
             exposures = context.portfolio_risk.currency_exposure
@@ -537,7 +570,8 @@ class MaximumCurrencyExposurePolicy(BaseRiskPolicy):
                 score = max(0.0, 100.0 - (len(violations) * 20.0))
                 return await self._record_result(
                     self._make_result(
-                        False, score,
+                        False,
+                        score,
                         f"Currency exposure limit exceeded for: {', '.join(violations)}",
                         details=f"Violations: {violations}, Limit: {max_ccy:.1f}%",
                     )
@@ -546,7 +580,9 @@ class MaximumCurrencyExposurePolicy(BaseRiskPolicy):
                 self._make_result(True, 100.0, "All currency exposures within limits")
             )
 
-        return await self._record_result(self._make_result(True, 100.0, "No currency exposure data"))
+        return await self._record_result(
+            self._make_result(True, 100.0, "No currency exposure data")
+        )
 
 
 # ============================================================================
@@ -570,21 +606,25 @@ class MaximumLeveragePolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_lev = self._config.max_leverage
         if max_lev <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Leverage check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Leverage check disabled")
+            )
 
         current_leverage = context.leverage
         passed, score = self._apply_profile_threshold(current_leverage, max_lev)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Leverage {current_leverage:.1f}x exceeds {max_lev:.1f}x limit",
                     details=f"Current: {current_leverage:.1f}x, Max: {max_lev:.1f}x",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Leverage {current_leverage:.1f}x within {max_lev:.1f}x limit",
             )
         )
@@ -606,14 +646,17 @@ class MaximumOpenPositionsPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_positions = self._config.max_open_positions
         if max_positions <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Open positions check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Open positions check disabled")
+            )
 
         current = context.open_positions_count
         if current >= max_positions:
             score = max(0.0, 100.0 - (current / max_positions) * 100.0)
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Open positions {current} meets/exceeds limit {max_positions}",
                     details=f"Current: {current}, Max: {max_positions}",
                 )
@@ -622,7 +665,8 @@ class MaximumOpenPositionsPolicy(BaseRiskPolicy):
         score = 100.0 - (current / max_positions) * 30.0
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Open positions {current} below limit {max_positions}",
             )
         )
@@ -649,7 +693,9 @@ class MarginProtectionPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         threshold = self._config.margin_call_threshold_pct
         if threshold <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Margin check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Margin check disabled")
+            )
 
         margin_level = context.margin_level_pct
         if math.isinf(margin_level):
@@ -659,15 +705,17 @@ class MarginProtectionPolicy(BaseRiskPolicy):
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Margin level {margin_level:.1f}% below threshold {threshold:.1f}%",
                     details=f"Equity: {context.account_equity}, Margin: {context.margin_used}, "
-                            f"Level: {margin_level:.1f}%, Threshold: {threshold:.1f}%",
+                    f"Level: {margin_level:.1f}%, Threshold: {threshold:.1f}%",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Margin level {margin_level:.1f}% above threshold {threshold:.1f}%",
             )
         )
@@ -689,21 +737,25 @@ class SpreadProtectionPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_spread = self._config.max_spread_pips
         if max_spread <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Spread check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Spread check disabled")
+            )
 
         current_spread = context.spread_pips
         passed, score = self._apply_profile_threshold(current_spread, max_spread)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Spread {current_spread:.2f} pips exceeds {max_spread:.1f} pips limit",
                     details=f"Current spread: {current_spread:.2f}, Max: {max_spread:.1f}",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Spread {current_spread:.2f} pips within {max_spread:.1f} pips limit",
             )
         )
@@ -725,21 +777,25 @@ class VolatilityProtectionPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_vol = self._config.max_volatility
         if max_vol <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Volatility check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Volatility check disabled")
+            )
 
         current_vol = context.volatility
         passed, score = self._apply_profile_threshold(current_vol, max_vol)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Volatility {current_vol:.3f} exceeds {max_vol:.2f} limit",
                     details=f"Current volatility: {current_vol:.3f}, Max: {max_vol:.2f}",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Volatility {current_vol:.3f} within {max_vol:.2f} limit",
             )
         )
@@ -761,21 +817,25 @@ class LiquidityProtectionPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         min_liquidity = self._config.min_liquidity_score
         if min_liquidity <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Liquidity check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Liquidity check disabled")
+            )
 
         current = context.liquidity_score
         passed, score = self._apply_profile_threshold(current, min_liquidity, invert=True)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Liquidity score {current:.3f} below minimum {min_liquidity:.2f}",
                     details=f"Current liquidity: {current:.3f}, Minimum: {min_liquidity:.2f}",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Liquidity score {current:.3f} above minimum {min_liquidity:.2f}",
             )
         )
@@ -797,21 +857,25 @@ class SlippageProtectionPolicy(BaseRiskPolicy):
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         max_slip = self._config.max_slippage_pips
         if max_slip <= 0:
-            return await self._record_result(self._make_result(True, 100.0, "Slippage check disabled"))
+            return await self._record_result(
+                self._make_result(True, 100.0, "Slippage check disabled")
+            )
 
         current = context.slippage_estimate
         passed, score = self._apply_profile_threshold(current, max_slip)
         if not passed:
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"Slippage estimate {current:.2f} pips exceeds {max_slip:.1f} pips limit",
                     details=f"Slippage: {current:.2f}, Max: {max_slip:.1f}",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, score,
+                True,
+                score,
                 f"Slippage {current:.2f} pips within {max_slip:.1f} pips limit",
             )
         )
@@ -839,14 +903,13 @@ class NewsProtectionPolicy(BaseRiskPolicy):
         if context.is_news_hour:
             return await self._record_result(
                 self._make_result(
-                    False, 30.0,
+                    False,
+                    30.0,
                     "Trading restricted during high-impact news period",
                     details="High-impact news event in progress. Trading deferred until news impact subsides.",
                 )
             )
-        return await self._record_result(
-            self._make_result(True, 100.0, "No active news events")
-        )
+        return await self._record_result(self._make_result(True, 100.0, "No active news events"))
 
 
 class TradingHoursProtectionPolicy(BaseRiskPolicy):
@@ -866,16 +929,22 @@ class TradingHoursProtectionPolicy(BaseRiskPolicy):
         if not context.market_open and self._config.require_market_open:
             return await self._record_result(
                 self._make_result(
-                    False, 10.0,
+                    False,
+                    10.0,
                     "Market is closed - trading not allowed",
                     details=f"Symbol: {context.symbol}, Market open: {context.market_open}, "
-                            f"Require market open: {self._config.require_market_open}",
+                    f"Require market open: {self._config.require_market_open}",
                 )
             )
         return await self._record_result(
             self._make_result(
-                True, 100.0 if context.market_open else 70.0,
-                "Market is open" if context.market_open else "Market closed but weekend/holiday trading allowed",
+                True,
+                100.0 if context.market_open else 70.0,
+                (
+                    "Market is open"
+                    if context.market_open
+                    else "Market closed but weekend/holiday trading allowed"
+                ),
             )
         )
 
@@ -895,14 +964,13 @@ class WeekendProtectionPolicy(BaseRiskPolicy):
 
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         if not context.is_weekend:
-            return await self._record_result(
-                self._make_result(True, 100.0, "Not a weekend")
-            )
+            return await self._record_result(self._make_result(True, 100.0, "Not a weekend"))
 
         if self._config.allow_weekend_trading:
             return await self._record_result(
                 self._make_result(
-                    True, 50.0,
+                    True,
+                    50.0,
                     "Weekend trading allowed by profile - proceed with caution",
                     details="Weekend trading carries higher risk due to lower liquidity",
                 )
@@ -910,7 +978,8 @@ class WeekendProtectionPolicy(BaseRiskPolicy):
 
         return await self._record_result(
             self._make_result(
-                False, 10.0,
+                False,
+                10.0,
                 "Weekend trading is not allowed",
                 details="Weekend trading blocked by risk profile. Set allow_weekend_trading=True to enable.",
             )
@@ -932,14 +1001,13 @@ class HolidayProtectionPolicy(BaseRiskPolicy):
 
     async def evaluate(self, context: RiskContext) -> PolicyResult:
         if not context.is_holiday:
-            return await self._record_result(
-                self._make_result(True, 100.0, "Not a holiday")
-            )
+            return await self._record_result(self._make_result(True, 100.0, "Not a holiday"))
 
         if self._config.allow_holiday_trading:
             return await self._record_result(
                 self._make_result(
-                    True, 50.0,
+                    True,
+                    50.0,
                     "Holiday trading allowed by profile - proceed with caution",
                     details="Holiday trading carries higher risk due to lower liquidity and thinner markets",
                 )
@@ -947,7 +1015,8 @@ class HolidayProtectionPolicy(BaseRiskPolicy):
 
         return await self._record_result(
             self._make_result(
-                False, 10.0,
+                False,
+                10.0,
                 "Holiday trading is not allowed",
                 details="Holiday trading blocked by risk profile. Set allow_holiday_trading=True to enable.",
             )
@@ -987,21 +1056,25 @@ class SoftStopPolicy(BaseRiskPolicy):
             if current_dd >= soft_stop:
                 return await self._record_result(
                     self._make_result(
-                        False, score,
+                        False,
+                        score,
                         f"Soft stop triggered at {current_dd:.2f}% loss (threshold: {soft_stop:.1f}%)",
                         details=f"Reducing position sizes. Current loss: {current_dd:.2f}%, Soft stop: {soft_stop:.1f}%",
                     )
                 )
             return await self._record_result(
                 self._make_result(
-                    True, score,
+                    True,
+                    score,
                     f"Approaching soft stop: {current_dd:.2f}% / {soft_stop:.1f}%",
                     details="Warning: loss approaching soft stop threshold",
                 )
             )
 
         return await self._record_result(
-            self._make_result(True, 100.0, f"Loss {current_dd:.2f}% well below soft stop {soft_stop:.1f}%")
+            self._make_result(
+                True, 100.0, f"Loss {current_dd:.2f}% well below soft stop {soft_stop:.1f}%"
+            )
         )
 
 
@@ -1032,15 +1105,18 @@ class HardStopPolicy(BaseRiskPolicy):
             score = max(0.0, 100.0 - (current_dd / hard_stop) * 100.0)
             return await self._record_result(
                 self._make_result(
-                    False, score,
+                    False,
+                    score,
                     f"HARD STOP TRIGGERED at {current_dd:.2f}% loss (limit: {hard_stop:.1f}%)",
                     details=f"All trading stopped. Current loss: {current_dd:.2f}%, Hard stop: {hard_stop:.1f}%. "
-                            f"Account protection level: HARD_STOP",
+                    f"Account protection level: HARD_STOP",
                 )
             )
 
         return await self._record_result(
-            self._make_result(True, 100.0, f"Loss {current_dd:.2f}% within hard stop {hard_stop:.1f}%")
+            self._make_result(
+                True, 100.0, f"Loss {current_dd:.2f}% within hard stop {hard_stop:.1f}%"
+            )
         )
 
 
@@ -1061,14 +1137,13 @@ class TradingLockPolicy(BaseRiskPolicy):
         if context.is_trading_locked:
             return await self._record_result(
                 self._make_result(
-                    False, 0.0,
+                    False,
+                    0.0,
                     "Trading is locked - no new trades allowed",
                     details="Account is in locked state. Check protection status for details.",
                 )
             )
-        return await self._record_result(
-            self._make_result(True, 100.0, "Trading is not locked")
-        )
+        return await self._record_result(self._make_result(True, 100.0, "Trading is not locked"))
 
 
 class CooldownTimerPolicy(BaseRiskPolicy):
@@ -1101,10 +1176,11 @@ class CooldownTimerPolicy(BaseRiskPolicy):
             remaining = (self._cooldown_end - now).total_seconds()
             return await self._record_result(
                 self._make_result(
-                    False, 10.0,
+                    False,
+                    10.0,
                     f"Cooldown active - {remaining:.0f}s remaining",
                     details=f"Cooldown until {self._cooldown_end.isoformat()}, "
-                            f"remaining: {remaining:.0f}s",
+                    f"remaining: {remaining:.0f}s",
                 )
             )
 
@@ -1115,15 +1191,14 @@ class CooldownTimerPolicy(BaseRiskPolicy):
             ).timedelta(minutes=cooldown_minutes)
             return await self._record_result(
                 self._make_result(
-                    False, 20.0,
+                    False,
+                    20.0,
                     f"Cooldown triggered after {context.consecutive_losses} consecutive losses",
                     details=f"Cooldown for {cooldown_minutes:.0f} minutes until {self._cooldown_end.isoformat()}",
                 )
             )
 
-        return await self._record_result(
-            self._make_result(True, 100.0, "No cooldown active")
-        )
+        return await self._record_result(self._make_result(True, 100.0, "No cooldown active"))
 
 
 class RecoveryModePolicy(BaseRiskPolicy):
@@ -1151,10 +1226,11 @@ class RecoveryModePolicy(BaseRiskPolicy):
             score = max(0.0, 50.0 - current_dd)
             return await self._record_result(
                 self._make_result(
-                    True, score,
+                    True,
+                    score,
                     "Recovery mode active - reduced position sizes",
                     details=f"Current DD: {current_dd:.2f}%, Max DD: {max_dd:.2f}%. "
-                            f"Trading with reduced risk until recovery.",
+                    f"Trading with reduced risk until recovery.",
                 )
             )
 
@@ -1163,7 +1239,8 @@ class RecoveryModePolicy(BaseRiskPolicy):
             score = 100.0 - (current_dd / self._config.max_drawdown_pct) * 50.0
             return await self._record_result(
                 self._make_result(
-                    True, max(0.0, score),
+                    True,
+                    max(0.0, score),
                     "Approaching recovery mode trigger level",
                     details=f"Current DD: {current_dd:.2f}%, Recovery trigger: {self._config.max_drawdown_pct * 0.7:.1f}%",
                 )
@@ -1196,7 +1273,8 @@ class BrokerHealthProtectionPolicy(BaseRiskPolicy):
         if not context.broker_connected:
             return await self._record_result(
                 self._make_result(
-                    False, 0.0,
+                    False,
+                    0.0,
                     "Broker is disconnected - trading not allowed",
                     details="No broker connection available. Cannot execute trades.",
                 )
@@ -1205,7 +1283,8 @@ class BrokerHealthProtectionPolicy(BaseRiskPolicy):
         if context.broker_latency_ms > 1000:
             return await self._record_result(
                 self._make_result(
-                    False, 30.0,
+                    False,
+                    30.0,
                     f"Broker latency too high: {context.broker_latency_ms:.0f}ms",
                     details=f"Latency: {context.broker_latency_ms:.0f}ms, Maximum recommended: 1000ms",
                 )
@@ -1214,7 +1293,8 @@ class BrokerHealthProtectionPolicy(BaseRiskPolicy):
         if context.broker_uptime_pct < 95.0:
             return await self._record_result(
                 self._make_result(
-                    True, 50.0,
+                    True,
+                    50.0,
                     f"Broker uptime {context.broker_uptime_pct:.1f}% below 95% threshold",
                     details="Broker reliability is concerning but connection is active",
                 )
@@ -1222,8 +1302,9 @@ class BrokerHealthProtectionPolicy(BaseRiskPolicy):
 
         return await self._record_result(
             self._make_result(
-                True, 100.0,
-                f"Broker healthy (latency: {context.broker_latency_ms:.0f}ms, uptime: {context.broker_uptime_pct:.1f}%)"
+                True,
+                100.0,
+                f"Broker healthy (latency: {context.broker_latency_ms:.0f}ms, uptime: {context.broker_uptime_pct:.1f}%)",
             )
         )
 
@@ -1245,7 +1326,8 @@ class MarketDataQualityProtectionPolicy(BaseRiskPolicy):
         if not context.data_feed_active:
             return await self._record_result(
                 self._make_result(
-                    False, 0.0,
+                    False,
+                    0.0,
                     "Market data feed is not active",
                     details="Cannot evaluate market conditions without active data feed.",
                 )
@@ -1269,7 +1351,8 @@ class MarketDataQualityProtectionPolicy(BaseRiskPolicy):
         if issues:
             return await self._record_result(
                 self._make_result(
-                    score >= 50.0, max(0.0, score),
+                    score >= 50.0,
+                    max(0.0, score),
                     "Market data quality issues detected",
                     details="; ".join(issues),
                 )
@@ -1277,9 +1360,10 @@ class MarketDataQualityProtectionPolicy(BaseRiskPolicy):
 
         return await self._record_result(
             self._make_result(
-                True, 100.0,
+                True,
+                100.0,
                 f"Market data quality good (consensus: {context.consensus_quality:.2f}, "
-                f"provider health: {context.provider_health:.2f})"
+                f"provider health: {context.provider_health:.2f})",
             )
         )
 
@@ -1306,17 +1390,16 @@ class EmergencyStopPolicy(BaseRiskPolicy):
 
             return await self._record_result(
                 self._make_result(
-                    False, 0.0,
+                    False,
+                    0.0,
                     f"EMERGENCY STOP ACTIVE - all trading blocked",
                     details=f"Emergency triggers: {trigger_str}. "
-                            f"All trading is suspended until emergency is resolved.",
+                    f"All trading is suspended until emergency is resolved.",
                     metadata={"emergency_triggers": triggers},
                 )
             )
 
-        return await self._record_result(
-            self._make_result(True, 100.0, "No emergency mode active")
-        )
+        return await self._record_result(self._make_result(True, 100.0, "No emergency mode active"))
 
 
 # ============================================================================
@@ -1406,4 +1489,3 @@ POLICY_CLASS_MAP: dict[str, type[BaseRiskPolicy]] = {
     "market_data_quality_protection": MarketDataQualityProtectionPolicy,
     "emergency_stop": EmergencyStopPolicy,
 }
-

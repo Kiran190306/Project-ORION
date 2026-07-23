@@ -1,4 +1,5 @@
 """Tests for all 24 risk policy implementations."""
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -39,7 +40,6 @@ from libraries.domain.risk.policy import (
     create_default_policies,
 )
 from libraries.domain.risk.profile import RiskProfileConfig
-
 
 # ─── Fixtures ─────────────────────────────────────────────────────────────
 
@@ -327,6 +327,7 @@ class TestMaximumCurrencyExposurePolicy:
     @pytest.mark.asyncio
     async def test_passes_within_limits(self, default_config):
         from libraries.domain.risk.models import PortfolioRisk
+
         policy = MaximumCurrencyExposurePolicy(default_config)
         ctx = RiskContext(
             symbol="EURUSD",
@@ -341,6 +342,7 @@ class TestMaximumCurrencyExposurePolicy:
     @pytest.mark.asyncio
     async def test_fails_with_excessive_currency(self, default_config):
         from libraries.domain.risk.models import PortfolioRisk
+
         policy = MaximumCurrencyExposurePolicy(default_config)
         ctx = RiskContext(
             symbol="EURUSD",
@@ -562,7 +564,8 @@ class TestTradingLockPolicy:
 
     @pytest.mark.asyncio
     async def test_fails_when_locked(self, default_config):
-        from libraries.domain.risk.models import AccountProtectionStatus, AccountProtectionLevel
+        from libraries.domain.risk.models import AccountProtectionLevel, AccountProtectionStatus
+
         policy = TradingLockPolicy(default_config)
         ctx = RiskContext(
             symbol="EURUSD",
@@ -652,6 +655,7 @@ class TestEmergencyStopPolicy:
     @pytest.mark.asyncio
     async def test_fails_during_emergency(self, default_config):
         from libraries.domain.risk.models import EmergencyModeStatus, EmergencyTrigger
+
         policy = EmergencyStopPolicy(default_config)
         ctx = RiskContext(
             symbol="EURUSD",
@@ -690,4 +694,3 @@ class TestCreateDefaultPolicies:
         cfg = RiskProfileConfig(max_leverage=10.0)
         policies = create_default_policies(cfg)
         assert len(policies) == 28
-

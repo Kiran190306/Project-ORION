@@ -269,15 +269,20 @@ class RiskEngine:
             # Aggregate via evaluator
             result = await self._evaluator.evaluate(
                 evaluations,
-                is_emergency_mode=context.is_emergency if hasattr(context, "is_emergency") else False,
+                is_emergency_mode=(
+                    context.is_emergency if hasattr(context, "is_emergency") else False
+                ),
             )
 
             # Enrich result
             enriched = RiskResult(
                 decision=result.decision,
                 risk_score=result.risk_score,
-                policy_results=result.policy_results + tuple(
-                    pr for pr in policy_results if pr.policy_name not in {p.policy_name for p in result.policy_results}
+                policy_results=result.policy_results
+                + tuple(
+                    pr
+                    for pr in policy_results
+                    if pr.policy_name not in {p.policy_name for p in result.policy_results}
                 ),
                 evaluations=result.evaluations,
                 rejection_reasons=result.rejection_reasons,
@@ -406,7 +411,11 @@ class RiskEngine:
         if hasattr(decision, "symbol"):
             kwargs["symbol"] = decision.symbol
         if hasattr(decision, "direction"):
-            kwargs["direction"] = decision.direction.value if hasattr(decision.direction, "value") else str(decision.direction)
+            kwargs["direction"] = (
+                decision.direction.value
+                if hasattr(decision.direction, "value")
+                else str(decision.direction)
+            )
         if hasattr(decision, "entry_price"):
             kwargs["entry_price"] = decision.entry_price
         if hasattr(decision, "stop_loss"):
@@ -418,7 +427,11 @@ class RiskEngine:
         if hasattr(decision, "confidence"):
             kwargs["confidence"] = decision.confidence
         if hasattr(decision, "strategy"):
-            kwargs["strategy"] = decision.strategy.value if hasattr(decision.strategy, "value") else str(decision.strategy)
+            kwargs["strategy"] = (
+                decision.strategy.value
+                if hasattr(decision.strategy, "value")
+                else str(decision.strategy)
+            )
         if hasattr(decision, "notional_value"):
             kwargs["notional_value"] = decision.notional_value
 
@@ -466,4 +479,3 @@ class RiskEngine:
             rejection_reasons=errors if decision != RiskDecision.APPROVED else (),
             warnings=errors if decision == RiskDecision.APPROVED else (),
         )
-

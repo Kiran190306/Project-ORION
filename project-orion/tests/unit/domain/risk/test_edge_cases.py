@@ -11,6 +11,7 @@ Tests:
 - Emergency stop
 - Risk profiles
 """
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -18,6 +19,7 @@ from decimal import Decimal
 import pytest
 
 from libraries.domain.risk.context import RiskContext
+from libraries.domain.risk.engine import RiskEngine
 from libraries.domain.risk.models import (
     AccountProtectionLevel,
     AccountProtectionStatus,
@@ -41,10 +43,8 @@ from libraries.domain.risk.policy import (
     TradingLockPolicy,
     create_default_policies,
 )
-from libraries.domain.risk.registry import RiskPolicyRegistry
-from libraries.domain.risk.engine import RiskEngine
 from libraries.domain.risk.profile import RiskProfileConfig
-
+from libraries.domain.risk.registry import RiskPolicyRegistry
 
 # ─── Zero Balance ──────────────────────────────────────────────────────────
 
@@ -271,6 +271,7 @@ class TestTradingLock:
     @pytest.mark.asyncio
     async def test_trading_lock_with_soft_stop(self):
         from libraries.domain.risk.policy import SoftStopPolicy
+
         soft_stop = SoftStopPolicy()
         trading_lock = TradingLockPolicy()
 
@@ -292,10 +293,13 @@ class TestCooldown:
     @pytest.mark.asyncio
     async def test_cooldown_after_consecutive_losses(self):
         from libraries.domain.risk.policy import CooldownTimerPolicy
-        policy = CooldownTimerPolicy(RiskProfileConfig(
-            cooldown_after_loss_minutes=15.0,
-            max_consecutive_losses=3,
-        ))
+
+        policy = CooldownTimerPolicy(
+            RiskProfileConfig(
+                cooldown_after_loss_minutes=15.0,
+                max_consecutive_losses=3,
+            )
+        )
         await policy.initialize()
 
         # Simulate consecutive losses
@@ -307,6 +311,7 @@ class TestCooldown:
     @pytest.mark.asyncio
     async def test_cooldown_disabled(self):
         from libraries.domain.risk.policy import CooldownTimerPolicy
+
         policy = CooldownTimerPolicy(RiskProfileConfig(cooldown_after_loss_minutes=0))
         await policy.initialize()
         ctx = RiskContext(symbol="EURUSD", consecutive_losses=10)
@@ -316,6 +321,7 @@ class TestCooldown:
     @pytest.mark.asyncio
     async def test_no_cooldown_without_losses(self):
         from libraries.domain.risk.policy import CooldownTimerPolicy
+
         policy = CooldownTimerPolicy(RiskProfileConfig(cooldown_after_loss_minutes=15.0))
         await policy.initialize()
         ctx = RiskContext(symbol="EURUSD", consecutive_losses=0)
@@ -481,7 +487,10 @@ class TestCombinedScenarios:
                 ),
                 emergency_status=EmergencyModeStatus(
                     active=True,
-                    triggers=(EmergencyTrigger.BROKER_DISCONNECT, EmergencyTrigger.MARKET_FEED_FAILURE),
+                    triggers=(
+                        EmergencyTrigger.BROKER_DISCONNECT,
+                        EmergencyTrigger.MARKET_FEED_FAILURE,
+                    ),
                 ),
                 protection_status=AccountProtectionStatus(
                     level=AccountProtectionLevel.HARD_STOP,
@@ -492,9 +501,9 @@ class TestCombinedScenarios:
             results.append(result)
 
         # All policies should reject
-        assert all(not r.passed for r in results), (
-            f"Expected all policies to reject, but {sum(1 for r in results if r.passed)} passed"
-        )
+        assert all(
+            not r.passed for r in results
+        ), f"Expected all policies to reject, but {sum(1 for r in results if r.passed)} passed"
 
     @pytest.mark.asyncio
     async def test_everything_perfect(self):

@@ -65,9 +65,7 @@ class TestExecutionEngine:
         assert not result.success
         assert "shut down" in result.error.lower()
 
-    async def test_execute_rejected_decision(
-        self, engine: ExecutionEngine
-    ) -> None:
+    async def test_execute_rejected_decision(self, engine: ExecutionEngine) -> None:
         await engine.initialize()
         decision = TradeDecision(
             symbol="EURUSD",
@@ -96,9 +94,7 @@ class TestExecutionEngine:
         assert result.success
         assert result.order is not None
 
-    async def test_execute_non_executable_decision(
-        self, engine: ExecutionEngine
-    ) -> None:
+    async def test_execute_non_executable_decision(self, engine: ExecutionEngine) -> None:
         await engine.initialize()
         decision = TradeDecision(
             symbol="EURUSD",

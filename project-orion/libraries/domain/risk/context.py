@@ -179,4 +179,3 @@ class RiskContext:
             "is_emergency": self.is_emergency,
             "is_trading_locked": self.is_trading_locked,
         }
-

@@ -103,7 +103,9 @@ class TestOrderValidator:
         result = validator.validate(valid_order, market_open=False)
         assert result.is_invalid
 
-    def test_broker_unavailable_warning(self, validator: OrderValidator, valid_order: Order) -> None:
+    def test_broker_unavailable_warning(
+        self, validator: OrderValidator, valid_order: Order
+    ) -> None:
         result = validator.validate(valid_order, broker_available=False)
         assert result.is_invalid
 
@@ -131,7 +133,9 @@ class TestOrderValidator:
         result = validator.validate(order)
         assert result.is_invalid
 
-    def test_high_spread_generates_warning(self, validator: OrderValidator, valid_order: Order) -> None:
+    def test_high_spread_generates_warning(
+        self, validator: OrderValidator, valid_order: Order
+    ) -> None:
         result = validator.validate(valid_order, current_spread=15.0)
         assert result.is_valid
         assert len(result.warnings) > 0

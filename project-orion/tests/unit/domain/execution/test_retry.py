@@ -40,7 +40,9 @@ class TestRetryHandler:
         assert "Retry exhausted" in str(exc.value)
 
     async def test_calculate_delay(self) -> None:
-        handler = RetryHandler(config=RetryConfig(exponential_base=2.0, base_delay_ms=100.0, jitter=False))
+        handler = RetryHandler(
+            config=RetryConfig(exponential_base=2.0, base_delay_ms=100.0, jitter=False)
+        )
         d1 = handler.calculate_delay(0)
         d2 = handler.calculate_delay(1)
         d3 = handler.calculate_delay(2)
@@ -50,7 +52,9 @@ class TestRetryHandler:
 
     async def test_delay_capped_at_max(self) -> None:
         handler = RetryHandler(
-            config=RetryConfig(base_delay_ms=1000.0, max_delay_ms=5000.0, exponential_base=10.0, jitter=False)
+            config=RetryConfig(
+                base_delay_ms=1000.0, max_delay_ms=5000.0, exponential_base=10.0, jitter=False
+            )
         )
         d = handler.calculate_delay(3)
         assert d <= 5000.0

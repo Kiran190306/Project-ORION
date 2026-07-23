@@ -200,4 +200,3 @@ __all__ = [
     "CooldownActiveError",
     "TradingLockedError",
 ]
-

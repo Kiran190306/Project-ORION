@@ -213,4 +213,3 @@ class RiskValidator:
             True if leverage is within limits.
         """
         return 0 < leverage <= self._max_leverage
-

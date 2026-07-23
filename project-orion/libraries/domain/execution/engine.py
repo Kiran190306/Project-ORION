@@ -51,11 +51,11 @@ from libraries.domain.execution.router import (
     OrderRouter,
     OrderRouterConfig,
 )
+from libraries.domain.execution.state_machine import Trigger
 from libraries.domain.execution.statistics import (
     ExecutionOutcome,
     ExecutionStatistics,
 )
-from libraries.domain.execution.state_machine import Trigger
 from libraries.domain.execution.tracker import OrderTracker
 from libraries.domain.execution.validator import (
     OrderValidator,
@@ -118,9 +118,7 @@ class ExecutionEngine:
         recovery_handler: OrderRecoveryHandler | None = None,
         statistics: ExecutionStatistics | None = None,
         tracker: OrderTracker | None = None,
-        submit_fn: (
-            Callable[[Order, str], Awaitable[tuple[bool, str, Any]]] | None
-        ) = None,
+        submit_fn: Callable[[Order, str], Awaitable[tuple[bool, str, Any]]] | None = None,
     ) -> None:
         self._config = config or ExecutionEngineConfig()
         self._builder = builder or OrderBuilder()
@@ -254,7 +252,7 @@ class ExecutionEngine:
             return EngineExecutionResult(
                 success=False,
                 error=f"Decision {decision.decision_id} is not executable "
-                      f"(outcome: {decision.outcome.value})",
+                f"(outcome: {decision.outcome.value})",
             )
 
         try:
@@ -326,8 +324,14 @@ class ExecutionEngine:
                 broker_order_id=routing.selected_broker,
             )
 
-        except (OrderBuildError, OrderValidationError, DuplicateOrderError,
-                RoutingError, RetryExhaustedError, FillValidationError) as e:
+        except (
+            OrderBuildError,
+            OrderValidationError,
+            DuplicateOrderError,
+            RoutingError,
+            RetryExhaustedError,
+            FillValidationError,
+        ) as e:
             elapsed = (time.monotonic() - start_time) * 1000
 
             if self._config.track_statistics:
@@ -415,6 +419,7 @@ class ExecutionEngine:
             return True
 
         try:
+
             async def submit() -> Any:
                 return await self._submit_fn(order, broker_id)
 
@@ -443,9 +448,7 @@ class ExecutionEngine:
         try:
             order = await self._tracker.get_order(fill.order_id)
         except Exception:
-            raise FillValidationError(
-                f"No tracked order found for fill {fill.fill_id}"
-            )
+            raise FillValidationError(f"No tracked order found for fill {fill.fill_id}")
 
         # Validate fill against order
         await self._fill_validator.validate_fill(order, fill)
@@ -469,9 +472,7 @@ class ExecutionEngine:
         # Record statistics
         if self._config.track_statistics:
             outcome = (
-                ExecutionOutcome.FILLED
-                if fill.is_full_fill
-                else ExecutionOutcome.PARTIAL_FILL
+                ExecutionOutcome.FILLED if fill.is_full_fill else ExecutionOutcome.PARTIAL_FILL
             )
             await self._statistics.record_execution(
                 outcome=outcome,

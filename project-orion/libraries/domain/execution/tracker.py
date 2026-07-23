@@ -96,9 +96,7 @@ class OrderTracker:
         async with self._lock:
             order_id = self._decision_map.get(decision_id)
             if order_id is None:
-                raise OrderNotFoundError(
-                    f"No order found for decision {decision_id}"
-                )
+                raise OrderNotFoundError(f"No order found for decision {decision_id}")
             return self._orders[order_id]
 
     async def get_by_symbol(
@@ -147,9 +145,7 @@ class OrderTracker:
             List of matching orders.
         """
         async with self._lock:
-            return [
-                o for o in self._orders.values() if o.status == status
-            ]
+            return [o for o in self._orders.values() if o.status == status]
 
     async def update_order(self, order: Order) -> None:
         """Update a tracked order.

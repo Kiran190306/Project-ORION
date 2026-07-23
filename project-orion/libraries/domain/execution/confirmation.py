@@ -98,15 +98,11 @@ class FillValidator:
 
             # 2. Symbol match
             if fill.symbol != order.symbol:
-                errors.append(
-                    f"Fill symbol {fill.symbol} does not match order {order.symbol}"
-                )
+                errors.append(f"Fill symbol {fill.symbol} does not match order {order.symbol}")
 
             # 3. Side match
             if fill.side != order.side.value:
-                errors.append(
-                    f"Fill side {fill.side} does not match order {order.side.value}"
-                )
+                errors.append(f"Fill side {fill.side} does not match order {order.side.value}")
 
             # 4. Volume check
             if fill.filled_volume <= Decimal("0"):
@@ -117,9 +113,7 @@ class FillValidator:
 
             total = fill.filled_volume + fill.remaining_volume
             if order.volume is not None and total > order.volume:
-                errors.append(
-                    f"Fill total {total} exceeds order volume {order.volume}"
-                )
+                errors.append(f"Fill total {total} exceeds order volume {order.volume}")
 
             # 5. Price deviation check
             if order.price is not None and fill.fill_price > Decimal("0"):
@@ -168,7 +162,8 @@ class FillValidator:
             remaining = Decimal("0")
 
         confirmation = FillConfirmation(
-            fill_id=report.report_id or f"FL-{order.order_id}-{datetime.now(timezone.utc).timestamp()}",
+            fill_id=report.report_id
+            or f"FL-{order.order_id}-{datetime.now(timezone.utc).timestamp()}",
             order_id=order.order_id,
             symbol=order.symbol,
             side=order.side.value,

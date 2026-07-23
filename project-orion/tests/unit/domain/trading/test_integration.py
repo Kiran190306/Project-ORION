@@ -33,6 +33,7 @@ from libraries.domain.trading.trade_validator import TradeValidator
 class TestTradingDecisionIntegration:
     def test_full_pipeline_buy_decision(self) -> None:
         """Test the full decision pipeline producing a BUY decision."""
+
         async def exercise() -> None:
             engine = DecisionEngine(
                 config=EngineConfig(
@@ -91,10 +92,9 @@ class TestTradingDecisionIntegration:
 
     def test_full_pipeline_reject_high_spread(self) -> None:
         """Test rejection due to excessive spread."""
+
         async def exercise() -> None:
-            engine = DecisionEngine(
-                config=EngineConfig(max_spread_pips=3.0)
-            )
+            engine = DecisionEngine(config=EngineConfig(max_spread_pips=3.0))
 
             mi = MarketIntelligenceInput(
                 trend_strength=0.8,
@@ -122,10 +122,9 @@ class TestTradingDecisionIntegration:
 
     def test_full_pipeline_reject_low_confidence(self) -> None:
         """Test rejection due to low confidence."""
+
         async def exercise() -> None:
-            engine = DecisionEngine(
-                config=EngineConfig(min_confidence=90.0)
-            )
+            engine = DecisionEngine(config=EngineConfig(min_confidence=90.0))
 
             mi = MarketIntelligenceInput(
                 trend_strength=0.6,
@@ -147,6 +146,7 @@ class TestTradingDecisionIntegration:
 
     def test_full_pipeline_defer_no_signal(self) -> None:
         """Test defer when no signal is generated."""
+
         async def exercise() -> None:
             engine = DecisionEngine()
 
@@ -169,6 +169,7 @@ class TestTradingDecisionIntegration:
 
     def test_multiple_symbols_independent_decisions(self) -> None:
         """Test that decisions for different symbols are independent."""
+
         async def exercise() -> None:
             engine = DecisionEngine()
 
@@ -210,6 +211,7 @@ class TestTradingDecisionIntegration:
 
     def test_risk_filter_respects_daily_limit(self) -> None:
         """Test that risk filter respects daily trade limits."""
+
         async def exercise() -> None:
             risk_filter = RiskFilter(max_daily_trades=2, min_confidence=0.0)
 
@@ -246,6 +248,7 @@ class TestTradingDecisionIntegration:
 
     def test_confidence_scorer_with_execution_filter(self) -> None:
         """Test that confidence scorer and execution filter work together."""
+
         async def exercise() -> None:
             config = EngineConfig(min_confidence=30.0, max_spread_pips=5.0)
 
@@ -290,6 +293,7 @@ class TestTradingDecisionIntegration:
 
     def test_statistics_tracking(self) -> None:
         """Test that statistics are tracked through the engine."""
+
         async def exercise() -> None:
             engine = DecisionEngine()
             stats = engine.statistics
@@ -311,6 +315,7 @@ class TestTradingDecisionIntegration:
 
     def test_custom_dependency_injection(self) -> None:
         """Test that all components can be dependency-injected."""
+
         async def exercise() -> None:
             detector = MarketStateDetector(trending_threshold=0.5)
             generator = SignalGenerator(min_confidence_threshold=10.0)

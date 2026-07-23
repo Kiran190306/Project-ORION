@@ -60,7 +60,11 @@ def broker2() -> BrokerCapabilities:
 
 class TestOrderRouter:
     async def test_route_to_best_broker(
-        self, router: OrderRouter, order: Order, broker1: BrokerCapabilities, broker2: BrokerCapabilities
+        self,
+        router: OrderRouter,
+        order: Order,
+        broker1: BrokerCapabilities,
+        broker2: BrokerCapabilities,
     ) -> None:
         await router.register_broker(broker1)
         await router.register_broker(broker2)
@@ -115,9 +119,7 @@ class TestOrderRouter:
         result = await router.route(order)
         assert result.selected_broker == "broker-1"
 
-    async def test_fallback_routing(
-        self, router: OrderRouter, order: Order
-    ) -> None:
+    async def test_fallback_routing(self, router: OrderRouter, order: Order) -> None:
         high_latency = BrokerCapabilities(
             broker_id="broker-slow",
             broker_name="Slow",

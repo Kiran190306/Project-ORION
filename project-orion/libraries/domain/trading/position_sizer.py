@@ -74,7 +74,9 @@ class FixedPositionSizer(PositionSizer):
             adjusted_notional = self._fixed_notional * Decimal(str(confidence_adjustment))
             units = adjusted_notional / (entry_price or Decimal("1"))
             risk_amount = adjusted_notional * Decimal("0.02")  # 2% risk
-            account_risk_pct = float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            account_risk_pct = (
+                float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            )
 
             return SizingResult(
                 method=self._method,
@@ -122,7 +124,9 @@ class RiskPercentPositionSizer(PositionSizer):
                 units = risk_amount / (entry_price or Decimal("1")) * Decimal("0.1")
 
             notional = units * (entry_price or Decimal("1"))
-            account_risk_pct = float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            account_risk_pct = (
+                float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            )
 
             return SizingResult(
                 method=self._method,
@@ -178,7 +182,9 @@ class ATRPositionSizer(PositionSizer):
                 units = Decimal("0")
 
             notional = units * (entry_price or Decimal("1"))
-            account_risk_pct = float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            account_risk_pct = (
+                float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            )
 
             return SizingResult(
                 method=self._method,
@@ -293,7 +299,9 @@ class VolatilityBasedPositionSizer(PositionSizer):
             adjusted_notional = self._base_notional * Decimal(str(confidence_factor * vol_factor))
             units = adjusted_notional / (entry_price or Decimal("1"))
             risk_amount = adjusted_notional * Decimal("0.02")
-            account_risk_pct = float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            account_risk_pct = (
+                float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
+            )
 
             return SizingResult(
                 method=self._method,

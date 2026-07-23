@@ -130,7 +130,9 @@ class TradeStatistics:
             # Sharpe ratio (simplified, assuming risk-free rate = 0)
             if len(self._pnl_history) > 1:
                 mean_pnl = sum(self._pnl_history) / len(self._pnl_history)
-                variance = sum((p - mean_pnl) ** 2 for p in self._pnl_history) / len(self._pnl_history)
+                variance = sum((p - mean_pnl) ** 2 for p in self._pnl_history) / len(
+                    self._pnl_history
+                )
                 std_pnl = math.sqrt(variance) if variance > 0 else 0.0
                 sharpe_ratio = (mean_pnl / std_pnl) * math.sqrt(252) if std_pnl > 0 else 0.0
             else:
@@ -182,7 +184,9 @@ class TradeStatistics:
                 average_loss=round(avg_loss, 2),
                 largest_win=round(largest_win, 2),
                 largest_loss=round(largest_loss, 2),
-                profit_factor=round(profit_factor, 4) if profit_factor != float("inf") else float("inf"),
+                profit_factor=(
+                    round(profit_factor, 4) if profit_factor != float("inf") else float("inf")
+                ),
                 sharpe_ratio=round(sharpe_ratio, 4),
                 max_drawdown=round(max_dd, 2),
                 current_streak=current_streak,

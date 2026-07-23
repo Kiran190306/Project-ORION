@@ -30,6 +30,7 @@ class TestMarketStateDetector:
             assert state.trend_strength == 0.8
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_ranging(self) -> None:
@@ -43,6 +44,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.RANGING
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_high_volatility(self) -> None:
@@ -56,6 +58,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.HIGH_VOLATILITY
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_low_volatility(self) -> None:
@@ -69,6 +72,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.LOW_VOLATILITY
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_breakout(self) -> None:
@@ -83,6 +87,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.BREAKOUT
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_reversal(self) -> None:
@@ -97,6 +102,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.REVERSAL
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_detects_news_mode(self) -> None:
@@ -111,6 +117,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.NEWS_MODE
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_breakout_takes_precedence_over_volatility(self) -> None:
@@ -126,6 +133,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.BREAKOUT
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_news_mode_takes_highest_precedence(self) -> None:
@@ -142,6 +150,7 @@ class TestMarketStateDetector:
             assert state.state_type == MarketStateType.NEWS_MODE
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_market_state_immutable(self) -> None:
@@ -165,6 +174,7 @@ class TestMarketStateDetector:
             assert state.confidence >= 0.3
 
         import asyncio
+
         asyncio.run(exercise())
 
     def test_invalid_trending_threshold(self) -> None:
@@ -198,4 +208,5 @@ class TestMarketStateDetector:
             assert states[2].state_type == MarketStateType.HIGH_VOLATILITY
 
         import asyncio
+
         asyncio.run(exercise())

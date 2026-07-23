@@ -79,7 +79,10 @@ class TestOrderStateMachine:
         assert OrderStateMachine.can_transition(OrderStatus.FILLED, Trigger.SETTLE)
 
     def test_next_status(self) -> None:
-        assert OrderStateMachine.next_status(OrderStatus.NEW, Trigger.VALIDATE) == OrderStatus.VALIDATED
+        assert (
+            OrderStateMachine.next_status(OrderStatus.NEW, Trigger.VALIDATE)
+            == OrderStatus.VALIDATED
+        )
         assert OrderStateMachine.next_status(OrderStatus.NEW, Trigger.FULL_FILL) is None
 
     def test_allowed_triggers(self) -> None:

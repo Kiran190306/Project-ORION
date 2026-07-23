@@ -1,4 +1,4 @@
-"""Exception hierarchy for the Smart Order Execution Engine.""" 
+"""Exception hierarchy for the Smart Order Execution Engine."""
 
 from __future__ import annotations
 
@@ -65,4 +65,3 @@ class TimeoutError(ExecutionError):
 
 class RecoveryError(ExecutionError):
     """Raised when order recovery fails."""
-

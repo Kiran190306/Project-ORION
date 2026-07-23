@@ -151,6 +151,7 @@ class TestIntegration:
 
         # Second submission should fail
         from libraries.domain.execution.exceptions import DuplicateOrderError
+
         with pytest.raises(DuplicateOrderError):
             await dedup.check_and_register(
                 order_id=order.order_id,
@@ -235,7 +236,7 @@ class TestIntegration:
 
     async def test_recovery_after_timeout(self, decision: TradeDecision) -> None:
         """Test recovery after a timeout scenario."""
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
 
         # Create a stale order
         stale_order = Order(

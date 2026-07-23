@@ -1,4 +1,5 @@
 """Tests for risk data models."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -157,12 +158,20 @@ class TestRiskResult:
 
     def test_count_properties(self):
         passed = PolicyResult(
-            policy_name="p1", policy_category=PolicyCategory.LOSS_LIMITS,
-            severity=PolicySeverity.LOW, passed=True, score=100.0, message="ok",
+            policy_name="p1",
+            policy_category=PolicyCategory.LOSS_LIMITS,
+            severity=PolicySeverity.LOW,
+            passed=True,
+            score=100.0,
+            message="ok",
         )
         failed = PolicyResult(
-            policy_name="p2", policy_category=PolicyCategory.EXPOSURE,
-            severity=PolicySeverity.HIGH, passed=False, score=10.0, message="fail",
+            policy_name="p2",
+            policy_category=PolicyCategory.EXPOSURE,
+            severity=PolicySeverity.HIGH,
+            passed=False,
+            score=10.0,
+            message="fail",
         )
         result = RiskResult(
             decision=RiskDecision.REJECTED,
@@ -252,6 +261,7 @@ class TestAccountProtectionStatus:
 
     def test_cooldown_active(self):
         from datetime import timedelta
+
         future = datetime.now(timezone.utc) + timedelta(hours=1)
         status = AccountProtectionStatus(
             cooldown_active=True,
@@ -303,4 +313,3 @@ class TestRiskScore:
         assert score.is_safe
         assert not score.is_caution
         assert not score.is_dangerous
-

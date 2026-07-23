@@ -1,4 +1,5 @@
 """Tests for RiskStatistics."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -62,13 +63,17 @@ class TestRiskStatistics:
         stats = RiskStatistics()
         for _ in range(10):
             await stats.record_evaluation(
-                RiskDecision.APPROVED, 20.0,
-                {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.APPROVED,
+                20.0,
+                {"p1": True},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         for _ in range(5):
             await stats.record_evaluation(
-                RiskDecision.REJECTED, 80.0,
-                {"p1": False}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.REJECTED,
+                80.0,
+                {"p1": False},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         snapshot = await stats.get_snapshot()
         assert snapshot.total_evaluations == 15
@@ -80,7 +85,8 @@ class TestRiskStatistics:
     async def test_policy_violations_tracking(self):
         stats = RiskStatistics()
         await stats.record_evaluation(
-            RiskDecision.REJECTED, 80.0,
+            RiskDecision.REJECTED,
+            80.0,
             {"max_loss": False, "max_leverage": False},
             {"max_loss": PolicyCategory.LOSS_LIMITS, "max_leverage": PolicyCategory.LEVERAGE},
         )
@@ -92,7 +98,8 @@ class TestRiskStatistics:
     async def test_category_violations(self):
         stats = RiskStatistics()
         await stats.record_evaluation(
-            RiskDecision.REJECTED, 80.0,
+            RiskDecision.REJECTED,
+            80.0,
             {"max_loss": False},
             {"max_loss": PolicyCategory.LOSS_LIMITS},
         )
@@ -104,7 +111,8 @@ class TestRiskStatistics:
         stats = RiskStatistics()
         for _ in range(3):
             await stats.record_evaluation(
-                RiskDecision.REJECTED, 80.0,
+                RiskDecision.REJECTED,
+                80.0,
                 {"max_loss": False},
                 {"max_loss": PolicyCategory.LOSS_LIMITS},
             )
@@ -117,8 +125,10 @@ class TestRiskStatistics:
         # 3 approvals
         for _ in range(3):
             await stats.record_evaluation(
-                RiskDecision.APPROVED, 20.0,
-                {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.APPROVED,
+                20.0,
+                {"p1": True},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         snapshot = await stats.get_snapshot()
         assert snapshot.current_streak_approved == 3
@@ -127,8 +137,10 @@ class TestRiskStatistics:
         # 2 rejections
         for _ in range(2):
             await stats.record_evaluation(
-                RiskDecision.REJECTED, 80.0,
-                {"p1": False}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.REJECTED,
+                80.0,
+                {"p1": False},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         snapshot = await stats.get_snapshot()
         assert snapshot.current_streak_approved == 0
@@ -140,8 +152,10 @@ class TestRiskStatistics:
         # 5 rejections in a row
         for _ in range(5):
             await stats.record_evaluation(
-                RiskDecision.REJECTED, 80.0,
-                {"p1": False}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.REJECTED,
+                80.0,
+                {"p1": False},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         snapshot = await stats.get_snapshot()
         assert snapshot.worst_streak_rejected == 5
@@ -158,8 +172,10 @@ class TestRiskStatistics:
     async def test_reset(self):
         stats = RiskStatistics()
         await stats.record_evaluation(
-            RiskDecision.APPROVED, 20.0,
-            {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+            RiskDecision.APPROVED,
+            20.0,
+            {"p1": True},
+            {"p1": PolicyCategory.LOSS_LIMITS},
         )
         await stats.reset()
         snapshot = await stats.get_snapshot()
@@ -170,8 +186,10 @@ class TestRiskStatistics:
     async def test_reset_daily(self):
         stats = RiskStatistics()
         await stats.record_evaluation(
-            RiskDecision.REJECTED, 80.0,
-            {"p1": False}, {"p1": PolicyCategory.LOSS_LIMITS},
+            RiskDecision.REJECTED,
+            80.0,
+            {"p1": False},
+            {"p1": PolicyCategory.LOSS_LIMITS},
         )
         await stats.reset_daily()
         snapshot = await stats.get_snapshot()
@@ -185,6 +203,7 @@ class TestRiskStatistics:
         stats = RiskStatistics()
         # Force an older date
         import datetime as dt
+
         stats._current_date = (datetime.now(timezone.utc) - dt.timedelta(days=2)).date()
         stats._daily_violations = 10
         stats._weekly_violations = 20
@@ -192,8 +211,10 @@ class TestRiskStatistics:
 
         # Check rollover
         await stats.record_evaluation(
-            RiskDecision.APPROVED, 10.0,
-            {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+            RiskDecision.APPROVED,
+            10.0,
+            {"p1": True},
+            {"p1": PolicyCategory.LOSS_LIMITS},
         )
         snapshot = await stats.get_snapshot()
         # Daily should have reset
@@ -204,8 +225,10 @@ class TestRiskStatistics:
         stats = RiskStatistics()
         for score in [10.0, 20.0, 30.0]:
             await stats.record_evaluation(
-                RiskDecision.APPROVED, score,
-                {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+                RiskDecision.APPROVED,
+                score,
+                {"p1": True},
+                {"p1": PolicyCategory.LOSS_LIMITS},
             )
         snapshot = await stats.get_snapshot()
         assert snapshot.average_risk_score == 20.0  # (10+20+30)/3
@@ -214,13 +237,16 @@ class TestRiskStatistics:
     async def test_rejection_rate(self):
         stats = RiskStatistics()
         await stats.record_evaluation(
-            RiskDecision.APPROVED, 20.0,
-            {"p1": True}, {"p1": PolicyCategory.LOSS_LIMITS},
+            RiskDecision.APPROVED,
+            20.0,
+            {"p1": True},
+            {"p1": PolicyCategory.LOSS_LIMITS},
         )
         await stats.record_evaluation(
-            RiskDecision.REJECTED, 80.0,
-            {"p1": False}, {"p1": PolicyCategory.LOSS_LIMITS},
+            RiskDecision.REJECTED,
+            80.0,
+            {"p1": False},
+            {"p1": PolicyCategory.LOSS_LIMITS},
         )
         snapshot = await stats.get_snapshot()
         assert snapshot.rejection_rate == 0.5
-

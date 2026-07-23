@@ -10,8 +10,8 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone, timedelta
-from typing import Any, Callable, Awaitable
+from datetime import datetime, timedelta, timezone
+from typing import Any, Awaitable, Callable
 
 from libraries.domain.execution.exceptions import RecoveryError
 from libraries.domain.execution.models import Order, OrderStatus
@@ -143,7 +143,10 @@ class OrderRecoveryHandler:
 
         async with self._lock:
             recovered = broker_found and broker_status.lower() in (
-                "filled", "partial_fill", "acknowledged", "working"
+                "filled",
+                "partial_fill",
+                "acknowledged",
+                "working",
             )
 
             attempt = RecoveryAttempt(

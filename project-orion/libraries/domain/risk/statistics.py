@@ -248,4 +248,3 @@ class RiskStatistics:
             self._daily_rejected = 0
             self._daily_violations = 0
             self._current_date = today
-

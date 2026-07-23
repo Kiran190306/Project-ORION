@@ -110,9 +110,7 @@ class TestTradeStatistics:
             stats = TradeStatistics()
 
             async def record_win(i: int) -> None:
-                await stats.record_trade(
-                    SignalDirection.BUY, float(i * 10), TradeOutcome.WIN
-                )
+                await stats.record_trade(SignalDirection.BUY, float(i * 10), TradeOutcome.WIN)
 
             await asyncio.gather(*[record_win(i) for i in range(10)])
 

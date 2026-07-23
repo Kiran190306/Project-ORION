@@ -22,7 +22,6 @@ from libraries.domain.risk.exceptions import (
 )
 from libraries.domain.risk.models import RiskProfileType
 
-
 # ─── Default Profile Configurations ────────────────────────────────────────
 
 
@@ -355,9 +354,7 @@ class RiskProfileManager:
             if key in numeric_range_checks and isinstance(value, (int, float)):
                 lo, hi = numeric_range_checks[key]
                 if not lo <= value <= hi:
-                    raise ProfileValidationError(
-                        f"'{key}' = {value} out of range [{lo}, {hi}]"
-                    )
+                    raise ProfileValidationError(f"'{key}' = {value} out of range [{lo}, {hi}]")
 
         # Merge: base first, then overrides
         merged = {**base_dict, **overrides}
@@ -431,4 +428,3 @@ class RiskProfileManager:
             errors.append("soft_stop_loss_pct must be <= hard_stop_loss_pct")
 
         return errors
-

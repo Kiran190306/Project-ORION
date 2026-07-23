@@ -178,9 +178,9 @@ class TestEdgeCases:
         for from_status, trigger in reject_triggers:
             sm = OrderStateMachine()
             t = sm.transition(from_status, trigger)
-            assert t.to_status == OrderStatus.REJECTED, (
-                f"Expected REJECTED from {from_status} via {trigger}"
-            )
+            assert (
+                t.to_status == OrderStatus.REJECTED
+            ), f"Expected REJECTED from {from_status} via {trigger}"
 
     async def test_cancellation_chain(self) -> None:
         """Verify all paths to CANCELLED."""

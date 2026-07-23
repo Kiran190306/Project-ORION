@@ -10,8 +10,8 @@ from libraries.domain.execution.exceptions import RecoveryError
 from libraries.domain.execution.models import Order, OrderSide, OrderStatus, OrderType
 from libraries.domain.execution.recovery import (
     OrderRecoveryHandler,
-    RecoveryConfig,
     RecoveryAttempt,
+    RecoveryConfig,
     RecoveryState,
 )
 
@@ -41,7 +41,8 @@ class TestOrderRecoveryHandler:
         assert state.attempts == 0
 
     async def test_needs_recovery_for_stale_order(self, handler: OrderRecoveryHandler) -> None:
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
+
         order = Order(
             order_id="ORD-002",
             decision_id="DEC-002",
@@ -54,7 +55,9 @@ class TestOrderRecoveryHandler:
         )
         assert await handler.needs_recovery(order)
 
-    async def test_no_recovery_for_new_order(self, handler: OrderRecoveryHandler, order: Order) -> None:
+    async def test_no_recovery_for_new_order(
+        self, handler: OrderRecoveryHandler, order: Order
+    ) -> None:
         assert not await handler.needs_recovery(order)
 
     async def test_attempt_recovery(self, handler: OrderRecoveryHandler, order: Order) -> None:

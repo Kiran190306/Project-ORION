@@ -1,4 +1,5 @@
 """Tests for the RiskManager."""
+
 from __future__ import annotations
 
 import pytest
@@ -185,7 +186,8 @@ class TestRiskManager:
     @pytest.mark.asyncio
     async def test_protection_status_update(self):
         manager = RiskManager()
-        from libraries.domain.risk.models import AccountProtectionStatus, AccountProtectionLevel
+        from libraries.domain.risk.models import AccountProtectionLevel, AccountProtectionStatus
+
         status = AccountProtectionStatus(
             level=AccountProtectionLevel.EMERGENCY_STOP,
             trading_locked=True,

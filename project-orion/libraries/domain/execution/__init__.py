@@ -23,7 +23,11 @@ from libraries.domain.execution.deduplication import (
     OrderDeduplicator,
     TrackedEntry,
 )
-from libraries.domain.execution.engine import ExecutionEngine, ExecutionEngineConfig, EngineExecutionResult
+from libraries.domain.execution.engine import (
+    EngineExecutionResult,
+    ExecutionEngine,
+    ExecutionEngineConfig,
+)
 from libraries.domain.execution.exceptions import (
     DuplicateOrderError,
     ExecutionEngineError,
@@ -110,8 +114,8 @@ from libraries.domain.execution.state_machine import (
 )
 from libraries.domain.execution.statistics import (
     ExecutionOutcome,
-    ExecutionStats,
     ExecutionStatistics,
+    ExecutionStats,
 )
 from libraries.domain.execution.tracker import OrderTracker
 from libraries.domain.execution.validator import (
@@ -224,4 +228,3 @@ __all__ = [
     "TimeoutError",
     "RecoveryError",
 ]
-

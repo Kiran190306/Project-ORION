@@ -1,4 +1,5 @@
 """Tests for the RiskEvaluator."""
+
 from __future__ import annotations
 
 import pytest
@@ -75,10 +76,12 @@ class TestRiskEvaluator:
 
     @pytest.mark.asyncio
     async def test_deferred_when_risk_score_in_caution_zone(self):
-        evaluator = RiskEvaluator(config=RiskEvaluatorConfig(
-            approval_threshold=30.0,
-            rejection_threshold=70.0,
-        ))
+        evaluator = RiskEvaluator(
+            config=RiskEvaluatorConfig(
+                approval_threshold=30.0,
+                rejection_threshold=70.0,
+            )
+        )
         evaluations = [
             make_evaluation("policy1", 50.0, passed=True, risk_contribution=40.0),
         ]
@@ -113,7 +116,9 @@ class TestRiskEvaluator:
         evaluator = RiskEvaluator()
         evaluations = [
             make_evaluation("p1", 100.0, passed=True, risk_contribution=0.0),
-            make_evaluation("p2", 50.0, passed=False, severity=PolicySeverity.HIGH, risk_contribution=50.0),
+            make_evaluation(
+                "p2", 50.0, passed=False, severity=PolicySeverity.HIGH, risk_contribution=50.0
+            ),
         ]
         result = await evaluator.evaluate(evaluations)
         assert result.risk_score > 0.0
@@ -143,10 +148,12 @@ class TestRiskEvaluator:
 
     @pytest.mark.asyncio
     async def test_deferred_reasons(self):
-        evaluator = RiskEvaluator(config=RiskEvaluatorConfig(
-            approval_threshold=30.0,
-            rejection_threshold=70.0,
-        ))
+        evaluator = RiskEvaluator(
+            config=RiskEvaluatorConfig(
+                approval_threshold=30.0,
+                rejection_threshold=70.0,
+            )
+        )
         evaluations = [
             make_evaluation("p1", 60.0, passed=True, risk_contribution=40.0),
         ]
@@ -175,8 +182,12 @@ class TestRiskEvaluator:
     async def test_high_risk_score_rejected(self):
         evaluator = RiskEvaluator()
         evaluations = [
-            make_evaluation("p1", 10.0, passed=False, severity=PolicySeverity.CRITICAL, risk_contribution=90.0),
-            make_evaluation("p2", 20.0, passed=False, severity=PolicySeverity.HIGH, risk_contribution=80.0),
+            make_evaluation(
+                "p1", 10.0, passed=False, severity=PolicySeverity.CRITICAL, risk_contribution=90.0
+            ),
+            make_evaluation(
+                "p2", 20.0, passed=False, severity=PolicySeverity.HIGH, risk_contribution=80.0
+            ),
         ]
         result = await evaluator.evaluate(evaluations)
         assert result.decision == RiskDecision.REJECTED
@@ -200,7 +211,9 @@ class TestRiskEvaluator:
         evaluations = [
             make_evaluation("p1", 100.0, passed=True, risk_contribution=0.0),
             make_evaluation("p2", 100.0, passed=True, risk_contribution=0.0),
-            make_evaluation("p3", 0.0, passed=False, severity=PolicySeverity.CRITICAL, risk_contribution=100.0),
+            make_evaluation(
+                "p3", 0.0, passed=False, severity=PolicySeverity.CRITICAL, risk_contribution=100.0
+            ),
         ]
         result = await evaluator.evaluate(evaluations)
         assert result.decision == RiskDecision.REJECTED

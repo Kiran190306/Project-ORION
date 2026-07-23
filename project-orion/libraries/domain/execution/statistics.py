@@ -93,8 +93,8 @@ class ExecutionStatistics:
 
             # Enforce history limit
             if len(self._latencies) > self._max_history:
-                self._latencies = self._latencies[-self._max_history:]
-                self._slippages = self._slippages[-self._max_history:]
+                self._latencies = self._latencies[-self._max_history :]
+                self._slippages = self._slippages[-self._max_history :]
 
     async def get_stats(self) -> ExecutionStats:
         """Compute current execution statistics.
@@ -111,16 +111,8 @@ class ExecutionStatistics:
             expired = self._outcomes.get(ExecutionOutcome.EXPIRED, 0)
 
             fill_rate = (filled + partial) / total if total > 0 else 0.0
-            avg_latency = (
-                sum(self._latencies) / len(self._latencies)
-                if self._latencies
-                else 0.0
-            )
-            avg_slippage = (
-                sum(self._slippages) / len(self._slippages)
-                if self._slippages
-                else 0.0
-            )
+            avg_latency = sum(self._latencies) / len(self._latencies) if self._latencies else 0.0
+            avg_slippage = sum(self._slippages) / len(self._slippages) if self._slippages else 0.0
 
             return ExecutionStats(
                 total_orders=total,

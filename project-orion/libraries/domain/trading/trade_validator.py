@@ -93,28 +93,36 @@ class TradeValidator:
             spread_ok = spread_pips <= self._max_spread_pips
             spread_reason = ""
             if not spread_ok:
-                spread_reason = f"Spread {spread_pips:.1f}pips exceeds max {self._max_spread_pips}pips"
+                spread_reason = (
+                    f"Spread {spread_pips:.1f}pips exceeds max {self._max_spread_pips}pips"
+                )
                 errors.append(spread_reason)
 
             # Confidence check
             confidence_ok = decision.confidence >= self._min_confidence
             confidence_reason = ""
             if not confidence_ok:
-                confidence_reason = f"Confidence {decision.confidence:.1f} below min {self._min_confidence}"
+                confidence_reason = (
+                    f"Confidence {decision.confidence:.1f} below min {self._min_confidence}"
+                )
                 errors.append(confidence_reason)
 
             # Liquidity check
             liquidity_ok = liquidity_score >= self._min_liquidity
             liquidity_reason = ""
             if not liquidity_ok:
-                liquidity_reason = f"Liquidity {liquidity_score:.2f} below min {self._min_liquidity:.2f}"
+                liquidity_reason = (
+                    f"Liquidity {liquidity_score:.2f} below min {self._min_liquidity:.2f}"
+                )
                 errors.append(liquidity_reason)
 
             # Market quality check
             market_quality_ok = market_quality >= self._min_market_quality
             market_quality_reason = ""
             if not market_quality_ok:
-                market_quality_reason = f"Market quality {market_quality:.2f} below min {self._min_market_quality:.2f}"
+                market_quality_reason = (
+                    f"Market quality {market_quality:.2f} below min {self._min_market_quality:.2f}"
+                )
                 errors.append(market_quality_reason)
 
             # Provider health check

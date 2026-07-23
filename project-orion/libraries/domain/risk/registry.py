@@ -55,9 +55,7 @@ class RiskPolicyRegistry:
         """
         async with self._lock:
             if policy.name in self._policies:
-                raise PolicyRegistrationError(
-                    f"Policy '{policy.name}' is already registered"
-                )
+                raise PolicyRegistrationError(f"Policy '{policy.name}' is already registered")
 
             if len(self._policies) >= self._max_policies:
                 raise RegistryFullError(
@@ -69,9 +67,7 @@ class RiskPolicyRegistry:
             if not policy.name.strip():
                 raise PolicyRegistrationError("Policy name cannot be empty")
             if policy.priority < 0:
-                raise PolicyRegistrationError(
-                    f"Policy '{policy.name}' has negative priority"
-                )
+                raise PolicyRegistrationError(f"Policy '{policy.name}' has negative priority")
 
             self._policies[policy.name] = policy
 
@@ -201,4 +197,3 @@ class RiskPolicyRegistry:
         async with self._lock:
             categories: set[PolicyCategory] = {p.category for p in self._policies.values()}
             return sorted(categories, key=lambda c: c.value)
-

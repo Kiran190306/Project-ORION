@@ -10,7 +10,11 @@ import pytest
 
 from libraries.domain.market_intelligence.aggregator import MultiProviderAggregator
 from libraries.domain.market_intelligence.anomaly import AnomalyDetector, AnomalyResult, AnomalyType
-from libraries.domain.market_intelligence.consensus import ConsensusEngine, ConsensusResult, DisagreementLevel
+from libraries.domain.market_intelligence.consensus import (
+    ConsensusEngine,
+    ConsensusResult,
+    DisagreementLevel,
+)
 from libraries.domain.market_intelligence.failover import FailoverEngine, FailoverReason
 from libraries.domain.market_intelligence.liquidity import LiquidityAnalyzer
 from libraries.domain.market_intelligence.provider_ranking import (

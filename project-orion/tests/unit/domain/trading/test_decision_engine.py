@@ -81,7 +81,10 @@ class TestDecisionEngine:
                 symbol="EUR/USD",
                 market_intelligence=mi,
             )
-            assert decision.outcome == DecisionOutcome.DEFER or decision.outcome == DecisionOutcome.REJECT
+            assert (
+                decision.outcome == DecisionOutcome.DEFER
+                or decision.outcome == DecisionOutcome.REJECT
+            )
 
         asyncio.run(exercise())
 
@@ -207,6 +210,7 @@ class TestDecisionEngine:
 
     def test_uses_custom_position_sizer(self) -> None:
         """Test that dependency injection of custom position sizer works."""
+
         async def exercise() -> None:
             from libraries.domain.trading.position_sizer import FixedPositionSizer
 
@@ -232,20 +236,24 @@ class TestDecisionEngine:
         async def exercise() -> None:
             engine = DecisionEngine()
             mi1 = MarketIntelligenceInput(
-                trend_strength=0.8, liquidity_score=0.9, spread_pips=0.5,
-                rsi=60, price_position=0.75, entry_price=Decimal("1.1000"),
+                trend_strength=0.8,
+                liquidity_score=0.9,
+                spread_pips=0.5,
+                rsi=60,
+                price_position=0.75,
+                entry_price=Decimal("1.1000"),
             )
             mi2 = MarketIntelligenceInput(
-                trend_strength=0.3, rsi=50, liquidity_score=0.5,
+                trend_strength=0.3,
+                rsi=50,
+                liquidity_score=0.5,
             )
             decisions = await asyncio.gather(
                 engine.make_decision("EUR/USD", mi1),
                 engine.make_decision("GBP/USD", mi2),
             )
             # First should execute or defer, second should defer
-            assert decisions[0].outcome in (
-                DecisionOutcome.EXECUTE, DecisionOutcome.DEFER
-            )
+            assert decisions[0].outcome in (DecisionOutcome.EXECUTE, DecisionOutcome.DEFER)
             assert decisions[1].outcome == DecisionOutcome.DEFER
 
         asyncio.run(exercise())

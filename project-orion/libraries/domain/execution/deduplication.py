@@ -94,9 +94,7 @@ class OrderDeduplicator:
             if self._config.check_order_id:
                 order_key = f"order:{order_id}"
                 if order_key in self._entries:
-                    raise DuplicateOrderError(
-                        f"Duplicate order ID: {order_id}"
-                    )
+                    raise DuplicateOrderError(f"Duplicate order ID: {order_id}")
 
             # Check by symbol + side
             if self._config.check_symbol_side:
@@ -174,8 +172,7 @@ class OrderDeduplicator:
         """
         async with self._lock:
             keys_to_remove = [
-                key for key, entry in self._entries.items()
-                if entry.order_id == order_id
+                key for key, entry in self._entries.items() if entry.order_id == order_id
             ]
             for key in keys_to_remove:
                 self._entries.pop(key, None)
@@ -194,7 +191,8 @@ class OrderDeduplicator:
         """Remove expired entries."""
         now = datetime.now(timezone.utc)
         expired_keys = [
-            key for key, entry in self._entries.items()
+            key
+            for key, entry in self._entries.items()
             if entry.expires_at and entry.expires_at <= now
         ]
         for key in expired_keys:

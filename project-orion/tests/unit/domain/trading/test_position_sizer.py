@@ -166,9 +166,7 @@ class TestKellyPositionSizer:
 
 class TestVolatilityBasedPositionSizer:
     def test_initialization(self) -> None:
-        sizer = VolatilityBasedPositionSizer(
-            base_notional=Decimal("1000"), max_volatility=1.0
-        )
+        sizer = VolatilityBasedPositionSizer(base_notional=Decimal("1000"), max_volatility=1.0)
         assert sizer.method == PositionSizingMethod.VOLATILITY_BASED
         assert sizer.base_notional == Decimal("1000")
 
@@ -180,9 +178,7 @@ class TestVolatilityBasedPositionSizer:
 
     def test_volatility_reduces_size(self) -> None:
         async def exercise() -> None:
-            sizer = VolatilityBasedPositionSizer(
-                base_notional=Decimal("1000"), max_volatility=1.0
-            )
+            sizer = VolatilityBasedPositionSizer(base_notional=Decimal("1000"), max_volatility=1.0)
             low_vol = await sizer.calculate(
                 signal=make_signal(),
                 account_balance=Decimal("10000"),

@@ -27,9 +27,7 @@ class RetryConfig:
     jitter: bool = True
     jitter_range_ms: float = 50.0
     exponential_base: float = 2.0
-    retryable_statuses: frozenset[str] = frozenset(
-        {"rejected", "expired", "timeout"}
-    )
+    retryable_statuses: frozenset[str] = frozenset({"rejected", "expired", "timeout"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,9 +85,7 @@ class RetryHandler:
 
         delay = base * (exponential_base ^ attempt) + jitter
         """
-        delay = self._config.base_delay_ms * (
-            self._config.exponential_base ** attempt_number
-        )
+        delay = self._config.base_delay_ms * (self._config.exponential_base**attempt_number)
         delay = min(delay, self._config.max_delay_ms)
 
         if self._config.jitter:
@@ -163,9 +159,7 @@ class RetryHandler:
         """Return current retry state."""
         async with self._lock:
             next_delay = self.calculate_delay(self.attempt_count)
-            last_delay = (
-                self._attempts[-1].delay_ms if self._attempts else 0.0
-            )
+            last_delay = self._attempts[-1].delay_ms if self._attempts else 0.0
             return RetryState(
                 attempt_count=self.attempt_count,
                 max_retries=self._config.max_retries,

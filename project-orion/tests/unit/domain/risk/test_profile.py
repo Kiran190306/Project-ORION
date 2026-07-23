@@ -1,4 +1,5 @@
 """Tests for risk profiles."""
+
 from __future__ import annotations
 
 import pytest
@@ -70,7 +71,11 @@ class TestRiskProfileManager:
     @pytest.mark.asyncio
     async def test_get_builtin_profiles(self):
         manager = RiskProfileManager()
-        for pt in [RiskProfileType.CONSERVATIVE, RiskProfileType.BALANCED, RiskProfileType.AGGRESSIVE]:
+        for pt in [
+            RiskProfileType.CONSERVATIVE,
+            RiskProfileType.BALANCED,
+            RiskProfileType.AGGRESSIVE,
+        ]:
             config = await manager.get_profile(pt)
             assert config is not None
 
@@ -173,4 +178,3 @@ class TestRiskProfileManager:
         manager = RiskProfileManager()
         cfg = await manager.get_profile("conservative")
         assert cfg.max_position_size_pct == 5.0
-

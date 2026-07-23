@@ -16,7 +16,6 @@ from decimal import Decimal
 from enum import StrEnum
 from typing import Any
 
-
 # ─── Identifiers ─────────────────────────────────────────────────────────
 
 
@@ -280,9 +279,7 @@ class PartialFillTracker:
         new_filled = self.filled_quantity + fill.quantity
         all_fills = list(self.fills) + [fill]
         new_avg = (
-            sum(f.price * f.quantity for f in all_fills) / new_filled
-            if new_filled > 0
-            else None
+            sum(f.price * f.quantity for f in all_fills) / new_filled if new_filled > 0 else None
         )
         return PartialFillTracker(
             order_id=self.order_id,

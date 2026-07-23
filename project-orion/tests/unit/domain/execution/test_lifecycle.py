@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from decimal import Decimal
+
 import pytest
 
 from libraries.domain.execution.lifecycle import OrderLifecycleTracker
 from libraries.domain.execution.models import Order, OrderSide, OrderStatus, OrderType
 from libraries.domain.execution.state_machine import Trigger
-from decimal import Decimal
 
 
 @pytest.fixture

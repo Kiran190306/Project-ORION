@@ -184,7 +184,9 @@ class TestFillValidator:
         assert confirmation.fill_price == Decimal("1.10500")
         assert confirmation.is_full_fill
 
-    async def test_missing_broker_fill_id_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_missing_broker_fill_id_raises(
+        self, validator: FillValidator, order: Order
+    ) -> None:
         config = FillValidatorConfig(require_broker_fill_id=True)
         strict_validator = FillValidator(config=config)
         fill = FillConfirmation(

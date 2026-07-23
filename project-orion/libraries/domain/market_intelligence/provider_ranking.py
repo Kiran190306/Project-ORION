@@ -142,9 +142,7 @@ class ProviderRankingEngine:
                 sprd_snap = await sprd_stats.get_snapshot()
 
                 # Latency score (lower is better)
-                latency_score = self._normalize_score(
-                    lat_snap.mean, inverse=True, default=0.5
-                )
+                latency_score = self._normalize_score(lat_snap.mean, inverse=True, default=0.5)
 
                 # Uptime score (higher is better)
                 import time

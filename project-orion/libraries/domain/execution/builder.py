@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from libraries.domain.execution.exceptions import OrderBuildError
@@ -94,6 +94,7 @@ class OrderBuilder:
 
         # Determine order side
         from libraries.domain.trading.signals import SignalDirection
+
         side = OrderSide.BUY if decision.direction == SignalDirection.BUY else OrderSide.SELL
 
         # Determine order type
@@ -161,4 +162,3 @@ class OrderBuilder:
         self._counter += 1
         ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
         return f"{self._config.build_order_id_prefix}-{ts}-{self._counter:04d}"
-

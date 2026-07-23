@@ -98,18 +98,14 @@ class OrderValidator:
 
             # 1. Check order is in a validatable state
             if order.status != OrderStatus.NEW and order.status != OrderStatus.VALIDATED:
-                errors.append(
-                    f"Cannot validate order in status {order.status.value}"
-                )
+                errors.append(f"Cannot validate order in status {order.status.value}")
 
             # 2. Volume checks
             if order.volume is not None:
                 if order.volume <= Decimal("0"):
                     errors.append("Volume must be positive")
                 if order.volume < self._config.min_volume:
-                    errors.append(
-                        f"Volume {order.volume} below minimum {self._config.min_volume}"
-                    )
+                    errors.append(f"Volume {order.volume} below minimum {self._config.min_volume}")
                 if order.volume > self._config.max_volume:
                     errors.append(
                         f"Volume {order.volume} exceeds maximum {self._config.max_volume}"
@@ -126,13 +122,9 @@ class OrderValidator:
                 if order.price <= Decimal("0"):
                     errors.append("Price must be positive")
                 if order.price < self._config.min_price:
-                    errors.append(
-                        f"Price {order.price} below minimum {self._config.min_price}"
-                    )
+                    errors.append(f"Price {order.price} below minimum {self._config.min_price}")
                 if order.price > self._config.max_price:
-                    errors.append(
-                        f"Price {order.price} exceeds maximum {self._config.max_price}"
-                    )
+                    errors.append(f"Price {order.price} exceeds maximum {self._config.max_price}")
                 if tick_size is not None and self._config.precision_check_enabled:
                     remainder = order.price % tick_size
                     if remainder != Decimal("0"):
@@ -169,10 +161,11 @@ class OrderValidator:
                 errors.append("Stop order requires a price")
             if order.order_type == OrderType.STOP_LIMIT and order.price is None:
                 errors.append("Stop limit order requires a price")
-            if order.order_type in (OrderType.IOC, OrderType.FOK) and order.time_in_force is not None:
-                warnings.append(
-                    f"IOC/FOK orders ignore time_in_force setting"
-                )
+            if (
+                order.order_type in (OrderType.IOC, OrderType.FOK)
+                and order.time_in_force is not None
+            ):
+                warnings.append(f"IOC/FOK orders ignore time_in_force setting")
 
             return ValidationResult(
                 is_valid=len(errors) == 0,

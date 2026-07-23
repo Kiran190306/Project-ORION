@@ -1,4 +1,5 @@
 """Tests for the RiskEngine."""
+
 from __future__ import annotations
 
 from decimal import Decimal
@@ -26,6 +27,7 @@ from libraries.domain.risk.validator import RiskValidator
 
 class MockDecision:
     """Mock TradeDecision for testing."""
+
     def __init__(
         self,
         symbol="EURUSD",
@@ -146,16 +148,19 @@ class TestRiskEngine:
         )
         # Override is_emergency property
         import dataclasses
+
         context = dataclasses.replace(context, emergency_status=None)
         # Test via emergency in context evaluation
         registry = RiskPolicyRegistry()
         from libraries.domain.risk.policy import EmergencyStopPolicy
+
         await registry.register(EmergencyStopPolicy())
 
         engine = RiskEngine(registry=registry)
         await engine.initialize()
 
         from libraries.domain.risk.models import EmergencyModeStatus, EmergencyTrigger
+
         context = RiskContext(
             symbol="EURUSD",
             emergency_status=EmergencyModeStatus(
@@ -299,4 +304,3 @@ class TestRiskEngine:
         result = await engine.evaluate(decision, context=context)
         if result.decision == RiskDecision.REJECTED:
             assert len(result.rejection_reasons) > 0
-

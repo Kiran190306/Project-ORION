@@ -1,4 +1,5 @@
 """Tests for the RiskPolicyRegistry."""
+
 from __future__ import annotations
 
 import pytest
@@ -174,9 +175,9 @@ class TestRiskPolicyRegistry:
         registry = RiskPolicyRegistry()
         # Register in reverse priority order
         from libraries.domain.risk.policy import EmergencyStopPolicy, MaximumPositionSizePolicy
+
         await registry.register(MaximumPositionSizePolicy())  # priority 10
         await registry.register(EmergencyStopPolicy())  # priority 5
 
         policies = await registry.list_enabled()
         assert policies[0].priority <= policies[1].priority
-

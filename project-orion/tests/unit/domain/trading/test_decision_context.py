@@ -51,9 +51,7 @@ class TestDecisionContext:
             strategy=StrategyType.SWING,
             symbol="EUR/USD",
         )
-        state = MarketState(
-            state_type=MarketStateType.TRENDING, symbol="EUR/USD", confidence=0.8
-        )
+        state = MarketState(state_type=MarketStateType.TRENDING, symbol="EUR/USD", confidence=0.8)
         ctx = DecisionContext(
             symbol="EUR/USD",
             signal=signal,
@@ -108,9 +106,7 @@ class TestDecisionContext:
         assert 0 <= quality <= 1
 
     def test_composite_quality_with_market_state(self) -> None:
-        state = MarketState(
-            state_type=MarketStateType.TRENDING, symbol="EUR/USD", confidence=0.9
-        )
+        state = MarketState(state_type=MarketStateType.TRENDING, symbol="EUR/USD", confidence=0.9)
         ctx = DecisionContext(
             symbol="EUR/USD",
             market_state=state,

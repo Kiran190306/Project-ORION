@@ -216,7 +216,9 @@ class RiskManager:
             profile_type: Profile type to activate.
         """
         config = await self._profile_manager.get_profile(profile_type)
-        profile_name = profile_type.value if isinstance(profile_type, RiskProfileType) else profile_type
+        profile_name = (
+            profile_type.value if isinstance(profile_type, RiskProfileType) else profile_type
+        )
 
         # Find the matching RiskProfileType
         profile_enum = RiskProfileType.CUSTOM
@@ -373,7 +375,9 @@ class RiskManager:
                 cooldown_until = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds)
 
             self._protection_status = AccountProtectionStatus(
-                level=AccountProtectionLevel.TRADING_LOCK if locked else AccountProtectionLevel.NONE,
+                level=(
+                    AccountProtectionLevel.TRADING_LOCK if locked else AccountProtectionLevel.NONE
+                ),
                 trading_locked=locked,
                 cooldown_active=locked and cooldown_until is not None,
                 cooldown_until=cooldown_until,
@@ -452,18 +456,14 @@ class RiskManager:
             EngineNotReadyError: If engine is not initialized.
         """
         if not self._initialized or self._engine is None:
-            raise EngineNotReadyError(
-                "RiskEngine not initialized. Call start() before evaluate()."
-            )
+            raise EngineNotReadyError("RiskEngine not initialized. Call start() before evaluate().")
 
         # Check emergency mode
         if self._emergency_status.active:
             return RiskResult(
                 decision=RiskDecision.REJECTED,
                 risk_score=100.0,
-                rejection_reasons=(
-                    "Emergency mode active - all trading blocked",
-                ),
+                rejection_reasons=("Emergency mode active - all trading blocked",),
                 is_emergency_mode=True,
                 account_protection_level=AccountProtectionLevel.HARD_STOP,
             )
@@ -542,4 +542,3 @@ class RiskManager:
                 break
             except Exception:
                 pass  # Log and continue
-
