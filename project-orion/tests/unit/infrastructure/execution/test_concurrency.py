@@ -145,4 +145,3 @@ class TestConcurrency:
         # active[0] is (broker_name, adapter, routing_target)
         broker_name, adapter, target = active[0]
         assert 0.0 <= target.health_score <= 1.0
-

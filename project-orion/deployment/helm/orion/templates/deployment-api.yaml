@@ -1,0 +1,105 @@
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orion.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  minReadySeconds: 30
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "orion.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+      annotations:
+        {{- if .Values.monitoring.prometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.monitoring.metricsPort | quote }}
+        prometheus.io/path: "/metrics"
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "orion.serviceAccountName" . }}
+      automountServiceAccountToken: true
+      securityContext:
+        {{- include "orion.podSecurityContext" (dict "uid" .Values.api.uid) | nindent 8 }}
+      terminationGracePeriodSeconds: 60
+      {{- with .Values.api.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.api.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              {{- include "orion.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: api
+      containers:
+        - name: api
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.api.repository }}:{{ .Values.images.api.tag }}"
+          imagePullPolicy: {{ .Values.images.api.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.service.targetPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: {{ .Values.monitoring.metricsPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "orion.configName" . }}
+            - secretRef:
+                name: {{ include "orion.secretName" . }}
+          env:
+            - name: ORION_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ORION_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ORION_SERVICE_NAME
+              value: {{ .Values.global.serviceName }}
+            - name: ORION_ENVIRONMENT
+              value: {{ .Values.global.environment }}
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          securityContext:
+            {{- include "orion.containerSecurityContext" . | nindent 12 }}
+          livenessProbe:
+            {{- include "orion.probe" (dict "port" .Values.api.service.targetPort "path" "/health/live" "initialDelay" 10 "period" 15 "timeout" 5 "failureThreshold" 3) | nindent 12 }}
+          readinessProbe:
+            {{- include "orion.probe" (dict "port" .Values.api.service.targetPort "path" "/health/ready" "initialDelay" 5 "period" 10 "timeout" 3 "failureThreshold" 2) | nindent 12 }}
+          startupProbe:
+            {{- include "orion.probe" (dict "port" .Values.api.service.targetPort "path" "/health/startup" "initialDelay" 3 "period" 5 "timeout" 3 "failureThreshold" 30) | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

@@ -77,7 +77,9 @@ class CircuitBreakerOpenError(Exception):
     def __init__(self, name: str, retry_after_seconds: float = 0.0) -> None:
         self.name = name
         self.retry_after_seconds = retry_after_seconds
-        super().__init__(f"Circuit breaker '{name}' is OPEN. Retry after {retry_after_seconds:.1f}s")
+        super().__init__(
+            f"Circuit breaker '{name}' is OPEN. Retry after {retry_after_seconds:.1f}s"
+        )
 
 
 class ExecutionCircuitBreaker:
@@ -281,4 +283,3 @@ class ExecutionCircuitBreaker:
                 ),
                 is_available=self.is_available,
             )
-

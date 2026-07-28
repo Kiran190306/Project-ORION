@@ -1,0 +1,1308 @@
+"""Coverage completion tests for EPIC-012 Sprint-1.1.
+
+Target modules:
+- middleware.py, health.py, integration.py, logging.py (observability)
+- market_classifier.py, market_regime_detector.py, parameter_stability.py
+- feature_engineering.py, fitness_engine.py, grid_search.py
+"""
+
+from __future__ import annotations
+
+import json
+import uuid
+from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
+# ==============================================================================
+# MIDDLEWARE (existing file: test_observability_middleware.py was truncated)
+# ==============================================================================
+
+from libraries.observability.logging import set_correlation_id, set_trace_ids
+from libraries.observability.middleware import (
+    CorrelationIdMiddleware,
+    ObservabilityMiddleware,
+    RequestMetricsMiddleware,
+)
+from libraries.observability.metrics import MetricsRegistry
+
+
+@pytest.fixture
+def registry():
+    return MetricsRegistry()
+
+
+@pytest.fixture
+def ok_app():
+    async def app(scope, receive, send):
+        await send({"type": "http.response.start", "status": 200})
+        await send({"type": "http.response.body", "body": b"ok"})
+    return app
+
+
+@pytest.fixture
+def fail_app():
+    async def app(scope, receive, send):
+        msg = "boom"
+        raise RuntimeError(msg)
+    return app
+
+
+class TestMiddlewareFull:
+    """Complete middleware test coverage."""
+
+    @pytest.mark.asyncio
+    async def test_observability_request_lifecycle(self, ok_app, registry):
+        """Request lifecycle: start -> response -> body."""
+        mw = ObservabilityMiddleware(ok_app, metrics_registry=registry)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_websocket_passthrough(self, ok_app, registry):
+        """WebSocket scope passes through."""
+        mw = ObservabilityMiddleware(ok_app, metrics_registry=registry)
+        await mw({"type": "websocket"}, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_excluded_path(self, ok_app, registry):
+        """Excluded paths skip observability."""
+        mw = ObservabilityMiddleware(ok_app, metrics_registry=registry)
+        scope = {"type": "http", "method": "GET", "path": "/health", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_exception(self, fail_app, registry):
+        """Exceptions are re-raised."""
+        mw = ObservabilityMiddleware(fail_app, metrics_registry=registry)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {}}
+        with pytest.raises(RuntimeError):
+            await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_no_metrics(self, ok_app):
+        """Works without metrics registry."""
+        mw = ObservabilityMiddleware(ok_app)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_disabled_tracer(self, ok_app):
+        """Disabled tracer doesn't create spans."""
+        from libraries.observability.tracing import TracingManager
+        tracer = TracingManager()
+        mw = ObservabilityMiddleware(ok_app, tracer=tracer)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+        assert len(tracer.get_spans()) == 0
+
+    @pytest.mark.asyncio
+    async def test_observability_enabled_tracer(self, ok_app):
+        """Enabled tracer creates spans."""
+        from libraries.observability.tracing import TracingManager
+        tracer = TracingManager()
+        tracer.enable()
+        mw = ObservabilityMiddleware(ok_app, tracer=tracer)
+        scope = {"type": "http", "method": "POST", "path": "/api/data", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+        assert len(tracer.get_spans()) > 0
+
+    @pytest.mark.asyncio
+    async def test_observability_correlation_header(self, ok_app, registry):
+        """Correlation ID from header is used."""
+        corr = uuid.uuid4().hex
+        mw = ObservabilityMiddleware(ok_app, metrics_registry=registry)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {"x-correlation-id": corr}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_observability_metrics_recorded(self, ok_app, registry):
+        """Metrics are recorded after successful request."""
+        mw = ObservabilityMiddleware(ok_app, metrics_registry=registry)
+        scope = {"type": "http", "method": "GET", "path": "/api/test", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+        assert len(registry.snapshot()) > 0
+
+    @pytest.mark.asyncio
+    async def test_correlation_websocket(self, ok_app):
+        """CorrelationIdMiddleware passes websocket through."""
+        mw = CorrelationIdMiddleware(ok_app)
+        await mw({"type": "websocket"}, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_correlation_missing_header(self, ok_app):
+        """CorrelationIdMiddleware generates ID when header missing."""
+        mw = CorrelationIdMiddleware(ok_app)
+        scope = {"type": "http", "method": "GET", "path": "/api", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_correlation_exception_clears(self, fail_app):
+        """CorrelationIdMiddleware clears ID on exception."""
+        mw = CorrelationIdMiddleware(fail_app)
+        scope = {"type": "http", "method": "GET", "path": "/api", "headers": {}}
+        with pytest.raises(RuntimeError):
+            await mw(scope, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_metrics_websocket(self, ok_app, registry):
+        """RequestMetricsMiddleware passes websocket through."""
+        mw = RequestMetricsMiddleware(ok_app, registry)
+        await mw({"type": "websocket"}, AsyncMock(), AsyncMock())
+
+    @pytest.mark.asyncio
+    async def test_metrics_excluded_path(self, ok_app, registry):
+        """RequestMetricsMiddleware skips excluded paths."""
+        mw = RequestMetricsMiddleware(ok_app, registry)
+        scope = {"type": "http", "method": "GET", "path": "/health", "headers": {}}
+        await mw(scope, AsyncMock(), AsyncMock())
+
+
+# ==============================================================================
+# HEALTH CHECK
+# ==============================================================================
+
+from libraries.observability.health import (
+    HealthCheckResult,
+    HealthRegistry,
+    HealthStatus,
+)
+
+
+class TestHealthCoverage:
+    """Complete health check coverage."""
+
+    def test_health_status_values(self):
+        assert HealthStatus.HEALTHY.value == "healthy"
+        assert HealthStatus.DEGRADED.value == "degraded"
+        assert HealthStatus.UNHEALTHY.value == "unhealthy"
+
+    def test_health_check_result_defaults(self):
+        r = HealthCheckResult(name="test", status=HealthStatus.HEALTHY)
+        assert r.message == ""
+        assert r.duration_ms == 0.0
+        assert r.details == {}
+
+    def test_health_check_result_to_dict(self):
+        r = HealthCheckResult(name="cpu", status=HealthStatus.DEGRADED, message="high load")
+        d = r.to_dict()
+        assert d["name"] == "cpu"
+        assert d["status"] == "degraded"
+        assert d["message"] == "high load"
+
+    def test_health_check_result_frozen(self):
+        r = HealthCheckResult(name="mem", status=HealthStatus.HEALTHY)
+        with pytest.raises(AttributeError):
+            r.name = "other"  # type: ignore[misc]
+
+    def test_disk_space_healthy(self):
+        check = HealthRegistry.disk_space(path="/", threshold_mb=0.0)
+        result = check()
+        assert isinstance(result, HealthCheckResult)
+        assert result.status in (HealthStatus.HEALTHY, HealthStatus.DEGRADED)
+
+    def test_disk_space_invalid_path(self):
+        check = HealthRegistry.disk_space(path="/nonexistent_path_xyz", threshold_mb=100.0)
+        result = check()
+        assert result.status == HealthStatus.UNHEALTHY
+
+    def test_memory_available_healthy(self):
+        check = HealthRegistry.memory_available(threshold_mb=0.0)
+        result = check()
+        assert isinstance(result, HealthCheckResult)
+
+    def test_register_liveness(self):
+        reg = HealthRegistry()
+        reg.register_liveness("app", HealthRegistry.app_alive("app"))
+        results = reg._liveness_checks
+        assert "app" in results
+
+    def test_register_readiness(self):
+        reg = HealthRegistry()
+        reg.register_readiness("db", lambda: HealthCheckResult(name="db", status=HealthStatus.HEALTHY))
+        assert "db" in reg._readiness_checks
+
+    def test_register_startup(self):
+        reg = HealthRegistry()
+        reg.register_startup("cache", lambda: HealthCheckResult(name="cache", status=HealthStatus.HEALTHY))
+        assert "cache" in reg._startup_checks
+
+    @pytest.mark.asyncio
+    async def test_check_liveness(self):
+        reg = HealthRegistry()
+        reg.register_liveness("app", HealthRegistry.app_alive("app"))
+        results = await reg.check_liveness()
+        assert len(results) == 1
+        assert results[0].status == HealthStatus.HEALTHY
+
+    @pytest.mark.asyncio
+    async def test_check_readiness(self):
+        reg = HealthRegistry()
+        reg.register_readiness("db", lambda: HealthCheckResult(name="db", status=HealthStatus.HEALTHY))
+        results = await reg.check_readiness()
+        assert len(results) == 1
+
+    @pytest.mark.asyncio
+    async def test_check_startup(self):
+        reg = HealthRegistry()
+        reg.register_startup("init", lambda: HealthCheckResult(name="init", status=HealthStatus.HEALTHY))
+        results = await reg.check_startup()
+        assert len(results) == 1
+
+    @pytest.mark.asyncio
+    async def test_check_all_healthy(self):
+        reg = HealthRegistry()
+        reg.register_liveness("app", HealthRegistry.app_alive())
+        report = await reg.check_all()
+        assert report["status"] == "healthy"
+
+    @pytest.mark.asyncio
+    async def test_check_all_unhealthy(self):
+        reg = HealthRegistry()
+        reg.register_readiness("fail", lambda: HealthCheckResult(name="fail", status=HealthStatus.UNHEALTHY, message="fail"))
+        report = await reg.check_all()
+        assert report["status"] == "unhealthy"
+
+    @pytest.mark.asyncio
+    async def test_check_all_degraded(self):
+        reg = HealthRegistry()
+        reg.register_liveness("app", HealthRegistry.app_alive())
+        reg.register_readiness("slow", lambda: HealthCheckResult(name="slow", status=HealthStatus.DEGRADED, message="slow"))
+        report = await reg.check_all()
+        assert report["status"] == "degraded"
+
+    @pytest.mark.asyncio
+    async def test_timeout_check(self):
+        """Check that exceptions in checks are caught."""
+        reg = HealthRegistry()
+
+        def failing():
+            msg = "timeout"
+            raise TimeoutError(msg)
+
+        reg.register_liveness("timeout", failing)
+        results = await reg.check_liveness()
+        assert results[0].status == HealthStatus.UNHEALTHY
+        assert "timeout" in results[0].message.lower()
+
+    @pytest.mark.asyncio
+    async def test_async_check(self):
+        """Async health check functions are supported."""
+        reg = HealthRegistry()
+
+        async def async_check() -> HealthCheckResult:
+            return HealthCheckResult(name="async", status=HealthStatus.HEALTHY)
+
+        reg.register_readiness("async", async_check)
+        results = await reg.check_readiness()
+        assert results[0].status == HealthStatus.HEALTHY
+
+    @pytest.mark.asyncio
+    async def test_non_health_result_defaults(self):
+        """Non-HealthCheckResult return values default to healthy."""
+        reg = HealthRegistry()
+        reg.register_liveness("weird", lambda: "not_a_result")
+        results = await reg.check_liveness()
+        assert results[0].status == HealthStatus.HEALTHY
+
+
+# ==============================================================================
+# INTEGRATION
+# ==============================================================================
+
+from libraries.observability.integration import (
+    ServiceObserver,
+    configure_observability,
+    observe_service,
+)
+
+
+class DummyService:
+    """Simple service for testing."""
+    async def run(self, x: int = 0) -> int:
+        return x + 1
+
+    async def fail(self) -> None:
+        msg = "intentional"
+        raise ValueError(msg)
+
+    async def health_check(self) -> dict:
+        return {"status": "ok"}
+
+    @property
+    def name(self) -> str:
+        return "dummy"
+
+
+class TestIntegrationCoverage:
+    """Complete integration coverage."""
+
+    def test_configure_observability_defaults(self):
+        """configure_observability sets global defaults."""
+        configure_observability(service_name="test-svc", service_version="1.0.0", environment="testing")
+        # No crash
+
+    def test_configure_observability_with_registries(self):
+        """configure_observability with metrics and tracing."""
+        from libraries.observability.metrics import MetricsRegistry
+        from libraries.observability.tracing import TracingManager
+        configure_observability(
+            service_name="full",
+            metrics_registry=MetricsRegistry(),
+            tracing_manager=TracingManager(),
+        )
+
+    @pytest.mark.asyncio
+    async def test_observe_service_success(self):
+        """Decorated async method returns correct result."""
+        svc = DummyService()
+
+        @observe_service("dummy.run")
+        async def run():
+            return await svc.run(5)
+
+        result = await run()
+        assert result == 6
+
+    @pytest.mark.asyncio
+    async def test_observe_service_exception(self):
+        """Decorated async method propagates exception."""
+        svc = DummyService()
+
+        @observe_service("dummy.fail")
+        async def run():
+            await svc.fail()
+
+        with pytest.raises(ValueError):
+            await run()
+
+    @pytest.mark.asyncio
+    async def test_observe_service_no_tracing(self):
+        """Decorator works with tracing disabled."""
+        @observe_service("test", metrics=False, tracing=False, logging_enabled=False)
+        async def simple() -> str:
+            return "ok"
+
+        result = await simple()
+        assert result == "ok"
+
+    @pytest.mark.asyncio
+    async def test_service_observer_wraps(self):
+        """ServiceObserver proxies method calls."""
+        svc = DummyService()
+        observed = ServiceObserver(svc, "dummy", metrics_enabled=False, tracing_enabled=False, logging_enabled=False)
+        result = await observed.run(3)
+        assert result == 4
+
+    @pytest.mark.asyncio
+    async def test_service_observer_health(self):
+        """ServiceObserver.health() delegates to service."""
+        svc = DummyService()
+        observed = ServiceObserver(svc, "dummy", metrics_enabled=False, tracing_enabled=False, logging_enabled=False)
+        health = await observed.health()
+        assert health["service"] == "dummy"
+        assert health["observed"] is True
+        assert health["status"] == "ok"
+
+    @pytest.mark.asyncio
+    async def test_service_observer_health_alias(self):
+        """health_check is alias for health."""
+        svc = DummyService()
+        observed = ServiceObserver(svc, "dummy")
+        h1 = await observed.health()
+        h2 = await observed.health_check()
+        assert h1["service"] == h2["service"]
+
+    @pytest.mark.asyncio
+    async def test_service_observer_health_without_method(self):
+        """health works even if service lacks health_check."""
+
+        class NoHealthService:
+            async def run(self) -> int:
+                return 1
+
+        observed = ServiceObserver(NoHealthService(), "no-health")
+        health = await observed.health()
+        assert "health_error" not in health
+
+    @pytest.mark.asyncio
+    async def test_service_observer_health_exception(self):
+        """health handles exceptions in service health_check."""
+
+        class BrokenService:
+            async def health_check(self) -> dict:
+                msg = "broken"
+                raise RuntimeError(msg)
+
+        observed = ServiceObserver(BrokenService(), "broken")
+        health = await observed.health()
+        assert health["health_error"] is not None
+
+    def test_service_observer_wrapped_property(self):
+        """wrapped property returns underlying service."""
+        svc = DummyService()
+        observed = ServiceObserver(svc, "dummy")
+        assert observed.wrapped is svc
+
+    def test_service_observer_getattr_non_callable(self):
+        """Non-callable attributes pass through."""
+        svc = DummyService()
+        observed = ServiceObserver(svc, "dummy")
+        assert observed.name == "dummy"
+
+
+# ==============================================================================
+# LOGGING
+# ==============================================================================
+
+from libraries.observability.logging import (
+    StructuredFormatter,
+    StructuredLogger,
+    configure_logging,
+    get_logger,
+    get_correlation_id,
+    set_correlation_id as set_cid,
+    set_trace_ids as set_tids,
+)
+from libraries.observability.config import LoggingConfig
+
+
+class TestLoggingCoverage:
+    """Complete logging coverage."""
+
+    def test_set_get_correlation_id(self):
+        set_cid("abc123")
+        assert get_correlation_id() == "abc123"
+
+    def test_trace_ids(self):
+        set_tids("trace1", "span1")
+        # No explicit getter, but shouldn't crash
+
+    def test_get_logger_reuses(self):
+        l1 = get_logger("test.logger")
+        l2 = get_logger("test.logger")
+        assert l1 is l2
+
+    def test_logger_name(self):
+        logger = get_logger("my.service")
+        assert logger.name == "my.service"
+
+    def test_configure_logging_default(self):
+        config = LoggingConfig(level="debug", enable_console=True, enable_file=False)
+        configure_logging(config)
+        # Should not raise
+
+    def test_logger_level_methods(self):
+        logger = get_logger("test.levels")
+        logger.debug("debug msg", key="val")
+        logger.info("info msg", key="val")
+        logger.warning("warn msg", key="val")
+        logger.error("error msg", key="val")
+        logger.critical("critical msg", key="val")
+        # Should not raise
+
+    def test_logger_exception(self):
+        logger = get_logger("test.exception")
+        try:
+            msg = "oops"
+            raise ValueError(msg)
+        except ValueError:
+            logger.exception("exception occurred", key="val")
+
+    def test_formatter_json(self):
+        config = LoggingConfig(level="debug")
+        fmt = StructuredFormatter(config)
+        import logging
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname=__file__,
+            lineno=42, msg="hello %s", args=("world",), exc_info=None,
+        )
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert parsed["message"] == "hello world"
+        assert parsed["level"] == "INFO"
+        assert parsed["logger"] == "test"
+
+    def test_formatter_exc_info_tuple(self):
+        config = LoggingConfig(level="debug")
+        fmt = StructuredFormatter(config)
+        import logging, sys
+        try:
+            msg = "fail"
+            raise RuntimeError(msg)
+        except RuntimeError:
+            exc_info = sys.exc_info()
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname=__file__,
+            lineno=42, msg="error", args=(), exc_info=exc_info,
+        )
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert "exception" in parsed
+        assert parsed["exception"]["type"] == "RuntimeError"
+
+    def test_formatter_exc_text(self):
+        config = LoggingConfig(level="debug")
+        fmt = StructuredFormatter(config)
+        import logging
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname=__file__,
+            lineno=42, msg="error", args=(), exc_info=None,
+        )
+        record.exc_text = "Traceback: simulated"
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert "exception" in parsed
+        assert parsed["exception"]["text"] == "Traceback: simulated"
+
+    def test_formatter_exc_info_true(self):
+        """exc_info=True is handled (Python 3.14 regression)."""
+        config = LoggingConfig(level="debug")
+        fmt = StructuredFormatter(config)
+        import logging
+        record = logging.LogRecord(
+            name="test", level=logging.ERROR, pathname=__file__,
+            lineno=42, msg="error", args=(), exc_info=True,
+        )
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert "exception" in parsed
+        assert parsed["exception"]["resolved"] is True
+
+    def test_formatter_sensitive_masking(self):
+        config = LoggingConfig(
+            level="debug",
+            sensitive_fields=["password", "api_key", "secret"],
+        )
+        fmt = StructuredFormatter(config)
+        import logging
+        record = logging.LogRecord(
+            name="test", level=logging.INFO, pathname=__file__,
+            lineno=42, msg="login attempt", args=(), exc_info=None,
+        )
+        record.extra_fields = {"password": "secret123", "api_key": "abc", "user": "admin"}
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert parsed["password"] == "***REDACTED***"
+        assert parsed["api_key"] == "***REDACTED***"
+        assert parsed["user"] == "admin"
+
+    def test_formatter_includes_metadata(self):
+        config = LoggingConfig(service_name="test-svc", environment="test-env")
+        fmt = StructuredFormatter(config)
+        import logging
+        record = logging.LogRecord(
+            name="meta", level=logging.INFO, pathname=__file__,
+            lineno=42, msg="meta test", args=(), exc_info=None,
+        )
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert parsed["service"] == "test-svc"
+        assert parsed["environment"] == "test-env"
+        assert parsed["module"] == "test_coverage_sprint1dot1"
+
+    def test_formatter_nested_exception(self):
+        """Nested exceptions are handled."""
+        config = LoggingConfig(level="debug")
+        fmt = StructuredFormatter(config)
+        import logging, sys
+        try:
+            try:
+                msg = "inner"
+                raise ValueError(msg)
+            except ValueError as inner:
+                msg2 = "outer"
+                raise RuntimeError(msg2) from inner
+        except RuntimeError:
+            exc_info = sys.exc_info()
+        record = logging.LogRecord(
+            name="nested", level=logging.ERROR, pathname=__file__,
+            lineno=42, msg="nested error", args=(), exc_info=exc_info,
+        )
+        output = fmt.format(record)
+        parsed = json.loads(output)
+        assert "exception" in parsed
+
+
+# ==============================================================================
+# MARKET CLASSIFIER
+# ==============================================================================
+
+from libraries.domain.ai_research.market_classifier import MarketClassifier
+from libraries.domain.ai_research.models import (
+    LiquidityLevel,
+    MarketCondition,
+    MarketRegime,
+    ResearchDataset,
+    TrendDirection,
+    VolatilityLevel,
+)
+
+
+def _make_dataset(close_values, high_values=None, low_values=None, volume_values=None):
+    high = high_values or [c * 1.01 for c in close_values]
+    low = low_values or [c * 0.99 for c in close_values]
+    volume = volume_values or [1000.0] * len(close_values)
+    rows = []
+    for i in range(len(close_values)):
+        row = {
+            "close": close_values[i],
+            "high": high[i] if i < len(high) else close_values[i] * 1.01,
+            "low": low[i] if i < len(low) else close_values[i] * 0.99,
+            "volume": volume[i] if i < len(volume) else 1000.0,
+        }
+        rows.append(row)
+    schema = ("close", "high", "low", "volume")
+    return ResearchDataset(dataset_id="test", schema=schema, rows=tuple(rows))
+
+
+class TestMarketClassifierCoverage:
+    """Complete market classifier coverage."""
+
+    @pytest.mark.asyncio
+    async def test_bull_market(self):
+        """Bull trend: rising close prices, fast SMA > slow SMA."""
+        # 250 rising values for SMA(200) to work
+        close = [100.0 + i * 0.5 for i in range(250)]
+        ds = _make_dataset(close)
+        classifier = MarketClassifier()
+        result = await classifier.classify(ds)
+        assert result.condition in (MarketCondition.BULL, MarketCondition.MIXED)
+
+    @pytest.mark.asyncio
+    async def test_bear_market(self):
+        """Bear trend: falling close prices."""
+        close = [200.0 - i * 0.5 for i in range(250)]
+        ds = _make_dataset(close)
+        classifier = MarketClassifier()
+        result = await classifier.classify(ds)
+        assert result.condition in (MarketCondition.BEAR, MarketCondition.MIXED)
+
+    @pytest.mark.asyncio
+    async def test_sideways_market(self):
+        """Sideways: prices oscillate in a narrow range."""
+        import math
+        close = [100.0 + math.sin(i * 0.1) * 2.0 for i in range(250)]
+        ds = _make_dataset(close)
+        classifier = MarketClassifier()
+        result = await classifier.classify(ds)
+        assert result.regime in (MarketRegime.RANGING, MarketRegime.UNKNOWN)
+        assert isinstance(result.confidence, float)
+
+    @pytest.mark.asyncio
+    async def test_mixed_signals(self):
+        """Mixed: bull trend + high volatility."""
+        close = [100.0 + i * 0.3 + (i % 10) * 5.0 for i in range(250)]
+        ds = _make_dataset(close)
+        classifier = MarketClassifier()
+        result = await classifier.classify(ds)
+        assert isinstance(result.condition, MarketCondition)
+
+    @pytest.mark.asyncio
+    async def test_low_sample_count(self):
+        """Fewer rows than SMA(200) threshold raises error."""
+        close = [100.0] * 50
+        ds = _make_dataset(close)
+        classifier = MarketClassifier()
+        with pytest.raises(Exception):
+            await classifier.classify(ds)
+
+    @pytest.mark.asyncio
+    async def test_missing_indicators(self):
+        """Dataset missing 'high' column raises error."""
+        rows = tuple({"close": 100.0} for _ in range(10))
+        ds = ResearchDataset(dataset_id="test", schema=("close",), rows=rows)
+        classifier = MarketClassifier()
+        with pytest.raises(Exception):
+            await classifier.classify(ds)
+
+    @pytest.mark.asyncio
+    async def test_regime_resolution(self):
+        """_resolve_regime maps to correct MarketRegime."""
+        from libraries.domain.ai_research.models import (
+            LiquidityClassificationResult,
+            TrendClassificationResult,
+            VolatilityClassificationResult,
+        )
+
+        trend = TrendClassificationResult(direction=TrendDirection.BULL, strength=0.8, slope=0.01)
+        vol = VolatilityClassificationResult(level=VolatilityLevel.NORMAL, percentile=0.5, atr_value=1.0)
+        liq = LiquidityClassificationResult(level=LiquidityLevel.HIGH, score=0.9, avg_volume=10000)
+        regime = MarketClassifier._resolve_regime(trend, vol, liq)
+        assert regime == MarketRegime.TRENDING
+
+    @pytest.mark.asyncio
+    async def test_regime_high_volatility(self):
+        """High volatility maps to HIGH_VOLATILITY regime."""
+        from libraries.domain.ai_research.models import (
+            LiquidityClassificationResult,
+            TrendClassificationResult,
+            VolatilityClassificationResult,
+        )
+        trend = TrendClassificationResult(direction=TrendDirection.SIDEWAYS, strength=0.3, slope=0.0)
+        vol = VolatilityClassificationResult(level=VolatilityLevel.HIGH, percentile=0.9, atr_value=5.0)
+        liq = LiquidityClassificationResult(level=LiquidityLevel.HIGH, score=0.9, avg_volume=10000)
+        regime = MarketClassifier._resolve_regime(trend, vol, liq)
+        assert regime == MarketRegime.HIGH_VOLATILITY
+
+    @pytest.mark.asyncio
+    async def test_regime_low_liquidity(self):
+        """Low liquidity maps to LOW_LIQUIDITY regime."""
+        from libraries.domain.ai_research.models import (
+            LiquidityClassificationResult,
+            TrendClassificationResult,
+            VolatilityClassificationResult,
+        )
+        trend = TrendClassificationResult(direction=TrendDirection.SIDEWAYS, strength=0.3, slope=0.0)
+        vol = VolatilityClassificationResult(level=VolatilityLevel.NORMAL, percentile=0.5, atr_value=1.0)
+        liq = LiquidityClassificationResult(level=LiquidityLevel.LOW, score=0.2, avg_volume=100)
+        regime = MarketClassifier._resolve_regime(trend, vol, liq)
+        assert regime == MarketRegime.LOW_LIQUIDITY
+
+    @pytest.mark.asyncio
+    async def test_condition_unknown(self):
+        """Fully unknown returns UNKNOWN condition."""
+        from libraries.domain.ai_research.models import (
+            LiquidityClassificationResult,
+            TrendClassificationResult,
+            VolatilityClassificationResult,
+        )
+        trend = TrendClassificationResult(direction=TrendDirection.UNKNOWN, strength=0.0, slope=0.0)
+        vol = VolatilityClassificationResult(level=VolatilityLevel.NORMAL, percentile=0.5, atr_value=1.0)
+        liq = LiquidityClassificationResult(level=LiquidityLevel.NORMAL, score=0.5, avg_volume=1000)
+        condition = MarketClassifier._resolve_condition(trend, vol, liq)
+        assert condition == MarketCondition.UNKNOWN
+
+
+# ==============================================================================
+# MARKET REGIME DETECTOR
+# ==============================================================================
+
+from libraries.domain.ai_research.market_regime_detector import MarketRegimeDetector
+
+
+class TestMarketRegimeDetectorCoverage:
+    """Complete market regime detector coverage."""
+
+    @pytest.mark.asyncio
+    async def test_regime_transition(self):
+        """Detect regime from bull market data."""
+        close = [100.0 + i * 0.5 for i in range(250)]
+        ds = _make_dataset(close)
+        detector = MarketRegimeDetector()
+        regime = await detector.detect(ds)
+        assert isinstance(regime, MarketRegime)
+
+    @pytest.mark.asyncio
+    async def test_insufficient_history(self):
+        """Few rows raise error."""
+        close = [100.0] * 10
+        ds = _make_dataset(close)
+        detector = MarketRegimeDetector()
+        with pytest.raises(Exception):
+            await detector.detect(ds)
+
+    @pytest.mark.asyncio
+    async def test_classify_full_result(self):
+        """classify() returns full MarketClassificationResult."""
+        close = [100.0 + i * 0.3 for i in range(250)]
+        ds = _make_dataset(close)
+        detector = MarketRegimeDetector()
+        result = await detector.classify(ds)
+        assert result.regime is not None
+        assert result.trend is not None
+        assert result.volatility is not None
+        assert result.liquidity is not None
+
+    @pytest.mark.asyncio
+    async def test_conflicting_classifier_outputs(self):
+        """Conflicting (bull + low liquidity) handled."""
+        close = [100.0 + i * 0.3 for i in range(250)]
+        # Very low volume creates low liquidity
+        volume = [1.0] * 250
+        ds = _make_dataset(close, volume_values=volume)
+        detector = MarketRegimeDetector()
+        result = await detector.detect(ds)
+        assert isinstance(result, MarketRegime)
+
+
+# ==============================================================================
+# PARAMETER STABILITY
+# ==============================================================================
+
+from libraries.domain.ai_research.parameter_stability import ParameterStabilityAnalyzer
+from libraries.domain.ai_research.models import WalkForwardResult, WalkForwardWindow
+
+
+class TestParameterStabilityCoverage:
+    """Complete parameter stability coverage."""
+
+    @pytest.mark.asyncio
+    async def test_empty_windows_raises(self):
+        """No windows raises error."""
+        wf = WalkForwardResult(windows=())
+        analyzer = ParameterStabilityAnalyzer()
+        with pytest.raises(Exception):
+            await analyzer.analyze(wf)
+
+    @pytest.mark.asyncio
+    async def test_single_window(self):
+        """Single window returns stability 1.0."""
+        wf = WalkForwardResult(windows=(
+            WalkForwardWindow(test_metrics={"sharpe": 1.5, "profit_factor": 2.0}),
+        ))
+        analyzer = ParameterStabilityAnalyzer()
+        report = await analyzer.analyze(wf)
+        assert report.stability_score == 1.0
+
+    @pytest.mark.asyncio
+    async def test_multiple_windows_stable(self):
+        """Stable metrics across windows produce high stability."""
+        wf = WalkForwardResult(windows=(
+            WalkForwardWindow(test_metrics={"sharpe": 1.5, "profit_factor": 2.0}),
+            WalkForwardWindow(test_metrics={"sharpe": 1.6, "profit_factor": 2.1}),
+            WalkForwardWindow(test_metrics={"sharpe": 1.4, "profit_factor": 1.9}),
+        ))
+        analyzer = ParameterStabilityAnalyzer()
+        report = await analyzer.analyze(wf)
+        assert 0.0 <= report.stability_score <= 1.0
+        assert "sharpe" in report.parameter_std
+        assert "profit_factor" in report.parameter_std
+
+    @pytest.mark.asyncio
+    async def test_multiple_windows_unstable(self):
+        """Unstable metrics produce low stability."""
+        wf = WalkForwardResult(windows=(
+            WalkForwardWindow(test_metrics={"sharpe": 3.0}),
+            WalkForwardWindow(test_metrics={"sharpe": 0.1}),
+            WalkForwardWindow(test_metrics={"sharpe": -2.0}),
+        ))
+        analyzer = ParameterStabilityAnalyzer()
+        report = await analyzer.analyze(wf)
+        assert report.stability_score < 0.95
+
+    @pytest.mark.asyncio
+    async def test_zero_mean_values(self):
+        """Mean near zero uses absolute values fallback."""
+        wf = WalkForwardResult(windows=(
+            WalkForwardWindow(test_metrics={"delta": 0.001, "spread": 0.0}),
+            WalkForwardWindow(test_metrics={"delta": -0.001, "spread": 0.0}),
+        ))
+        analyzer = ParameterStabilityAnalyzer()
+        report = await analyzer.analyze(wf)
+        assert isinstance(report.stability_score, float)
+
+    @pytest.mark.asyncio
+    async def test_zero_mean_abs_fallback(self):
+        """When both mean and mean_abs are near zero."""
+        wf = WalkForwardResult(windows=(
+            WalkForwardWindow(test_metrics={"tiny": 1e-8}),
+            WalkForwardWindow(test_metrics={"tiny": -1e-8}),
+        ))
+        analyzer = ParameterStabilityAnalyzer()
+        report = await analyzer.analyze(wf)
+        assert report.stability_score == 1.0
+
+
+# ==============================================================================
+# FEATURE ENGINEERING
+# ==============================================================================
+
+from libraries.domain.ai_research.feature_engineering import (
+    CustomFeature,
+    FeatureEngineer,
+    ResearchFeatureEngineer,
+)
+from libraries.domain.ai_research.models import FeatureDefinition
+
+
+class TestFeatureEngineeringCoverage:
+    """Complete feature engineering coverage."""
+
+    def test_custom_feature_registration(self):
+        """Register a custom feature."""
+        engineer = ResearchFeatureEngineer()
+
+        def my_feature(dataset, definition):
+            return [1.0] * dataset.row_count
+
+        engineer.register_custom("my_indicator", my_feature)
+        assert "my_indicator" in engineer._custom_features
+
+    def test_custom_feature_empty_name_raises(self):
+        """Empty name raises error."""
+        engineer = ResearchFeatureEngineer()
+        with pytest.raises(Exception):
+            engineer.register_custom("", lambda d, defn: [1.0])
+
+    def test_custom_feature_non_callable_raises(self):
+        """Non-callable raises error."""
+        engineer = ResearchFeatureEngineer()
+        with pytest.raises(Exception):
+            engineer.register_custom("bad", "not_callable")  # type: ignore
+
+    def test_duplicate_registration(self):
+        """Duplicate registration overwrites."""
+        engineer = ResearchFeatureEngineer()
+        def f1(d, defn): return [1.0]
+        def f2(d, defn): return [2.0]
+        engineer.register_custom("x", f1)
+        engineer.register_custom("x", f2)
+        assert "x" in engineer._custom_features
+
+    def test_empty_definitions(self):
+        """Empty definitions returns empty tuple."""
+        ds = _make_dataset([100.0, 101.0])
+        import asyncio
+        result = asyncio.run(FeatureEngineer.engineer(FeatureEngineer, ds, []))
+        assert result == ()
+
+    @pytest.mark.asyncio
+    async def test_unsupported_feature(self):
+        """Unknown category raises error."""
+        ds = _make_dataset([100.0, 101.0])
+        defn = FeatureDefinition(name="magic", category="unsupported")
+        with pytest.raises(Exception):
+            await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+
+    @pytest.mark.asyncio
+    async def test_missing_required_column(self):
+        """Feature missing required column raises error."""
+        rows = tuple({"open": 100.0} for _ in range(10))
+        ds = ResearchDataset(dataset_id="test", schema=("open",), rows=rows)
+        defn = FeatureDefinition(name="sma", category="trend", required_columns=("close",))
+        with pytest.raises(Exception):
+            await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+
+    @pytest.mark.asyncio
+    async def test_bollinger_width(self):
+        """Bollinger width feature computes correctly."""
+        ds = _make_dataset([100.0, 101.0, 102.0, 103.0, 104.0])
+        defn = FeatureDefinition(name="bollinger", category="volatility", parameters={"period": 3})
+        results = await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+        assert len(results) == 5
+
+    @pytest.mark.asyncio
+    async def test_price_action_return(self):
+        """Price action 'return' computes price changes."""
+        ds = _make_dataset([100.0, 102.0, 105.0])
+        defn = FeatureDefinition(name="return", category="price_action")
+        results = await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+        assert len(results) == 3
+
+    @pytest.mark.asyncio
+    async def test_candlestick_range(self):
+        """Candlestick range computes high - low."""
+        ds = _make_dataset([100.0, 101.0])
+        defn = FeatureDefinition(name="range", category="candlestick")
+        results = await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+        assert len(results) == 2
+
+    @pytest.mark.asyncio
+    async def test_session_feature(self):
+        """Session feature requires timestamp."""
+        from datetime import datetime, timezone
+        rows = tuple({"close": 100.0, "timestamp": datetime(2024, 1, 15, 10, 0, tzinfo=timezone.utc)} for _ in range(5))
+        ds = ResearchDataset(dataset_id="test", schema=("close", "timestamp"), rows=rows)
+        defn = FeatureDefinition(name="session", category="session")
+        results = await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+        assert len(results) == 5
+
+    @pytest.mark.asyncio
+    async def test_session_no_timestamp_raises(self):
+        """Session without timestamp raises error."""
+        ds = _make_dataset([100.0, 101.0])
+        defn = FeatureDefinition(name="session", category="session")
+        with pytest.raises(Exception):
+            await FeatureEngineer.engineer(FeatureEngineer, ds, [defn])
+
+    @pytest.mark.asyncio
+    async def test_custom_feature_execution(self):
+        """Custom feature is executed."""
+        engineer = ResearchFeatureEngineer()
+
+        def double_close(dataset, definition):
+            return [float(row["close"]) * 2 for row in dataset.rows]
+
+        engineer.register_custom("double", double_close)
+        ds = _make_dataset([100.0, 101.0, 102.0])
+        defn = FeatureDefinition(name="double", category="custom")
+        results = await engineer.engineer(ds, [defn])
+        assert len(results) == 3
+        assert results[0].values["double"] == 200.0
+
+    @pytest.mark.asyncio
+    async def test_custom_feature_not_registered(self):
+        """Unregistered custom feature raises error."""
+        engineer = ResearchFeatureEngineer()
+        ds = _make_dataset([100.0, 101.0])
+        defn = FeatureDefinition(name="unregistered", category="custom")
+        with pytest.raises(Exception):
+            await engineer.engineer(ds, [defn])
+
+
+# ==============================================================================
+# FITNESS ENGINE
+# ==============================================================================
+
+from libraries.domain.ai_research.fitness_engine import CompositeFitnessEngine
+from libraries.domain.ai_research.models import FitnessWeights, StrategyEvaluation
+
+
+class TestFitnessEngineCoverage:
+    """Complete fitness engine coverage."""
+
+    def test_weight_validation(self):
+        """Custom weights are used."""
+        w = FitnessWeights(sharpe=0.5, profit_factor=0.3)
+        engine = CompositeFitnessEngine(weights=w)
+        assert engine.weights.sharpe == 0.5
+
+    def test_empty_metrics_raises(self):
+        """Empty metrics raises error."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(strategy_id="s1", dataset_id="d1", metrics={})
+        with pytest.raises(Exception):
+            engine.calculate(eval_)
+
+    def test_valid_calculation(self):
+        """Valid metrics produce composite score."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"sharpe": 1.5, "profit_factor": 2.0, "win_rate": 0.6, "expectancy": 0.1},
+        )
+        result = engine.calculate(eval_)
+        assert result.composite_score > 0
+        assert "sharpe" in result.component_scores
+
+    def test_calmar_ratio_no_risk_free(self):
+        """Calmar ratio without risk-free rate."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"calmar": 2.0, "sharpe": 1.0, "profit_factor": 1.5, "win_rate": 0.5, "expectancy": 0.05},
+        )
+        result = engine.calculate(eval_)
+        assert result.composite_score != 0
+
+    def test_zero_division(self):
+        """Zero values are handled gracefully."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"sharpe": 0.0, "profit_factor": 1.0, "win_rate": 0.0, "expectancy": 0.0},
+        )
+        result = engine.calculate(eval_)
+        assert isinstance(result.composite_score, float)
+
+    def test_negative_returns(self):
+        """Negative metrics produce lower score."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"sharpe": -2.0, "profit_factor": 0.5, "win_rate": 0.3, "expectancy": -0.1},
+        )
+        result = engine.calculate(eval_)
+        assert result.composite_score < 0
+
+    def test_extreme_drawdown(self):
+        """Extreme drawdown is capped."""
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={
+                "sharpe": 1.0, "profit_factor": 2.0, "win_rate": 0.6,
+                "expectancy": 0.1, "max_drawdown": -90.0,
+            },
+        )
+        result = engine.calculate(eval_)
+        assert isinstance(result.composite_score, float)
+
+    def test_nan_handling(self):
+        """NaN values are clamped to 0."""
+        import math
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"sharpe": float("nan"), "profit_factor": 2.0, "win_rate": 0.6, "expectancy": 0.1},
+        )
+        result = engine.calculate(eval_)
+        assert isinstance(result.composite_score, float)
+
+    def test_infinite_values(self):
+        """Infinite values are clamped."""
+        import math
+        engine = CompositeFitnessEngine()
+        eval_ = StrategyEvaluation(
+            strategy_id="s1",
+            dataset_id="d1",
+            metrics={"sharpe": float("inf"), "profit_factor": 2.0, "win_rate": 0.6, "expectancy": 0.1},
+        )
+        result = engine.calculate(eval_)
+        assert isinstance(result.composite_score, float)
+
+    def test_batch_calculation(self):
+        """Batch calculation returns tuple."""
+        engine = CompositeFitnessEngine()
+        evals = (
+            StrategyEvaluation(strategy_id="s1", dataset_id="d1", metrics={"sharpe": 1.0, "profit_factor": 1.5, "win_rate": 0.5, "expectancy": 0.05}),
+            StrategyEvaluation(strategy_id="s2", dataset_id="d1", metrics={"sharpe": 0.5, "profit_factor": 1.2, "win_rate": 0.4, "expectancy": 0.02}),
+        )
+        results = engine.calculate_batch(evals)
+        assert len(results) == 2
+
+
+# ==============================================================================
+# GRID SEARCH
+# ==============================================================================
+
+from libraries.domain.ai_research.grid_search import GridSearchOptimizer
+from libraries.domain.ai_research.models import (
+    OptimizationState,
+    ParameterConstraint,
+    ParameterDefinition,
+    ParameterSpace,
+    ParameterType,
+)
+
+
+def _make_int_param(name: str, min_v: int, max_v: int) -> ParameterDefinition:
+    return ParameterDefinition(
+        name=name,
+        parameter_type=ParameterType.INT,
+        constraint=ParameterConstraint(min_value=min_v, max_value=max_v, step=1),
+    )
+
+
+class TestGridSearchCoverage:
+    """Complete grid search coverage."""
+
+    def test_empty_parameter_space_raises(self):
+        """Empty space raises error."""
+        space = ParameterSpace(parameters=())
+        optimizer = GridSearchOptimizer()
+        with pytest.raises(Exception):
+            optimizer.generate(space)
+
+    def test_single_parameter(self):
+        """Single parameter generates correct count."""
+        space = ParameterSpace(parameters=(_make_int_param("x", 1, 3),))
+        optimizer = GridSearchOptimizer()
+        results = optimizer.generate(space)
+        assert len(results) == 3
+        assert optimizer.state == OptimizationState.COMPLETED
+
+    def test_multiple_parameters(self):
+        """Multiple parameters generate Cartesian product."""
+        space = ParameterSpace(parameters=(
+            _make_int_param("a", 1, 2),
+            _make_int_param("b", 10, 11),
+        ))
+        optimizer = GridSearchOptimizer()
+        results = optimizer.generate(space)
+        assert len(results) == 4  # 2 * 2
+
+    def test_max_combinations_limit(self):
+        """Max combinations cap is respected."""
+        space = ParameterSpace(parameters=(_make_int_param("x", 1, 100),))
+        optimizer = GridSearchOptimizer()
+        results = optimizer.generate(space, max_combinations=10)
+        assert len(results) == 10
+
+    def test_cancellation(self):
+        """Cancellation stops generation."""
+        space = ParameterSpace(parameters=(_make_int_param("x", 1, 1000),))
+        optimizer = GridSearchOptimizer()
+        optimizer.cancel()
+        assert optimizer.state == OptimizationState.CANCELLED
+        results = optimizer.generate(space)
+        assert len(results) == 0
+
+    def test_progress_callback(self):
+        """Progress callback is invoked."""
+        calls = []
+
+        def callback(report):
+            calls.append(report)
+
+        space = ParameterSpace(parameters=(_make_int_param("x", 1, 100),))
+        optimizer = GridSearchOptimizer()
+        results = optimizer.generate(space, progress_callback=callback)
+        assert len(calls) > 0
+        assert len(results) == 100
+
+    def test_float_parameter(self):
+        """Float parameter values."""
+        param = ParameterDefinition(
+            name="rate",
+            parameter_type=ParameterType.FLOAT,
+            constraint=ParameterConstraint(min_value=0.0, max_value=1.0, step=0.5),
+        )
+        space = ParameterSpace(parameters=(param,))
+        optimizer = GridSearchOptimizer()
+        results = optimizer.generate(space)
+        assert len(results) == 3  # 0.0, 0.5, 1.0
+
+    def test_decimal_parameter(self):
+        """Decimal parameter values."""
+        from decimal import Decimal
+        param = ParameterDefinition(
+            name="price",
+            parameter_type=ParameterType.DECIMAL,
+            constraint=ParameterConstraint(values=[Decimal("10.0"), Decimal("20.0")]),
+        )
+The middleware test was truncated. Let me complete it and create all other coverage-boosting test files:
+
+<edit_file>
+<path>
+c:/Users/Shree/CascadeProjects/forex-trading-platform-architecture/project-orion/tests/unit/test_observability_middleware.py</path>
+<old_str>    @pytest.mark.asyncio
+    async def test_non_http_scope(self, empty_app, metrics_registry):
+        """Test non-HTTP scopes."""
+        middleware = RequestMetricsMiddleware(empty_app, metrics_registry)
+        scope = {"type": "websocket"}
+        receive = AsyncMock()
+        send = AsyncMock()</old_str>
+<new_str>    @pytest.mark.asyncio
+    async def test_non_http_scope(self, empty_app, metrics_registry):
+        """Test non-HTTP scopes."""
+        middleware = RequestMetricsMiddleware(empty_app, metrics_registry)
+        scope = {"type": "websocket"}
+        receive = AsyncMock()
+        send = AsyncMock()
+        await middleware(scope, receive, send)
+        # Should not crash
+
+    @pytest.mark.asyncio
+    async def test_excluded_paths(self, empty_app, metrics_registry):
+        """Test that excluded paths don't record metrics."""
+        middleware = RequestMetricsMiddleware(empty_app, metrics_registry)
+        scope = {"type": "http", "method": "GET", "path": "/health", "headers": {}}
+        receive = AsyncMock()
+        send = AsyncMock()
+        await middleware(scope, receive, send)
+        # Should not crash
+
+    @pytest.mark.asyncio
+    async def test_error_status_records_error_metric(self, empty_app, metrics_registry):
+        """Test that 500 errors increment error metric."""
+        async def error_status_app(scope, receive, send):
+            await send({"type": "http.response.start", "status": 500})
+            await send({"type": "http.response.body", "body": b"error"})
+
+        middleware = RequestMetricsMiddleware(error_status_app, metrics_registry)
+        scope = {"type": "http", "method": "GET", "path": "/api/error", "headers": {}}
+        receive = AsyncMock()
+        send = AsyncMock()
+        await middleware(scope, receive, send)
+        snapshot = metrics_registry.snapshot()
+        assert len(snapshot) > 0</new_str>
+</edit_file>

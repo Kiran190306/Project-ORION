@@ -42,7 +42,9 @@ class TestExecutionRetryPolicy:
         assert delay2 >= delay1  # Exponential backoff
 
     def test_is_retryable_auth_error(self, policy):
-        assert not policy.is_retryable(AdapterAuthenticationError("auth failed", broker_name="test"))
+        assert not policy.is_retryable(
+            AdapterAuthenticationError("auth failed", broker_name="test")
+        )
 
     def test_is_retryable_connection_error(self, policy):
         config = ExecutionRetryConfig(retry_on_connection_error=True)
@@ -141,4 +143,3 @@ class TestExecutionRetryPolicy:
         with pytest.raises(RetryExhaustedError):
             await policy.execute(op, context="test")
         assert policy.is_exhausted
-

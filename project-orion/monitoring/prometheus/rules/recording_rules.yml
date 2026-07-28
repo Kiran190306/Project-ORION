@@ -1,0 +1,148 @@
+# ════════════════════════════════════════════════════════════
+# ORION Recording Rules
+# ════════════════════════════════════════════════════════════
+
+groups:
+  - name: orion_service_metrics
+    interval: 15s
+    rules:
+      # ── Request / Latency ──────────────────────────────────
+      - record: orion:api:request_rate:5m
+        expr: rate(orion_http_requests_total[5m])
+
+      - record: orion:api:error_rate:5m
+        expr: rate(orion_http_requests_total{status=~"5.."}[5m])
+
+      - record: orion:api:latency_p50:5m
+        expr: histogram_quantile(0.50, rate(orion_http_request_duration_seconds_bucket[5m]))
+
+      - record: orion:api:latency_p95:5m
+        expr: histogram_quantile(0.95, rate(orion_http_request_duration_seconds_bucket[5m]))
+
+      - record: orion:api:latency_p99:5m
+        expr: histogram_quantile(0.99, rate(orion_http_request_duration_seconds_bucket[5m]))
+
+      - record: orion:api:latency_avg:5m
+        expr: rate(orion_http_request_duration_seconds_sum[5m]) / rate(orion_http_request_duration_seconds_count[5m])
+
+      - record: orion:api:success_rate:5m
+        expr: sum(rate(orion_http_requests_total{status=~"2.."}[5m])) / sum(rate(orion_http_requests_total[5m]))
+
+  - name: orion_resource_metrics
+    interval: 30s
+    rules:
+      # ── CPU / Memory ───────────────────────────────────────
+      - record: orion:container:cpu_usage:5m
+        expr: rate(container_cpu_usage_seconds_total[5m])
+
+      - record: orion:container:memory_usage_bytes
+        expr: container_memory_working_set_bytes
+
+      - record: orion:node:cpu_utilization:5m
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+
+      - record: orion:node:memory_utilization
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100
+
+      - record: orion:node:disk_utilization
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100
+
+  - name: orion_worker_metrics
+    interval: 15s
+    rules:
+      - record: orion:worker:job_rate:5m
+        expr: rate(orion_worker_jobs_total[5m])
+
+      - record: orion:worker:error_rate:5m
+        expr: rate(orion_worker_jobs_total{status="error"}[5m])
+
+      - record: orion:worker:queue_depth
+        expr: orion_worker_queue_depth
+
+      - record: orion:worker:job_duration_p50:5m
+        expr: histogram_quantile(0.50, rate(orion_worker_job_duration_seconds_bucket[5m]))
+
+      - record: orion:worker:job_duration_p95:5m
+        expr: histogram_quantile(0.95, rate(orion_worker_job_duration_seconds_bucket[5m]))
+
+      - record: orion:worker:active_workers
+        expr: orion_worker_active_workers
+
+  - name: orion_research_metrics
+    interval: 15s
+    rules:
+      - record: orion:research:job_rate:5m
+        expr: rate(orion_research_jobs_total[5m])
+
+      - record: orion:research:error_rate:5m
+        expr: rate(orion_research_jobs_total{status="error"}[5m])
+
+      - record: orion:research:job_duration_p50:5m
+        expr: histogram_quantile(0.50, rate(orion_research_job_duration_seconds_bucket[5m]))
+
+      - record: orion:research:job_duration_p95:5m
+        expr: histogram_quantile(0.95, rate(orion_research_job_duration_seconds_bucket[5m]))
+
+      - record: orion:research:active_jobs
+        expr: orion_research_active_jobs
+
+      - record: orion:research:queue_depth
+        expr: orion_research_queue_depth
+
+  - name: orion_execution_metrics
+    interval: 15s
+    rules:
+      - record: orion:execution:order_rate:5m
+        expr: rate(orion_execution_orders_total[5m])
+
+      - record: orion:execution:error_rate:5m
+        expr: rate(orion_execution_orders_total{status="error"}[5m])
+
+      - record: orion:execution:latency_p50:5m
+        expr: histogram_quantile(0.50, rate(orion_execution_order_duration_seconds_bucket[5m]))
+
+      - record: orion:execution:latency_p95:5m
+        expr: histogram_quantile(0.95, rate(orion_execution_order_duration_seconds_bucket[5m]))
+
+      - record: orion:execution:fill_rate:5m
+        expr: rate(orion_execution_orders_total{status="filled"}[5m])
+
+  - name: orion_slo_metrics
+    interval: 30s
+    rules:
+      # ── Availability ──────────────────────────────────────
+      - record: orion:slo:availability:30d
+        expr: (sum(rate(orion_http_requests_total{status!~"5.."}[30d])) / sum(rate(orion_http_requests_total[30d]))) * 100
+
+      - record: orion:slo:availability:7d
+        expr: (sum(rate(orion_http_requests_total{status!~"5.."}[7d])) / sum(rate(orion_http_requests_total[7d]))) * 100
+
+      - record: orion:slo:availability:1d
+        expr: (sum(rate(orion_http_requests_total{status!~"5.."}[1d])) / sum(rate(orion_http_requests_total[1d]))) * 100
+
+      # ── Latency SLO ───────────────────────────────────────
+      - record: orion:slo:latency_p99_compliance:30d
+        expr: (sum(rate(orion_http_request_duration_seconds_bucket{le="1"}[30d])) / sum(rate(orion_http_request_duration_seconds_count[30d]))) * 100
+
+      # ── Error Budget ──────────────────────────────────────
+      - record: orion:slo:error_budget_total:30d
+        expr: (1 - 99.9 / 100) * sum(rate(orion_http_requests_total[30d])) * 30 * 24 * 3600
+
+      - record: orion:slo:error_budget_remaining:30d
+        expr: orion:slo:error_budget_total:30d - sum(increase(orion_http_requests_total{status=~"5.."}[30d]))
+
+      - record: orion:slo:error_budget_remaining_pct:30d
+        expr: (orion:slo:error_budget_remaining:30d / orion:slo:error_budget_total:30d) * 100
+
+  - name: orion_business_metrics
+    interval: 30s
+    rules:
+      - record: orion:business:total_orders:1d
+        expr: sum(increase(orion_execution_orders_total[1d]))
+
+      - record: orion:business:total_research_jobs:1d
+        expr: sum(increase(orion_research_jobs_total[1d]))
+
+      - record: orion:business:total_errors:1d
+        expr: sum(increase(orion_http_requests_total{status=~"5.."}[1d]))
+

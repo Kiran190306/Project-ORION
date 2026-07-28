@@ -185,4 +185,3 @@ class TestExecutionRouter:
         assert target.supports_symbol("EURUSD")
         assert target.supports_symbol("eurusd")
         assert not target.supports_symbol("BTCUSD")
-

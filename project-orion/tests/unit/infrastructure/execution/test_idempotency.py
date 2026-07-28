@@ -156,4 +156,3 @@ class TestIdempotencyGuard:
         hash1 = IdempotencyGuard.compute_request_hash(data1)
         hash2 = IdempotencyGuard.compute_request_hash(data2)
         assert hash1 != hash2
-

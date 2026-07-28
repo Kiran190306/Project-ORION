@@ -1,0 +1,55 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Execution Engine",
+  "version": 1,
+  "uid": "orion-execution-engine",
+  "panels": [
+    {
+      "title": "Order Rate",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_execution_orders_total[5m])", "legendFormat": "Orders/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Orders/s"}, {"show": false}]
+    },
+    {
+      "title": "Execution Error Rate",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_execution_orders_total{status=\"error\"}[5m])", "legendFormat": "Errors/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Errors/s"}, {"show": false}]
+    },
+    {
+      "title": "Fill Rate",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion:execution:fill_rate:5m", "legendFormat": "Fills/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Fills/s"}, {"show": false}]
+    },
+    {
+      "title": "Execution Latency (P50 / P95)",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "orion:execution:latency_p50:5m", "legendFormat": "P50"},
+        {"expr": "orion:execution:latency_p95:5m", "legendFormat": "P95"}
+      ],
+      "yaxes": [{"format": "s", "label": "Latency"}, {"show": false}]
+    },
+    {
+      "title": "Execution Engine Availability",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [{"expr": "up{job=\"orion-execution-engine\"}"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

@@ -1,0 +1,29 @@
+apiVersion: v2
+name: orion
+description: ORION Enterprise Trading Platform - Production Helm Chart
+type: application
+version: 0.13.0-rc.1
+appVersion: "0.13.0-rc.1"
+kubeVersion: ">=1.27.0"
+home: https://orion.example.com
+sources:
+  - https://github.com/orion/trading-platform
+maintainers:
+  - name: ORION Platform Team
+    email: platform@orion.example.com
+icon: https://orion.example.com/icon.png
+keywords:
+  - trading
+  - forex
+  - kubernetes
+  - orchestration
+annotations:
+  artifacthub.io/changes: |
+    - "Initial production Helm chart for ORION deployment"
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/category: "application"
+  artifacthub.io/operator: "false"
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
+    - url: https://artifacthub.io/packages/helm/cert-manager/cert-manager
+dependencies: []

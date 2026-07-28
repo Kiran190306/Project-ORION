@@ -1,0 +1,109 @@
+{{- if .Values.patroni.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+spec:
+  serviceName: {{ include "orion.fullname" . }}-patroni
+  replicas: {{ .Values.patroni.replicas | default 3 }}
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: patroni
+  template:
+    metadata:
+      labels:
+        {{- include "orion.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: patroni
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8008"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: {{ include "orion.serviceAccountName" . }}
+      terminationGracePeriodSeconds: 3600
+      enableServiceLinks: false
+      {{- with .Values.patroni.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- else }}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app.kubernetes.io/component
+                    operator: In
+                    values:
+                      - patroni
+              topologyKey: kubernetes.io/hostname
+      {{- end }}
+      containers:
+        - name: patroni
+          image: {{ .Values.patroni.image.repository }}:{{ .Values.patroni.image.tag }}
+          imagePullPolicy: {{ .Values.patroni.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: POD_INDEX
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['statefulset.kubernetes.io/pod-name']
+            - name: PATRONI_KUBERNETES_LABELS
+              value: "{app.kubernetes.io/component: patroni}"
+            - name: PATRONI_KUBERNETES_NAMESPACE
+              value: {{ .Release.Namespace }}
+            - name: PATRONI_POSTGRESQL_DATA_DIR
+              value: /var/lib/postgresql/data/pgdata
+            - name: PATRONI_POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: db-password
+          ports:
+            - name: postgresql
+              containerPort: 5432
+            - name: patroni
+              containerPort: {{ .Values.patroni.restapiPort | default 8008 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.patroni.restapiPort | default 8008 }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: {{ .Values.patroni.restapiPort | default 8008 }}
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+            - name: config
+              mountPath: /etc/patroni
+          resources:
+            {{- toYaml .Values.patroni.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "orion.fullname" . }}-patroni
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        storageClassName: {{ .Values.patroni.storageClass | default "gp3" }}
+        resources:
+          requests:
+            storage: {{ .Values.patroni.storage | default "100Gi" }}
+{{- end }}

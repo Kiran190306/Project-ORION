@@ -365,4 +365,3 @@ class BrokerAdapter(ABC):
                 f"Broker '{self._config.broker_name}' is not connected",
                 broker_name=self._config.broker_name,
             )
-

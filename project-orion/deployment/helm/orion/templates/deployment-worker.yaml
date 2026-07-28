@@ -1,0 +1,104 @@
+{{- if .Values.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orion.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: worker
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  minReadySeconds: 30
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "orion.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+      annotations:
+        {{- if .Values.monitoring.prometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.monitoring.metricsPort | quote }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "orion.serviceAccountName" . }}
+      automountServiceAccountToken: true
+      securityContext:
+        {{- include "orion.podSecurityContext" (dict "uid" .Values.worker.uid) | nindent 8 }}
+      terminationGracePeriodSeconds: 120
+      {{- with .Values.worker.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.worker.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/component
+                      operator: In
+                      values:
+                        - worker
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: worker
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.worker.repository }}:{{ .Values.images.worker.tag }}"
+          imagePullPolicy: {{ .Values.images.worker.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.metricsPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "orion.configName" . }}
+            - secretRef:
+                name: {{ include "orion.secretName" . }}
+          env:
+            - name: ORION_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ORION_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            {{- toYaml .Values.worker.resources | nindent 12 }}
+          securityContext:
+            {{- include "orion.containerSecurityContext" . | nindent 12 }}
+          livenessProbe:
+            {{- include "orion.probe" (dict "port" .Values.monitoring.metricsPort "path" "/health/live" "initialDelay" 15 "period" 20 "timeout" 5 "failureThreshold" 3) | nindent 12 }}
+          readinessProbe:
+            {{- include "orion.probe" (dict "port" .Values.monitoring.metricsPort "path" "/health/ready" "initialDelay" 10 "period" 15 "timeout" 3 "failureThreshold" 2) | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.worker.persistence.enabled }}
+            - name: data
+              mountPath: /var/lib/orion
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- if .Values.worker.persistence.enabled }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "orion.fullname" . }}-data
+        {{- end }}
+{{- end }}

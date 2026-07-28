@@ -1,0 +1,46 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: orion-eu-west-1
+
+namePrefix: euw1-
+
+commonLabels:
+  region: eu-west-1
+  environment: production
+  topology.kubernetes.io/region: eu-west-1
+
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - storage_class.yaml
+  - ingress_patch.yaml
+  - replica_patch.yaml
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/env/-
+        value:
+          name: ORION_REGION
+          value: eu-west-1
+    target:
+      kind: Deployment
+
+configMapGenerator:
+  - name: orion-config
+    behavior: merge
+    literals:
+      - ORION_REGION=eu-west-1
+      - ORION_DNS_ZONE=orion.example.com
+      - ORION_STORAGE_CLASS=gp3-eu
+      - ORION_NODE_TOPOLOGY=topology.kubernetes.io/zone
+
+images:
+  - name: orion/api
+    newTag: 0.12.0
+  - name: orion/worker
+    newTag: 0.12.0
+  - name: orion/scheduler
+    newTag: 0.12.0

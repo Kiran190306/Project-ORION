@@ -265,12 +265,14 @@ class PaperExecutionAdapter(BrokerAdapter):
                     filled_quantity=fill_qty,
                     average_fill_price=fill_price,
                     commission=commission,
-                    fills=[PaperFill(
-                        fill_id=fills[0].fill_id,
-                        quantity=fill_qty,
-                        price=fill_price,
-                        commission=commission,
-                    )],
+                    fills=[
+                        PaperFill(
+                            fill_id=fills[0].fill_id,
+                            quantity=fill_qty,
+                            price=fill_price,
+                            commission=commission,
+                        )
+                    ],
                     updated_at=datetime.now(timezone.utc),
                 )
 
@@ -475,14 +477,11 @@ class PaperExecutionAdapter(BrokerAdapter):
                 for p in self._positions.values()
             )
             total_unrealized = sum(
-                self._calculate_profit(p, p.current_price)
-                for p in self._positions.values()
+                self._calculate_profit(p, p.current_price) for p in self._positions.values()
             )
             margin_free = self._paper_config.balance - total_margin
             margin_level = float(
-                (self._paper_config.balance / total_margin * 100)
-                if total_margin > 0
-                else 0.0
+                (self._paper_config.balance / total_margin * 100) if total_margin > 0 else 0.0
             )
 
             return AccountInfo(
@@ -533,25 +532,31 @@ class PaperExecutionAdapter(BrokerAdapter):
                 if len(results) >= limit:
                     break
 
-                results.append(OrderExecutionInfo(
-                    broker_order_id=BrokerOrderId(f"paper_{paper_order.paper_order_id}"),
-                    status=OrderStatus(paper_order.status) if paper_order.status in {s.value for s in OrderStatus} else OrderStatus.SUBMITTED,
-                    filled_quantity=paper_order.filled_quantity,
-                    average_fill_price=paper_order.average_fill_price,
-                    commission=paper_order.commission,
-                    fills=tuple(
-                        Fill(
-                            fill_id=f.fill_id,
-                            order_id=OrderId(paper_order.domain_order_id),
-                            symbol=paper_order.symbol,
-                            side=paper_order.side,
-                            quantity=f.quantity,
-                            price=f.price,
-                            commission=f.commission,
-                        )
-                        for f in paper_order.fills
-                    ),
-                ))
+                results.append(
+                    OrderExecutionInfo(
+                        broker_order_id=BrokerOrderId(f"paper_{paper_order.paper_order_id}"),
+                        status=(
+                            OrderStatus(paper_order.status)
+                            if paper_order.status in {s.value for s in OrderStatus}
+                            else OrderStatus.SUBMITTED
+                        ),
+                        filled_quantity=paper_order.filled_quantity,
+                        average_fill_price=paper_order.average_fill_price,
+                        commission=paper_order.commission,
+                        fills=tuple(
+                            Fill(
+                                fill_id=f.fill_id,
+                                order_id=OrderId(paper_order.domain_order_id),
+                                symbol=paper_order.symbol,
+                                side=paper_order.side,
+                                quantity=f.quantity,
+                                price=f.price,
+                                commission=f.commission,
+                            )
+                            for f in paper_order.fills
+                        ),
+                    )
+                )
             return results
 
     async def set_current_price(self, symbol: str, price: Decimal) -> None:
@@ -613,4 +618,3 @@ class PaperExecutionAdapter(BrokerAdapter):
                 commission=commission,
             )
             self._positions[pos_id] = position
-

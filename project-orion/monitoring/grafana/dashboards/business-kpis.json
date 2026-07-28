@@ -1,0 +1,84 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Business KPIs",
+  "version": 1,
+  "uid": "orion-business-kpis",
+  "panels": [
+    {
+      "title": "Total Orders (1d)",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 0, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:business:total_orders:1d"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    },
+    {
+      "title": "Total Research Jobs (1d)",
+      "type": "stat",
+      "gridPos": {"x": 4, "y": 0, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:business:total_research_jobs:1d"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    },
+    {
+      "title": "Total Errors (1d)",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 0, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:business:total_errors:1d"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    },
+    {
+      "title": "Error Budget Remaining (30d)",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 0, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:slo:error_budget_remaining_pct:30d"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    },
+    {
+      "title": "Availability (7d)",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 0, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:slo:availability:7d"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    },
+    {
+      "title": "Orders Over Time",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 4, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_execution_orders_total[1h])", "legendFormat": "Orders/h"}
+      ],
+      "yaxes": [{"format": "short", "label": "Orders/h"}, {"show": false}]
+    },
+    {
+      "title": "Research Jobs Over Time",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 4, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_research_jobs_total[1h])", "legendFormat": "Jobs/h"}
+      ],
+      "yaxes": [{"format": "short", "label": "Jobs/h"}, {"show": false}]
+    },
+    {
+      "title": "Error Rate Over Time",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 4, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(orion_http_requests_total{status=~\"5..\"}[1h])) / sum(rate(orion_http_requests_total[1h])) * 100", "legendFormat": "Error %"}
+      ],
+      "yaxes": [{"format": "percent", "label": "Error %"}, {"show": false}]
+    },
+    {
+      "title": "SLO Compliance (30d)",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "orion:slo:availability:30d", "legendFormat": "Availability"},
+        {"expr": "orion:slo:latency_p99_compliance:30d", "legendFormat": "Latency Compliance"},
+        {"expr": "orion:slo:error_budget_remaining_pct:30d", "legendFormat": "Error Budget"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "label": "Percentage"}, {"show": false}]
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

@@ -300,4 +300,3 @@ class ExecutionRegistry:
                         status=AdapterHealthStatus.DISCONNECTED,
                         error=str(e),
                     )
-

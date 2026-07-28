@@ -40,11 +40,21 @@ class _RecoverableAdapter(BrokerAdapter):
     async def health_check(self) -> dict:
         return {"connected": self._connected, "latency_ms": 5.0}
 
-    async def submit_order(self, order): return None
-    async def modify_order(self, broker_order_id, **kwargs): return None
-    async def cancel_order(self, broker_order_id): return True
-    async def close_position(self, position_id): return None
-    async def get_open_positions(self): return []
+    async def submit_order(self, order):
+        return None
+
+    async def modify_order(self, broker_order_id, **kwargs):
+        return None
+
+    async def cancel_order(self, broker_order_id):
+        return True
+
+    async def close_position(self, position_id):
+        return None
+
+    async def get_open_positions(self):
+        return []
+
     async def get_account(self) -> AccountInfo:
         return AccountInfo(
             account_id="test",
@@ -57,8 +67,12 @@ class _RecoverableAdapter(BrokerAdapter):
             currency="USD",
             leverage=100,
         )
-    async def get_symbol_information(self, symbol): return None
-    async def get_execution_history(self, symbol=None, since=None, limit=100): return []
+
+    async def get_symbol_information(self, symbol):
+        return None
+
+    async def get_execution_history(self, symbol=None, since=None, limit=100):
+        return []
 
 
 class TestSessionRecoveryEngine:
@@ -126,4 +140,3 @@ class TestSessionRecoveryEngine:
         assert result.account is not None
         assert result.account.balance == Decimal("10000")
         assert isinstance(result.positions, list)
-

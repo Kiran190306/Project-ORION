@@ -1,0 +1,59 @@
+{{- if .Values.certManager.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: {{ include "orion.fullname" . }}-cluster-issuer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cert-manager
+spec:
+  acme:
+    server: {{ .Values.certManager.acmeServer }}
+    email: {{ .Values.certManager.acmeEmail }}
+    privateKeySecretRef:
+      name: {{ include "orion.fullname" . }}-acme-key
+    solvers:
+      - http01:
+          ingress:
+            class: {{ .Values.ingress.className }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "orion.fullname" . }}-wildcard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cert-manager
+spec:
+  secretName: {{ .Values.certManager.wildcardSecretName }}
+  issuerRef:
+    name: {{ include "orion.fullname" . }}-cluster-issuer
+    kind: Issuer
+  commonName: "*.orion.example.com"
+  dnsNames:
+    - "*.orion.example.com"
+    - "orion.example.com"
+    {{- range .Values.certManager.additionalDNSNames }}
+    - {{ . | quote }}
+    {{- end }}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "orion.fullname" . }}-regional
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: cert-manager
+spec:
+  secretName: {{ .Values.ingress.tls.secretName }}
+  issuerRef:
+    name: {{ include "orion.fullname" . }}-cluster-issuer
+    kind: Issuer
+  commonName: {{ .Values.ingress.host }}
+  dnsNames:
+    - {{ .Values.ingress.host }}
+    - "{{ .Values.region.name }}.{{ .Values.region.dnsZone }}"
+{{- end }}

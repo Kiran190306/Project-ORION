@@ -255,4 +255,3 @@ class ExecutionRouter:
         """Return the number of registered adapters."""
         async with self._lock:
             return len(self._adapters)
-

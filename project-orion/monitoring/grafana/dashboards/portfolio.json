@@ -1,0 +1,54 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Portfolio",
+  "version": 1,
+  "uid": "orion-portfolio",
+  "panels": [
+    {
+      "title": "Portfolio Value",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "orion_portfolio_value", "legendFormat": "Portfolio Value"}
+      ],
+      "yaxes": [{"format": "currencyUSD", "label": "Value"}, {"show": false}]
+    },
+    {
+      "title": "Portfolio P&L",
+      "type": "graph",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "orion_portfolio_pnl", "legendFormat": "P&L"}
+      ],
+      "yaxes": [{"format": "currencyUSD", "label": "P&L"}, {"show": false}]
+    },
+    {
+      "title": "Open Positions",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion_portfolio_open_positions", "legendFormat": "Open Positions"}
+      ],
+      "yaxes": [{"format": "short", "label": "Positions"}, {"show": false}]
+    },
+    {
+      "title": "Exposure",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion_portfolio_exposure", "legendFormat": "Exposure"}
+      ],
+      "yaxes": [{"format": "currencyUSD", "label": "Exposure"}, {"show": false}]
+    },
+    {
+      "title": "Portfolio Engine Availability",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [{"expr": "up{job=\"orion-portfolio-engine\"}"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

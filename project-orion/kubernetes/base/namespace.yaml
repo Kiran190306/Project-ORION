@@ -1,6 +1,3 @@
-# Namespace Configuration
-# TODO: Configure namespaces for Project ORION
-
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -8,3 +5,6 @@ metadata:
   labels:
     name: orion
     environment: production
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/part-of: orion
+    app.kubernetes.io/managed-by: kubectl

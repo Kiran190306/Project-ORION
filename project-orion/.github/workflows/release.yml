@@ -1,0 +1,165 @@
+# ════════════════════════════════════════════════════════════
+# ORION Release Pipeline
+# ════════════════════════════════════════════════════════════
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+      - "v*.*.*-*"
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  PYTHON_VERSION: "3.11"
+  GO_VERSION: "1.22"
+
+jobs:
+  # ── Generate SBOM ────────────────────────────────────────
+  sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate CycloneDX SBOM
+        uses: cyclonedx/gh-cyclonedx@v1
+        with:
+          format: json
+          output: sbom.cyclonedx.json
+
+      - name: Generate SPDX SBOM
+        uses: cyclonedx/gh-cyclonedx@v1
+        with:
+          format: spdx
+          output: sbom.spdx.json
+
+      - name: Upload SBOM Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            sbom.cyclonedx.json
+            sbom.spdx.json
+
+  # ── Build & Sign Images ─────────────────────────────────
+  build-and-sign:
+    name: Build & Sign Images
+    needs: [sbom]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [api, worker, scheduler]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha
+
+      - name: Build and Push
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: mode=max
+          sbom: true
+
+      # ── Cosign Image Signing ─────────────────────────────
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign Image
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign \
+            --yes \
+            --recursive \
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}@${{ steps.build.outputs.digest }}
+
+      - name: Generate Attestation
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          subject-digest: ${{ steps.build.outputs.digest }}
+          push-to-registry: true
+
+  # ── Create GitHub Release ────────────────────────────────
+  release:
+    name: Create Release
+    needs: [build-and-sign]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download SBOM Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: sbom
+
+      - name: Generate Release Notes
+        id: notes
+        uses: release-drafter/release-drafter@v6
+        with:
+          config-name: release-drafter.yml
+          publish: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Checksums
+        run: |
+          cd sbom
+          sha256sum sbom.cyclonedx.json sbom.spdx.json > checksums.txt
+          sha512sum sbom.cyclonedx.json sbom.spdx.json >> checksums.txt
+
+      - name: Sign Checksums
+        uses: sigstore/cosign-installer@v3
+      - run: |
+          cosign sign-blob \
+            --yes \
+            --bundle sbom/checksums.sig \
+            sbom/checksums.txt
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sbom/sbom.cyclonedx.json
+            sbom/sbom.spdx.json
+            sbom/checksums.txt
+            sbom/checksums.sig
+          body: ${{ steps.notes.outputs.body }}
+          generate_release_notes: true
+          make_latest: true
+

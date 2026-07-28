@@ -1,0 +1,69 @@
+# ════════════════════════════════════════════════════════════
+# ORION Backup Configuration
+# Version: v0.12.0-alpha.5
+# ════════════════════════════════════════════════════════════
+
+backup:
+  base_dir: /var/backups/orion
+  retention:
+    full:
+      daily: 7
+      weekly: 4
+      monthly: 3
+    incremental:
+      daily: 14
+      weekly: 6
+
+  database:
+    engine: postgresql
+    host: ${DB_HOST:-localhost}
+    port: ${DB_PORT:-5432}
+    database: ${DB_NAME:-orion}
+    user: ${DB_USER:-orion}
+    password: ${DB_PASSWORD:-}
+    ssl: true
+    ssl_ca: /etc/ssl/certs/ca-certificates.crt
+    dump_format: custom
+    jobs: 4
+    blob_storage:
+      compress: true
+      compression_type: gzip
+      encryption: true
+      encryption_key: ${BACKUP_ENCRYPTION_KEY:-}
+      remote:
+        provider: s3
+        bucket: ${BACKUP_S3_BUCKET:-orion-backups}
+        endpoint: ${BACKUP_S3_ENDPOINT:-}
+        region: ${BACKUP_S3_REGION:-us-east-1}
+
+  redis:
+    host: ${REDIS_HOST:-localhost}
+    port: ${REDIS_PORT:-6379}
+    password: ${REDIS_PASSWORD:-}
+    tls: true
+    rdb_compress: true
+    aof_rewrite: false
+    blob_storage:
+      compress: true
+      compression_type: gzip
+      encryption: true
+      encryption_key: ${BACKUP_ENCRYPTION_KEY:-}
+      remote:
+        provider: s3
+        bucket: ${BACKUP_S3_BUCKET:-orion-backups}
+        endpoint: ${BACKUP_S3_ENDPOINT:-}
+        region: ${BACKUP_S3_REGION:-us-east-1}
+
+  verification:
+    enabled: true
+    schedule: "0 6 * * *"
+    timeout_seconds: 300
+    restore_path: /var/backups/orion/verify
+    cleanup_after: true
+
+  monitoring:
+    metrics_port: 9121
+    alert_on_failure: true
+    prometheus_labels:
+      component: backup
+      service: orion

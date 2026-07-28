@@ -1,0 +1,80 @@
+ORION Enterprise Trading Platform
+==================================
+Chart: {{ .Chart.Name }} {{ .Chart.Version }}
+Release: {{ .Release.Name }}
+Namespace: {{ .Release.Namespace }}
+App Version: {{ .Chart.AppVersion }}
+
+╔══════════════════════════════════════════════════════════╗
+║                     DEPLOYMENT SUMMARY                   ║
+╚══════════════════════════════════════════════════════════╝
+
+{{- if .Values.api.enabled }}
+  API Server:     {{ template "orion.fullname" . }}-api:{{ .Values.api.service.port }}
+{{- end }}
+{{- if .Values.worker.enabled }}
+  Worker:         {{ template "orion.fullname" . }}-worker
+{{- end }}
+{{- if .Values.scheduler.enabled }}
+  Scheduler:      {{ template "orion.fullname" . }}-scheduler
+{{- end }}
+  Metrics:        {{ template "orion.fullname" . }}-metrics:9090
+
+╔══════════════════════════════════════════════════════════╗
+║                    ACCESS INFORMATION                    ║
+╚══════════════════════════════════════════════════════════╝
+
+{{- if .Values.ingress.enabled }}
+  Ingress URL:    https://{{ .Values.ingress.host }}/api
+  Health Check:   https://{{ .Values.ingress.host }}/health
+  Metrics:        https://{{ .Values.ingress.host }}/metrics
+{{- else }}
+  Internal API:   http://{{ template "orion.fullname" . }}-api:{{ .Values.api.service.port }}
+{{- end }}
+
+╔══════════════════════════════════════════════════════════╗
+║                    USEFUL COMMANDS                       ║
+╚══════════════════════════════════════════════════════════╝
+
+  # Check deployment status
+  kubectl -n {{ .Release.Namespace }} get pods
+
+  # Check service endpoints
+  kubectl -n {{ .Release.Namespace }} get svc
+
+  # View logs
+  kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/component=api
+
+  # Port forward to API
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ template "orion.fullname" . }}-api 8080:80
+
+  # Check HPA status
+  kubectl -n {{ .Release.Namespace }} get hpa
+
+  # Run helm test
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+
+╔══════════════════════════════════════════════════════════╗
+║                  SECURITY NOTES                          ║
+╚══════════════════════════════════════════════════════════╝
+
+  - Secrets are NOT included in this chart.
+  - Use external-secrets, SealedSecrets, or SOPS.
+  - TLS is terminated at the ingress.
+  - All pods run as non-root with read-only filesystems.
+  - NetworkPolicies enforce micro-segmentation.
+
+╔══════════════════════════════════════════════════════════╗
+║                   UPGRADE NOTES                          ║
+╚══════════════════════════════════════════════════════════╝
+
+  # Dry-run before upgrading
+  helm upgrade --install orion . -n orion --dry-run
+
+  # Upgrade with values
+  helm upgrade orion . -n orion -f values-production.yaml
+
+  # Rollback if needed
+  helm rollback orion 1 -n orion
+
+For more information: https://orion.example.com/docs/deployment

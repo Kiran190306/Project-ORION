@@ -1,0 +1,312 @@
+# ════════════════════════════════════════════════════════════
+# ORION Enterprise Monitoring — Prometheus Configuration
+# Version: 0.12.0-alpha.4
+# ════════════════════════════════════════════════════════════
+
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+  scrape_timeout:      10s
+  external_labels:
+    cluster:   "orion"
+    namespace: "orion"
+
+# ──────────────────────────────────────────────────────────────
+# Rule Files
+# ──────────────────────────────────────────────────────────────
+
+rule_files:
+  - "rules/alert_rules.yml"
+  - "rules/recording_rules.yml"
+
+# ──────────────────────────────────────────────────────────────
+# Scrape Configuration
+# ──────────────────────────────────────────────────────────────
+
+scrape_configs:
+
+  # ── API Service ──────────────────────────────────────────
+  - job_name: "orion-api"
+    scrape_interval: 10s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (api)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "api"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-api"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "orion_api_(.*)"
+        action: keep
+
+  # ── Worker Service ──────────────────────────────────────
+  - job_name: "orion-worker"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (worker)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "worker"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-worker"
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: "orion_worker_(.*)"
+        action: keep
+
+  # ── Scheduler Service ──────────────────────────────────
+  - job_name: "orion-scheduler"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (scheduler)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "scheduler"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-scheduler"
+
+  # ── Research Engine ─────────────────────────────────────
+  - job_name: "orion-research-engine"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (research-engine)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "research-engine"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-research-engine"
+
+  # ── Risk Engine ─────────────────────────────────────────
+  - job_name: "orion-risk-engine"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (risk-engine)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "risk-engine"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-risk-engine"
+
+  # ── Portfolio Engine ────────────────────────────────────
+  - job_name: "orion-portfolio-engine"
+    scrape_interval: 15s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (portfolio-engine)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "portfolio-engine"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-portfolio-engine"
+
+  # ── Execution Engine ────────────────────────────────────
+  - job_name: "orion-execution-engine"
+    scrape_interval: 10s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: pod
+        selectors:
+          - role: pod
+            label: "app.kubernetes.io/component in (execution-engine)"
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+        regex: "execution-engine"
+        action: keep
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        regex: "metrics"
+        action: keep
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        regex: "([^:]+)(?::\\d+)?;?(\\d+)"
+        replacement: "$1:$2"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: pod
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - target_label: service
+        replacement: "orion-execution-engine"
+
+  # ── Infrastructure — Node Exporter ──────────────────────
+  - job_name: "orion-infrastructure-nodes"
+    scrape_interval: 30s
+    metrics_path: "/metrics"
+    scheme: "http"
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "(.*):10250"
+        replacement: "$1:9100"
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+      - target_label: service
+        replacement: "orion-infrastructure"
+
+  # ── Kubernetes Components ───────────────────────────────
+  - job_name: "orion-kubernetes-apiservers"
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: false
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        regex: default;kubernetes;https
+        action: keep
+      - target_label: service
+        replacement: "kubernetes-apiserver"
+
+  - job_name: "orion-kubernetes-kubelet"
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: false
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+      - source_labels: [__address__]
+        regex: "(.*):10250"
+        replacement: "$1:10250"
+        target_label: __address__
+      - target_label: service
+        replacement: "kubernetes-kubelet"
+
+  - job_name: "orion-kubernetes-cadvisor"
+    kubernetes_sd_configs:
+      - role: node
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecure_skip_verify: false
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+      - source_labels: [__address__]
+        regex: "(.*):10250"
+        replacement: "$1:10250"
+        target_label: __address__
+      - source_labels: [__metrics_path__]
+        regex: "/metrics"
+        replacement: "/metrics/cadvisor"
+        target_label: __metrics_path__
+      - target_label: service
+        replacement: "kubernetes-cadvisor"
+
+  # ── Prometheus Itself ───────────────────────────────────
+  - job_name: "orion-prometheus"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus"
+

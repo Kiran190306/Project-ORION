@@ -1,0 +1,136 @@
+# ════════════════════════════════════════════════════════════
+# ORION Container Security Pipeline
+# ════════════════════════════════════════════════════════════
+name: Container Security
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "docker/**"
+      - "Dockerfile*"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docker/**"
+      - "Dockerfile*"
+  schedule:
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  packages: read
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ── Dockerfile Lint ──────────────────────────────────────
+  dockerfile-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Dockerfiles with Hadolint
+        uses: hadolint/hadolint-action@v3
+        with:
+          dockerfile: docker/base/Dockerfile
+          failure-threshold: warning
+
+      - name: Lint Service Dockerfiles
+        run: |
+          for df in docker/*/Dockerfile; do
+            echo "Linting $df..."
+            docker run --rm -v "$PWD:/mnt" hadolint/hadolint \
+              hadolint --failure-threshold warning "/mnt/$df"
+          done
+        shell: bash
+
+  # ── Image Scan ───────────────────────────────────────────
+  image-scan:
+    name: Image Security Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [base, api, worker, scheduler]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Image
+        run: |
+          if [ "${{ matrix.service }}" = "base" ]; then
+            docker build -t orion-${{ matrix.service }}:test -f docker/base/Dockerfile .
+          else
+            docker build -t orion-${{ matrix.service }}:test -f docker/${{ matrix.service }}/Dockerfile .
+          fi
+
+      - name: Scan with Trivy
+        uses: aquasecurity/trivy-action@v0.28
+        with:
+          image-ref: orion-${{ matrix.service }}:test
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: 1
+          vuln-type: os,library
+          scanners: vuln,secret
+
+      - name: Upload Trivy Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-${{ matrix.service }}
+
+      - name: Scan with Grype
+        uses: anchore/scan-action@v5
+        with:
+          image: orion-${{ matrix.service }}:test
+          output-format: sarif
+          fail-build: true
+          severity-cutoff: high
+
+      - name: Upload Grype Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: grype-${{ matrix.service }}.sarif
+          category: grype-${{ matrix.service }}
+
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: orion-${{ matrix.service }}:test
+          format: cyclonedx
+          output-file: sbom-${{ matrix.service }}.json
+
+      - name: Upload SBOM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.service }}
+          path: sbom-${{ matrix.service }}.json
+
+  # ── Base Image Verification ──────────────────────────────
+  base-image-verify:
+    name: Base Image Verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify Base Image
+        run: |
+          docker pull python:3.11-slim
+          digest=$(docker inspect python:3.11-slim --format '{{.RepoDigests}}')
+          echo "Base image digest: $digest"
+          echo "Verifying rootless configuration..."
+          docker run --rm python:3.11-slim id
+          echo "Base image verification complete"
+
+      - name: Check OCI Artifacts
+        run: |
+          echo "OCI artifact support verification:"
+          docker buildx version
+          docker buildx ls
+

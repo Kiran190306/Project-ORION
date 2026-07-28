@@ -1,0 +1,28 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: orion
+
+commonLabels:
+  environment: production
+
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - hpa_settings.yaml
+
+configMapGenerator:
+  - name: orion-config
+    behavior: merge
+    literals:
+      - ORION_ENVIRONMENT=production
+      - ORION_LOG_LEVEL=info
+
+images:
+  - name: orion/api
+    newTag: 0.12.0
+  - name: orion/worker
+    newTag: 0.12.0
+  - name: orion/scheduler
+    newTag: 0.12.0

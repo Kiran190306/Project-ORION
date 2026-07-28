@@ -1,0 +1,62 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — API Performance",
+  "version": 1,
+  "uid": "orion-api-performance",
+  "panels": [
+    {
+      "title": "Request Rate by Status",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_http_requests_total{status=~\"2..\"}[5m])", "legendFormat": "2xx"},
+        {"expr": "rate(orion_http_requests_total{status=~\"4..\"}[5m])", "legendFormat": "4xx"},
+        {"expr": "rate(orion_http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "5xx"}
+      ],
+      "yaxes": [{"format": "reqps", "label": "Requests/s"}, {"show": false}]
+    },
+    {
+      "title": "Latency Percentiles",
+      "type": "graph",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {"expr": "orion:api:latency_p50:5m", "legendFormat": "P50"},
+        {"expr": "orion:api:latency_p95:5m", "legendFormat": "P95"},
+        {"expr": "orion:api:latency_p99:5m", "legendFormat": "P99"}
+      ],
+      "yaxes": [{"format": "s", "label": "Latency"}, {"show": false}]
+    },
+    {
+      "title": "Success Rate",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(orion_http_requests_total{status=~\"2..\"}[5m])) / sum(rate(orion_http_requests_total[5m])) * 100", "legendFormat": "Success %"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "min": 90, "label": "Success %"}, {"show": false}]
+    },
+    {
+      "title": "Availability (1d / 7d / 30d)",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion:slo:availability:1d", "legendFormat": "1 day"},
+        {"expr": "orion:slo:availability:7d", "legendFormat": "7 days"},
+        {"expr": "orion:slo:availability:30d", "legendFormat": "30 days"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "min": 99, "label": "Availability %"}, {"show": false}]
+    },
+    {
+      "title": "Error Budget",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion:slo:error_budget_remaining_pct:30d", "legendFormat": "Budget Remaining %"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "min": 0, "label": "Budget %"}, {"show": false}]
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

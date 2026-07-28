@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orion-data
+spec:
+  storageClassName: gp3-eu
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orion-data
+  labels:
+    app.kubernetes.io/component: worker
+spec:
+  storageClassName: gp3-eu

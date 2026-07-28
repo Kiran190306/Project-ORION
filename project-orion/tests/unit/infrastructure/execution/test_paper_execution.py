@@ -172,4 +172,3 @@ class TestPaperExecutionAdapter:
         assert result.average_fill_price is not None
         # Fill price should be within spread + slippage range of 1.20000
         assert Decimal("1.19") <= result.average_fill_price <= Decimal("1.21")
-

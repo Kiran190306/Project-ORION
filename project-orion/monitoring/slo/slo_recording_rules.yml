@@ -1,0 +1,39 @@
+# ════════════════════════════════════════════════════════════
+# ORION SLO Prometheus Recording Rules
+# ════════════════════════════════════════════════════════════
+
+groups:
+  - name: orion-slo-rules
+    interval: 30s
+    rules:
+      # ── API Availability SLO (99.9%) ──────────────────────
+      - record: orion:slo:api_availability_30d
+        expr: (sum(rate(orion_http_requests_total{status!~"5.."}[30d])) / sum(rate(orion_http_requests_total[30d]))) * 100
+
+      - record: orion:slo:api_availability_7d
+        expr: (sum(rate(orion_http_requests_total{status!~"5.."}[7d])) / sum(rate(orion_http_requests_total[7d]))) * 100
+
+      # ── API Latency SLO (95% under 1s) ───────────────────
+      - record: orion:slo:api_latency_compliance_30d
+        expr: (sum(rate(orion_http_request_duration_seconds_bucket{le="1.0"}[30d])) / sum(rate(orion_http_request_duration_seconds_count[30d]))) * 100
+
+      # ── Error Budget Calculations ─────────────────────────
+      - record: orion:slo:error_budget_total
+        expr: (1 - 99.9 / 100) * sum(rate(orion_http_requests_total[30d])) * 30 * 24 * 3600
+
+      - record: orion:slo:error_budget_consumed
+        expr: sum(increase(orion_http_requests_total{status=~"5.."}[30d]))
+
+      - record: orion:slo:error_budget_remaining
+        expr: orion:slo:error_budget_total - orion:slo:error_budget_consumed
+
+      - record: orion:slo:error_budget_remaining_pct
+        expr: (orion:slo:error_budget_remaining / orion:slo:error_budget_total) * 100
+
+      - record: orion:slo:error_budget_burn_rate
+        expr: orion:slo:error_budget_consumed / (30 * 24 * 3600)
+
+      # ── SLO Compliance Score ──────────────────────────────
+      - record: orion:slo:compliance_score
+        expr: (orion:slo:api_availability_30d >= 99.9) * 1.0 + (orion:slo:api_latency_compliance_30d >= 95) * 1.0
+

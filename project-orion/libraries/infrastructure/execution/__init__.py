@@ -38,8 +38,8 @@ from libraries.infrastructure.execution.broker_adapter import (
 from libraries.infrastructure.execution.circuit_breaker import (
     ExecutionCircuitBreaker,
     ExecutionCircuitBreakerConfig,
-    ExecutionCircuitBreakerStats,
     ExecutionCircuitBreakerState,
+    ExecutionCircuitBreakerStats,
 )
 from libraries.infrastructure.execution.execution_audit import (
     AuditEntry,
@@ -157,4 +157,3 @@ __all__ = [
     "RegisteredAdapter",
     "AdapterHealthStatus",
 ]
-

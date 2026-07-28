@@ -1,0 +1,59 @@
+# ════════════════════════════════════════════════════════════
+# ORION Jaeger Collector Configuration
+# ════════════════════════════════════════════════════════════
+
+collector:
+  service:
+    host: "0.0.0.0"
+    port: 14269
+    admin:
+      host: "0.0.0.0"
+      port: 14271
+
+  # ── Sampling Configuration ───────────────────────────────
+  sampling:
+    strategies:
+      default_strategy:
+        type: probabilistic
+        param: 0.1
+      service_strategies:
+        - service: orion-api
+          type: probabilistic
+          param: 1.0
+        - service: orion-worker
+          type: rate_limiting
+          param: 10
+        - service: orion-scheduler
+          type: rate_limiting
+          param: 5
+        - service: orion-research-engine
+          type: probabilistic
+          param: 0.5
+        - service: orion-execution-engine
+          type: probabilistic
+          param: 1.0
+        - service: orion-risk-engine
+          type: probabilistic
+          param: 0.5
+        - service: orion-portfolio-engine
+          type: probabilistic
+          param: 0.5
+
+  # ── Trace Storage Configuration ──────────────────────────
+  storage:
+    type: elasticsearch
+    options:
+      es:
+        server-urls: "http://elasticsearch:9200"
+        index-prefix: "orion-traces"
+        max-doc-count: 100000
+        max-num-spans: 100000
+        create-indices: true
+        timeout: 30s
+        num-replicas: 1
+        num-shards: 3
+        bulk:
+          size: 5000000
+          workers: 4
+          flush-interval: 2s
+

@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  type: {{ .Values.api.service.type }}
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: {{ .Values.api.service.targetPort }}
+      protocol: TCP
+    - name: grpc
+      port: {{ .Values.api.service.grpcPort }}
+      targetPort: {{ .Values.api.service.grpcPort }}
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: metrics
+  annotations:
+    {{- if .Values.monitoring.prometheusAnnotations }}
+    prometheus.io/scrape: "true"
+    prometheus.io/port: {{ .Values.monitoring.metricsPort | quote }}
+    {{- end }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: metrics
+      port: {{ .Values.monitoring.metricsPort }}
+      targetPort: {{ .Values.monitoring.metricsPort }}
+      protocol: TCP

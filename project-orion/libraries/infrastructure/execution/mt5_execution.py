@@ -76,8 +76,7 @@ class MT5ExecutionAdapter(BrokerAdapter):
             self._mt5_available = True
         except ImportError:
             raise AdapterConnectionError(
-                "MetaTrader5 package is not installed. "
-                "Install with: pip install MetaTrader5",
+                "MetaTrader5 package is not installed. " "Install with: pip install MetaTrader5",
                 broker_name=self.broker_name,
             )
 
@@ -370,14 +369,20 @@ class MT5ExecutionAdapter(BrokerAdapter):
 
         results = []
         for deal in orders[:limit]:
-            results.append(OrderExecutionInfo(
-                broker_order_id=BrokerOrderId(str(deal.order)),
-                status=OrderStatus.FILLED,
-                filled_quantity=Decimal(str(deal.volume)),
-                average_fill_price=Decimal(str(deal.price)),
-                commission=Decimal(str(deal.commission)) if hasattr(deal, "commission") else Decimal("0"),
-                timestamp=datetime.fromtimestamp(deal.time, tz=timezone.utc),
-            ))
+            results.append(
+                OrderExecutionInfo(
+                    broker_order_id=BrokerOrderId(str(deal.order)),
+                    status=OrderStatus.FILLED,
+                    filled_quantity=Decimal(str(deal.volume)),
+                    average_fill_price=Decimal(str(deal.price)),
+                    commission=(
+                        Decimal(str(deal.commission))
+                        if hasattr(deal, "commission")
+                        else Decimal("0")
+                    ),
+                    timestamp=datetime.fromtimestamp(deal.time, tz=timezone.utc),
+                )
+            )
 
         return results
 
@@ -432,4 +437,3 @@ class MT5ExecutionAdapter(BrokerAdapter):
 
 # Helper for timedelta import
 from datetime import timedelta  # noqa: E402, F811
-

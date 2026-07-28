@@ -142,7 +142,9 @@ class BinanceExecutionAdapter(BrokerAdapter):
 
             # Also check server time for authenticated status
             time_response = await self._client.get("/api/v3/time")
-            server_time = time_response.json().get("serverTime", 0) if time_response.status_code == 200 else 0
+            server_time = (
+                time_response.json().get("serverTime", 0) if time_response.status_code == 200 else 0
+            )
 
             return {
                 "connected": self._connected and response.status_code == 200,
@@ -209,7 +211,11 @@ class BinanceExecutionAdapter(BrokerAdapter):
             cummulative_qty = Decimal(str(data.get("cummulativeQuoteQty", "0")))
             avg_price = cummulative_qty / executed_qty if executed_qty > 0 else None
 
-            status = OrderStatus.FILLED if data.get("status") == "FILLED" else OrderStatus.PARTIALLY_FILLED
+            status = (
+                OrderStatus.FILLED
+                if data.get("status") == "FILLED"
+                else OrderStatus.PARTIALLY_FILLED
+            )
             if data.get("status") == "REJECTED":
                 status = OrderStatus.REJECTED
             elif data.get("status") == "CANCELED":
@@ -415,13 +421,19 @@ class BinanceExecutionAdapter(BrokerAdapter):
             data = response.json()
             results = []
             for order_data in data[:limit]:
-                results.append(OrderExecutionInfo(
-                    broker_order_id=BrokerOrderId(str(order_data.get("orderId", ""))),
-                    status=OrderStatus.FILLED if order_data.get("status") == "FILLED" else OrderStatus.REJECTED,
-                    filled_quantity=Decimal(str(order_data.get("executedQty", "0"))),
-                    average_fill_price=Decimal(str(order_data.get("price", "0"))),
-                    commission=Decimal("0"),
-                ))
+                results.append(
+                    OrderExecutionInfo(
+                        broker_order_id=BrokerOrderId(str(order_data.get("orderId", ""))),
+                        status=(
+                            OrderStatus.FILLED
+                            if order_data.get("status") == "FILLED"
+                            else OrderStatus.REJECTED
+                        ),
+                        filled_quantity=Decimal(str(order_data.get("executedQty", "0"))),
+                        average_fill_price=Decimal(str(order_data.get("price", "0"))),
+                        commission=Decimal("0"),
+                    )
+                )
             return results
         except Exception:
             return []
@@ -469,4 +481,3 @@ class BinanceExecutionAdapter(BrokerAdapter):
 
         params["signature"] = signature
         return params
-

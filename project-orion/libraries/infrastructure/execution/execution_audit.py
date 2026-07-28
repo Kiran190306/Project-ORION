@@ -343,4 +343,3 @@ class ExecutionAuditor:
         async with self._lock:
             self._entries.clear()
             self._execution_entries.clear()
-

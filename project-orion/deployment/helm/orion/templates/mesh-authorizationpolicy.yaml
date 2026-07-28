@@ -1,0 +1,64 @@
+{{- if .Values.mesh.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "orion.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-security
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: api
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ include "orion.serviceAccountName" . }}"]
+      to:
+        - operation:
+            ports: ["{{ .Values.api.service.targetPort }}"]
+      when:
+        - key: request.headers
+          values: ["*"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "orion.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-security
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: worker
+  action: ALLOW
+  rules:
+    - from:
+        - source:
+            principals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/{{ include "orion.serviceAccountName" . }}"]
+      to:
+        - operation:
+            ports: ["{{ .Values.monitoring.metricsPort }}"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "orion.fullname" . }}-default-deny
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-security
+spec:
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+  action: DENY
+  rules:
+    - from:
+        - source:
+            notPrincipals: ["cluster.local/ns/{{ .Release.Namespace }}/sa/*"]
+{{- end }}

@@ -1,0 +1,56 @@
+# ════════════════════════════════════════════════════════════
+# ORION Jaeger Query Service Configuration
+# ════════════════════════════════════════════════════════════
+
+query:
+  service:
+    host: "0.0.0.0"
+    port: 16686
+    admin:
+      host: "0.0.0.0"
+      port: 16687
+
+  # ── Trace Storage Connection ─────────────────────────────
+  storage:
+    type: elasticsearch
+    options:
+      es:
+        server-urls: "http://elasticsearch:9200"
+        index-prefix: "orion-traces"
+        timeout: 30s
+        max-doc-count: 100000
+        max-num-spans: 100000
+        create-indices: false
+        num-replicas: 1
+        num-shards: 3
+
+  # ── UI Configuration ─────────────────────────────────────
+  ui:
+    config:
+      dependencies:
+        menuEnabled: true
+        menuLabel: "Service Dependencies"
+      menu:
+        - label: "ORION Runbooks"
+          items:
+            - label: "Monitoring Guide"
+              url: "https://docs.orion.example.com/operations/monitoring-guide"
+            - label: "Alert Runbook"
+              url: "https://docs.orion.example.com/operations/alert-runbook"
+            - label: "Tracing Guide"
+              url: "https://docs.orion.example.com/operations/tracing-guide"
+      search:
+        maxLookback:
+          value: 7d
+        maxDuration:
+          value: 24h
+      linkPatterns:
+        - type: logs
+          key: trace_id
+          url: "https://loki.orion.example.com/explore?query={trace_id=\"$${traceID}\"}"
+    # ── Cross-Origin ───────────────────────────────────────
+    cors:
+      allowed_origins:
+        - "https://grafana.orion.example.com"
+        - "https://*.orion.example.com"
+

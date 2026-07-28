@@ -207,4 +207,3 @@ class TestBrokerAdapter:
         error = ExecutionAdapterError("Test error", broker_name="test")
         assert str(error) == "Test error"
         assert error.broker_name == "test"
-

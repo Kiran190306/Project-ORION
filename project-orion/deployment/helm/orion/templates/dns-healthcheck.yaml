@@ -1,0 +1,19 @@
+{{- if .Values.dns.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orion.fullname" . }}-health-probes
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-probes
+data:
+  check-primary.sh: |
+    #!/bin/sh
+    # Primary region health probe
+    curl -sf -o /dev/null -w "%{http_code}" http://localhost:{{ .Values.api.service.targetPort }}/health/ready
+  check-secondary.sh: |
+    #!/bin/sh
+    # Secondary region health probe
+    curl -sf -o /dev/null -w "%{http_code}" http://localhost:{{ .Values.api.service.targetPort }}/health/ready
+{{- end }}

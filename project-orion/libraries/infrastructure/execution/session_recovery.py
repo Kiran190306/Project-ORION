@@ -288,9 +288,7 @@ class SessionRecoveryEngine:
         except Exception:
             return None
 
-    async def _reload_positions(
-        self, adapter: BrokerAdapter
-    ) -> list[PositionInfo]:
+    async def _reload_positions(self, adapter: BrokerAdapter) -> list[PositionInfo]:
         """Reload open positions from the broker."""
         try:
             return await adapter.get_open_positions()
@@ -316,4 +314,3 @@ class SessionRecoveryEngine:
         """Reset recovery state."""
         async with self._lock:
             self._is_recovering = False
-

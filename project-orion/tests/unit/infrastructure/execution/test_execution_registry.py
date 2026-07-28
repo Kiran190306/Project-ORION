@@ -43,21 +43,39 @@ class _RegistryAdapter(BrokerAdapter):
     async def health_check(self) -> dict:
         return {"connected": self._connected, "latency_ms": 5.0}
 
-    async def submit_order(self, order): return None
-    async def modify_order(self, broker_order_id, **kwargs): return None
-    async def cancel_order(self, broker_order_id): return True
-    async def close_position(self, position_id): return None
-    async def get_open_positions(self): return []
+    async def submit_order(self, order):
+        return None
+
+    async def modify_order(self, broker_order_id, **kwargs):
+        return None
+
+    async def cancel_order(self, broker_order_id):
+        return True
+
+    async def close_position(self, position_id):
+        return None
+
+    async def get_open_positions(self):
+        return []
+
     async def get_account(self):
         return AccountInfo(
-            account_id="test", broker_name=self.broker_name,
-            balance=Decimal("1000"), equity=Decimal("1000"),
-            margin=Decimal("0"), margin_free=Decimal("1000"),
-            margin_level=0.0, currency="USD", leverage=100,
+            account_id="test",
+            broker_name=self.broker_name,
+            balance=Decimal("1000"),
+            equity=Decimal("1000"),
+            margin=Decimal("0"),
+            margin_free=Decimal("1000"),
+            margin_level=0.0,
+            currency="USD",
+            leverage=100,
         )
+
     async def get_symbol_information(self, symbol):
         return ExecutionSymbolInfo(symbol=symbol)
-    async def get_execution_history(self, symbol=None, since=None, limit=100): return []
+
+    async def get_execution_history(self, symbol=None, since=None, limit=100):
+        return []
 
 
 @pytest.fixture
@@ -157,4 +175,3 @@ class TestExecutionRegistry:
         adapter = _RegistryAdapter("test_broker", connect_ok=True)
         registered = await registry.register(adapter, auto_connect=True)
         assert adapter.is_connected
-

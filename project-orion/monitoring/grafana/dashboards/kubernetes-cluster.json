@@ -1,0 +1,67 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Kubernetes Cluster",
+  "version": 1,
+  "uid": "orion-kubernetes-cluster",
+  "panels": [
+    {
+      "title": "Cluster CPU Usage",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"orion\"}[5m]))", "legendFormat": "CPU Cores"},
+        {"expr": "sum(kube_pod_container_resource_limits_cpu_cores{namespace=\"orion\"})", "legendFormat": "CPU Limits"}
+      ],
+      "yaxes": [{"format": "short", "label": "Cores"}, {"show": false}]
+    },
+    {
+      "title": "Cluster Memory Usage",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "sum(container_memory_working_set_bytes{namespace=\"orion\"})", "legendFormat": "Memory Used"},
+        {"expr": "sum(kube_pod_container_resource_limits_memory_bytes{namespace=\"orion\"})", "legendFormat": "Memory Limits"}
+      ],
+      "yaxes": [{"format": "bytes", "label": "Memory"}, {"show": false}]
+    },
+    {
+      "title": "Pod Count",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "count(kube_pod_info{namespace=\"orion\"})", "legendFormat": "Pods"}
+      ],
+      "yaxes": [{"format": "short", "label": "Pods"}, {"show": false}]
+    },
+    {
+      "title": "Pod Status",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "count(kube_pod_status_phase{namespace=\"orion\", phase=\"Running\"})", "legendFormat": "Running"},
+        {"expr": "count(kube_pod_status_phase{namespace=\"orion\", phase=\"Pending\"})", "legendFormat": "Pending"},
+        {"expr": "count(kube_pod_status_phase{namespace=\"orion\", phase=\"Failed\"})", "legendFormat": "Failed"}
+      ],
+      "yaxes": [{"format": "short", "label": "Pods"}, {"show": false}]
+    },
+    {
+      "title": "API Server Request Rate",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(apiserver_request_total[5m])", "legendFormat": "Requests/s"}
+      ],
+      "yaxes": [{"format": "reqps", "label": "Requests/s"}, {"show": false}]
+    },
+    {
+      "title": "Node Status",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [{"expr": "count(kube_node_status_condition{status=\"true\"})"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

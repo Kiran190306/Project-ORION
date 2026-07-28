@@ -1,0 +1,70 @@
+{{- if and .Values.mesh.enabled .Values.mesh.ingressGateway.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: {{ include "orion.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-gateway
+spec:
+  selector:
+    istio: {{ include "orion.fullname" . }}-ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - {{ .Values.ingress.host }}
+      tls:
+        httpsRedirect: true
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      hosts:
+        - {{ .Values.ingress.host }}
+      tls:
+        mode: SIMPLE
+        credentialName: {{ .Values.ingress.tls.secretName }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "orion.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-gateway
+spec:
+  hosts:
+    - {{ .Values.ingress.host }}
+  gateways:
+    - {{ include "orion.fullname" . }}-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      route:
+        - destination:
+            host: {{ include "orion.fullname" . }}-api
+            port:
+              number: {{ .Values.api.service.targetPort }}
+    - match:
+        - uri:
+            prefix: /health
+      route:
+        - destination:
+            host: {{ include "orion.fullname" . }}-api
+            port:
+              number: {{ .Values.api.service.targetPort }}
+    - match:
+        - uri:
+            prefix: /metrics
+      route:
+        - destination:
+            host: {{ include "orion.fullname" . }}-metrics
+            port:
+              number: {{ .Values.monitoring.metricsPort }}
+{{- end }}

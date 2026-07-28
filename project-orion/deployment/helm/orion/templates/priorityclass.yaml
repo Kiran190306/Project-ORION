@@ -1,0 +1,34 @@
+{{- if .Values.priorityClasses.enabled }}
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ include "orion.fullname" . }}-critical
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: priority-class
+value: 1000
+globalDefault: false
+description: "Critical priority for ORION API pods"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ include "orion.fullname" . }}-high
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: priority-class
+value: 500
+globalDefault: false
+description: "High priority for ORION worker pods"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ include "orion.fullname" . }}-default
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: priority-class
+value: 0
+globalDefault: true
+description: "Default priority for ORION scheduler pods"
+{{- end }}

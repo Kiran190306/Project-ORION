@@ -1,0 +1,59 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-redis-primary
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: ClusterIP
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+    statefulset.kubernetes.io/pod-name: {{ include "orion.fullname" . }}-redis-0
+{{- if .Values.redis.sentinel.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-redis-sentinel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-sentinel
+spec:
+  type: ClusterIP
+  ports:
+    - name: sentinel
+      port: 26379
+      targetPort: 26379
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-sentinel
+{{- end }}
+{{- end }}

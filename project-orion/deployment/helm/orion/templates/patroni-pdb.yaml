@@ -1,0 +1,16 @@
+{{- if and .Values.patroni.enabled .Values.patroni.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+spec:
+  maxUnavailable: {{ .Values.patroni.pdb.maxUnavailable | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: patroni
+{{- end }}

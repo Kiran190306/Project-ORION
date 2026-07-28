@@ -1,0 +1,140 @@
+{{- if .Values.argocd.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ include "orion.fullname" . }}-regional
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: argocd-appset
+spec:
+  goTemplate: true
+  generators:
+    - list:
+        elements:
+          - region: us-east-1
+            dnsZone: us-east-1.orion.example.com
+            environment: production
+            replicas: "3"
+            storageClass: gp3
+          - region: us-west-2
+            dnsZone: us-west-2.orion.example.com
+            environment: production
+            replicas: "2"
+            storageClass: gp3
+    - git:
+        repoURL: {{ .Values.argocd.sourceRepoURL }}
+        revision: {{ .Values.argocd.sourceTargetRevision }}
+        directories:
+          - path: overlays/*
+  template:
+    metadata:
+      name: 'orion-{{ "{{" }}region{{ "}}" }}'
+      labels:
+        app.kubernetes.io/name: orion
+        app.kubernetes.io/part-of: orion
+        app.kubernetes.io/instance: 'orion-{{ "{{" }}region{{ "}}" }}'
+        environment: '{{ "{{" }}environment{{ "}}" }}'
+        region: '{{ "{{" }}region{{ "}}" }}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "0"
+    spec:
+      project: {{ .Values.argocd.project }}
+      source:
+        repoURL: {{ .Values.argocd.sourceRepoURL }}
+        targetRevision: {{ .Values.argocd.sourceTargetRevision }}
+        path: {{ .Values.argocd.sourcePath }}
+        helm:
+          valueFiles:
+            - values.yaml
+            - 'values-{{ "{{" }}environment{{ "}}" }}.yaml'
+          parameters:
+            - name: region.name
+              value: '{{ "{{" }}region{{ "}}" }}'
+            - name: region.dnsZone
+              value: '{{ "{{" }}dnsZone{{ "}}" }}'
+            - name: ingress.host
+              value: 'api-{{ "{{" }}region{{ "}}" }}.orion.example.com'
+            - name: global.environment
+              value: '{{ "{{" }}environment{{ "}}" }}'
+      destination:
+        server: {{ .Values.argocd.destinationServer }}
+        namespace: 'orion-{{ "{{" }}region{{ "}}" }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: {{ .Values.argocd.syncPolicy.automated.allowEmpty }}
+        syncOptions:
+          {{- toYaml .Values.argocd.syncPolicy.syncOptions | nindent 10 }}
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ include "orion.fullname" . }}-environment
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: argocd-appset
+spec:
+  goTemplate: true
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - environment: dev
+                  namespace: orion-dev
+                  cluster: https://kubernetes.default.svc
+                  autoSync: true
+                - environment: staging
+                  namespace: orion-staging
+                  cluster: https://kubernetes.default.svc
+                  autoSync: true
+                - environment: production
+                  namespace: orion-production
+                  cluster: https://kubernetes.default.svc
+                  autoSync: false
+          - list:
+              elements:
+                - region: us-east-1
+                - region: us-west-2
+  template:
+    metadata:
+      name: 'orion-{{ "{{" }}environment{{ "}}" }}-{{ "{{" }}region{{ "}}" }}'
+      labels:
+        app.kubernetes.io/name: orion
+        app.kubernetes.io/part-of: orion
+        environment: '{{ "{{" }}environment{{ "}}" }}'
+        region: '{{ "{{" }}region{{ "}}" }}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "1"
+    spec:
+      project: {{ .Values.argocd.project }}
+      source:
+        repoURL: {{ .Values.argocd.sourceRepoURL }}
+        targetRevision: '{{ "{{" }}environment{{ "}}" }}'
+        path: 'regions/{{ "{{" }}region{{ "}}" }}/overlays/{{ "{{" }}environment{{ "}}" }}'
+      destination:
+        server: '{{ "{{" }}cluster{{ "}}" }}'
+        namespace: '{{ "{{" }}namespace{{ "}}" }}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: {{ .Values.argocd.syncPolicy.automated.allowEmpty }}
+        syncOptions:
+          {{- toYaml .Values.argocd.syncPolicy.syncOptions | nindent 10 }}
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+{{- end }}

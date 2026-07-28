@@ -180,4 +180,3 @@ class TestExecutionCircuitBreaker:
             ExecutionCircuitBreakerConfig(name="test", failure_threshold=0)
         with pytest.raises(ValueError):
             ExecutionCircuitBreakerConfig(name="test", recovery_timeout_seconds=-1)
-

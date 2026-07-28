@@ -77,4 +77,3 @@ class TestExecutionAdapterFactory:
     def test_is_provider_supported_case_insensitive(self):
         assert ExecutionAdapterFactory.is_provider_supported("PAPER")
         assert ExecutionAdapterFactory.is_provider_supported("MT5")
-

@@ -1,0 +1,33 @@
+{{- if .Values.limitRange.enabled }}
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ include "orion.fullname" . }}-limits
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: limit-range
+spec:
+  limits:
+    - type: Container
+      min:
+        cpu: "50m"
+        memory: "64Mi"
+      max:
+        cpu: "2000m"
+        memory: "4Gi"
+      default:
+        cpu: "250m"
+        memory: "256Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      maxLimitRequestRatio:
+        cpu: "4"
+        memory: "4"
+    - type: PersistentVolumeClaim
+      min:
+        storage: "1Gi"
+      max:
+        storage: "100Gi"
+{{- end }}

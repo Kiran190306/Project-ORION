@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: orion-config
+data:
+  ORION_DNS_ZONE: "orion.example.com"
+  ORION_REGION: "us-west-2"

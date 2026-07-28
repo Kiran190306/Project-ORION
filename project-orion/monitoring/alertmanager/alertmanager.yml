@@ -1,0 +1,178 @@
+# ════════════════════════════════════════════════════════════
+# ORION Enterprise Monitoring — Alertmanager Configuration
+# Version: 0.12.0-alpha.4
+# ════════════════════════════════════════════════════════════
+
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: "smtp.example.com:587"
+  smtp_from: "alertmanager@orion.example.com"
+  smtp_auth_username: "alertmanager"
+  smtp_auth_password: "${SMTP_AUTH_PASSWORD}"
+  smtp_require_tls: true
+  slack_api_url: "${SLACK_API_URL}"
+  pagerduty_url: "https://events.pagerduty.com/v2/enqueue"
+  opsgenie_api_url: "https://api.opsgenie.com"
+  opsgenie_api_key: "${OPSGENIE_API_KEY}"
+
+# ──────────────────────────────────────────────────────────────
+# Route Tree
+# ──────────────────────────────────────────────────────────────
+route:
+  receiver: "default"
+  group_by: ["alertname", "severity", "team"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    # ── Critical — Platform Team ─────────────────────────────
+    - receiver: "platform-critical"
+      match:
+        severity: critical
+        team: platform
+      group_interval: 1m
+      repeat_interval: 15m
+
+    # ── Warning — Platform Team ──────────────────────────────
+    - receiver: "platform-warning"
+      match:
+        severity: warning
+        team: platform
+      repeat_interval: 2h
+
+    # ── Critical — Research Team ─────────────────────────────
+    - receiver: "research-critical"
+      match:
+        severity: critical
+        team: research
+      group_interval: 1m
+      repeat_interval: 15m
+
+    # ── Warning — Research Team ──────────────────────────────
+    - receiver: "research-warning"
+      match:
+        severity: warning
+        team: research
+      repeat_interval: 2h
+
+    # ── Critical — Execution Team ────────────────────────────
+    - receiver: "execution-critical"
+      match:
+        severity: critical
+        team: execution
+      group_interval: 1m
+      repeat_interval: 15m
+
+    # ── Warning — Execution Team ─────────────────────────────
+    - receiver: "execution-warning"
+      match:
+        severity: warning
+        team: execution
+      repeat_interval: 2h
+
+# ──────────────────────────────────────────────────────────────
+# Receivers
+# ──────────────────────────────────────────────────────────────
+receivers:
+
+  - name: "default"
+    slack_configs:
+      - channel: "#orion-alerts"
+        title: '[{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.default\" . }}"
+        send_resolved: true
+    email_configs:
+      - to: "platform@orion.example.com"
+        send_resolved: true
+
+  - name: "platform-critical"
+    slack_configs:
+      - channel: "#orion-critical"
+        title: '[CRITICAL] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.critical\" . }}"
+        send_resolved: true
+    pagerduty_configs:
+      - severity: critical
+        routing_key: "${PAGERDUTY_PLATFORM_KEY}"
+        send_resolved: true
+    email_configs:
+      - to: "platform-oncall@orion.example.com"
+        send_resolved: true
+
+  - name: "platform-warning"
+    slack_configs:
+      - channel: "#orion-alerts"
+        title: '[WARNING] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.default\" . }}"
+        send_resolved: true
+
+  - name: "research-critical"
+    slack_configs:
+      - channel: "#orion-research"
+        title: '[RESEARCH CRITICAL] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.critical\" . }}"
+        send_resolved: true
+    pagerduty_configs:
+      - severity: critical
+        routing_key: "${PAGERDUTY_RESEARCH_KEY}"
+        send_resolved: true
+    email_configs:
+      - to: "research-oncall@orion.example.com"
+        send_resolved: true
+
+  - name: "research-warning"
+    slack_configs:
+      - channel: "#orion-research"
+        title: '[RESEARCH WARNING] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.default\" . }}"
+        send_resolved: true
+
+  - name: "execution-critical"
+    slack_configs:
+      - channel: "#orion-execution"
+        title: '[EXECUTION CRITICAL] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.critical\" . }}"
+        send_resolved: true
+    pagerduty_configs:
+      - severity: critical
+        routing_key: "${PAGERDUTY_EXECUTION_KEY}"
+        send_resolved: true
+    email_configs:
+      - to: "execution-oncall@orion.example.com"
+        send_resolved: true
+
+  - name: "execution-warning"
+    slack_configs:
+      - channel: "#orion-execution"
+        title: '[EXECUTION WARNING] {{ .GroupLabels.alertname }}'
+        text: "{{ template \"orion.slack.default\" . }}"
+        send_resolved: true
+
+# ──────────────────────────────────────────────────────────────
+# Inhibition Rules
+# ──────────────────────────────────────────────────────────────
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ["alertname", "team"]
+
+  - source_match:
+      alertname: OrionAPIUnavailable
+    target_match:
+      alertname: OrionAPIHighErrorRate
+    equal: ["team"]
+
+# ──────────────────────────────────────────────────────────────
+# Silencing via Time Intervals
+# ──────────────────────────────────────────────────────────────
+time_intervals:
+  - name: maintenance_window
+    time_intervals:
+      - weekdays: ["saturday", "sunday"]
+        times:
+          - start_time: "00:00"
+            end_time: "06:00"
+

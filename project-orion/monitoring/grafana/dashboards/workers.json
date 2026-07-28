@@ -1,0 +1,64 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Workers",
+  "version": 1,
+  "uid": "orion-workers",
+  "panels": [
+    {
+      "title": "Job Processing Rate",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_worker_jobs_total[5m])", "legendFormat": "Jobs/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Jobs/s"}, {"show": false}]
+    },
+    {
+      "title": "Worker Error Rate",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_worker_jobs_total{status=\"error\"}[5m])", "legendFormat": "Errors/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Errors/s"}, {"show": false}]
+    },
+    {
+      "title": "Active Workers",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion_worker_active_workers", "legendFormat": "Active Workers"}
+      ],
+      "yaxes": [{"format": "short", "label": "Count"}, {"show": false}]
+    },
+    {
+      "title": "Queue Depth",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion_worker_queue_depth", "legendFormat": "Queue Depth"}
+      ],
+      "yaxes": [{"format": "short", "label": "Jobs"}, {"show": false}]
+    },
+    {
+      "title": "Job Duration (P50 / P95)",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "orion:worker:job_duration_p50:5m", "legendFormat": "P50"},
+        {"expr": "orion:worker:job_duration_p95:5m", "legendFormat": "P95"}
+      ],
+      "yaxes": [{"format": "s", "label": "Duration"}, {"show": false}]
+    },
+    {
+      "title": "Worker Availability",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [{"expr": "up{job=\"orion-worker\"}"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

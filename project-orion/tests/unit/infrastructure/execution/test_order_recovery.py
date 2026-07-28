@@ -28,9 +28,14 @@ class _MockAdapter:
         self.positions = []
         self.execution_history = []
 
-    async def connect(self): return True
-    async def disconnect(self): return True
-    async def health_check(self): return {"connected": True}
+    async def connect(self):
+        return True
+
+    async def disconnect(self):
+        return True
+
+    async def health_check(self):
+        return {"connected": True}
 
     async def get_execution_history(self, symbol=None, since=None, limit=100):
         return self.execution_history
@@ -77,7 +82,7 @@ class TestOrderRecoveryEngine:
     async def test_recover_pending_order_found(self, engine, order):
         adapter = _MockAdapter()
         adapter.execution_history = [
-            type('', (), {'broker_order_id': BrokerOrderId("broker_001")})()
+            type("", (), {"broker_order_id": BrokerOrderId("broker_001")})()
         ]
         config = OrderRecoveryConfig(query_broker_on_recovery=True)
         engine = OrderRecoveryEngine(config)
@@ -88,11 +93,15 @@ class TestOrderRecoveryEngine:
     async def test_recover_open_position(self, engine):
         adapter = _MockAdapter()
         adapter.positions = [
-            type('', (), {
-                'position_id': 'pos_001',
-                'quantity': Decimal('0.1'),
-                'open_price': Decimal('1.2000'),
-            })()
+            type(
+                "",
+                (),
+                {
+                    "position_id": "pos_001",
+                    "quantity": Decimal("0.1"),
+                    "open_price": Decimal("1.2000"),
+                },
+            )()
         ]
         result = await engine.recover_open_position(
             position_id="pos_001",
@@ -134,10 +143,14 @@ class TestOrderRecoveryEngine:
         )
         adapter = _MockAdapter()
         adapter.execution_history = [
-            type('', (), {
-                'broker_order_id': BrokerOrderId("broker_001"),
-                'filled_quantity': Decimal("0.1"),
-            })()
+            type(
+                "",
+                (),
+                {
+                    "broker_order_id": BrokerOrderId("broker_001"),
+                    "filled_quantity": Decimal("0.1"),
+                },
+            )()
         ]
         config = OrderRecoveryConfig(query_broker_on_recovery=True)
         engine = OrderRecoveryEngine(config)
@@ -166,4 +179,3 @@ class TestOrderRecoveryEngine:
     @pytest.mark.asyncio
     async def test_recovery_count(self, engine):
         assert await engine.recovery_count() == 0
-

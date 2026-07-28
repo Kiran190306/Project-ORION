@@ -1,0 +1,16 @@
+{{- if and .Values.redis.enabled .Values.redis.pdb.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "orion.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  maxUnavailable: {{ .Values.redis.pdb.maxUnavailable | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+{{- end }}

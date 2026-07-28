@@ -1,0 +1,58 @@
+{{- if .Values.mesh.enabled }}
+{{- $tm := .Values.mesh.trafficManagement }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "orion.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-routing
+spec:
+  hosts:
+    - {{ include "orion.fullname" . }}-api
+  http:
+    - match:
+        - uri:
+            prefix: /api
+      retries:
+        attempts: {{ $tm.retries.attempts }}
+        perTryTimeout: {{ $tm.retries.perTryTimeout }}
+      timeout: {{ $tm.timeout }}
+      route:
+        - destination:
+            host: {{ include "orion.fullname" . }}-api.{{ .Release.Namespace }}.svc.cluster.local
+            port:
+              number: {{ .Values.api.service.targetPort }}
+      fault:
+        abort:
+          percentage:
+            value: 0
+          httpStatus: 503
+        delay:
+          percentage:
+            value: 0
+          fixedDelay: 5s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "orion.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-routing
+spec:
+  hosts:
+    - {{ include "orion.fullname" . }}-worker
+  http:
+    - retries:
+        attempts: {{ $tm.retries.attempts }}
+        perTryTimeout: {{ $tm.retries.perTryTimeout }}
+      timeout: {{ $tm.timeout }}
+      route:
+        - destination:
+            host: {{ include "orion.fullname" . }}-worker.{{ .Release.Namespace }}.svc.cluster.local
+            port:
+              number: {{ .Values.monitoring.metricsPort }}
+{{- end }}

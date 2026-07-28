@@ -1,0 +1,126 @@
+# ════════════════════════════════════════════════════════════
+# ORION SLO / SLA Definitions
+# Version: 0.12.0-alpha.4
+# ════════════════════════════════════════════════════════════
+
+slo_definitions:
+
+  # ────────────────────────────────────────────────────────────
+  # Availability SLO
+  # ────────────────────────────────────────────────────────────
+  - name: "API Availability"
+    description: "API service is available and responding to requests"
+    objective: 99.9
+    window: 30d
+    indicator:
+      type: "slipro"
+      ratio_metric:
+        good:
+          - metric: "orion_http_requests_total"
+            filter: "status !~ '5..'"
+        total:
+          - metric: "orion_http_requests_total"
+    labels:
+      service: "orion-api"
+      tier: "critical"
+    alert:
+      burn_rate:
+        - window: 1h
+          severity: critical
+          threshold: 14.4  # 99.9% error budget in 1h
+        - window: 6h
+          severity: warning
+          threshold: 6.0
+
+  # ────────────────────────────────────────────────────────────
+  # Latency SLO
+  # ────────────────────────────────────────────────────────────
+  - name: "API Latency"
+    description: "API requests complete within latency threshold"
+    objective: 95.0
+    window: 30d
+    indicator:
+      type: "latency"
+      threshold_ms: 1000
+      metric: "orion_http_request_duration_seconds"
+    labels:
+      service: "orion-api"
+      tier: "critical"
+    alert:
+      burn_rate:
+        - window: 1h
+          severity: critical
+          threshold: 14.4
+
+  # ────────────────────────────────────────────────────────────
+  # Execution SLO
+  # ────────────────────────────────────────────────────────────
+  - name: "Execution Fill Rate"
+    description: "Orders are filled successfully"
+    objective: 99.5
+    window: 30d
+    indicator:
+      type: "slipro"
+      ratio_metric:
+        good:
+          - metric: "orion_execution_orders_total"
+            filter: "status = 'filled'"
+        total:
+          - metric: "orion_execution_orders_total"
+    labels:
+      service: "orion-execution-engine"
+      tier: "critical"
+    alert:
+      burn_rate:
+        - window: 1h
+          severity: critical
+          threshold: 14.4
+
+  # ────────────────────────────────────────────────────────────
+  # Worker SLO
+  # ────────────────────────────────────────────────────────────
+  - name: "Worker Job Success"
+    description: "Worker jobs complete without errors"
+    objective: 99.0
+    window: 30d
+    indicator:
+      type: "slipro"
+      ratio_metric:
+        good:
+          - metric: "orion_worker_jobs_total"
+            filter: "status != 'error'"
+        total:
+          - metric: "orion_worker_jobs_total"
+    labels:
+      service: "orion-worker"
+      tier: "high"
+    alert:
+      burn_rate:
+        - window: 6h
+          severity: warning
+          threshold: 6.0
+
+  # ────────────────────────────────────────────────────────────
+  # Research SLO
+  # ────────────────────────────────────────────────────────────
+  - name: "Research Job Success"
+    description: "Research jobs complete without errors"
+    objective: 99.0
+    window: 30d
+    indicator:
+      type: "slipro"
+      ratio_metric:
+        good:
+          - metric: "orion_research_jobs_total"
+            filter: "status != 'error'"
+        total:
+          - metric: "orion_research_jobs_total"
+    labels:
+      service: "orion-research-engine"
+      tier: "high"
+    alert:
+      burn_rate:
+        - window: 6h
+          severity: warning
+          threshold: 6.0
+

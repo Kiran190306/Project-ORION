@@ -124,8 +124,7 @@ class OrderRecoveryEngine:
                     limit=10,
                 )
                 broker_found = any(
-                    str(ei.broker_order_id) == str(order.broker_order_id)
-                    for ei in execution_info
+                    str(ei.broker_order_id) == str(order.broker_order_id) for ei in execution_info
                 )
 
                 if broker_found:
@@ -249,7 +248,11 @@ class OrderRecoveryEngine:
                         total_filled = ei.filled_quantity
 
             is_complete = total_filled >= order.quantity
-            status = OrderRecoveryStatus.RECOVERED if is_complete else OrderRecoveryStatus.PARTIALLY_RECOVERED
+            status = (
+                OrderRecoveryStatus.RECOVERED
+                if is_complete
+                else OrderRecoveryStatus.PARTIALLY_RECOVERED
+            )
 
             return OrderRecoveryResult(
                 order_id=order.order_id,
@@ -360,4 +363,3 @@ class OrderRecoveryEngine:
         """Return number of orders currently being recovered."""
         async with self._lock:
             return len(self._recovering)
-

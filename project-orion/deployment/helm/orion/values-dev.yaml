@@ -1,0 +1,58 @@
+# ════════════════════════════════════════════════════════════
+# ORION Development Overrides
+# ════════════════════════════════════════════════════════════
+
+global:
+  environment: "development"
+
+api:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+
+worker:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+
+scheduler:
+  enabled: true
+  replicas: 1
+
+ingress:
+  enabled: false
+
+config:
+  logLevel: "debug"
+
+resourceQuota:
+  enabled: false
+
+limitRange:
+  enabled: true
+
+priorityClasses:
+  enabled: false
+
+networkPolicy:
+  enabled: false

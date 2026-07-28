@@ -187,9 +187,7 @@ class ExecutionMetricsCollector:
         """
         async with self._lock:
             total = self._total_executions
-            success_rate = (
-                (self._successful_executions / total * 100.0) if total > 0 else 0.0
-            )
+            success_rate = (self._successful_executions / total * 100.0) if total > 0 else 0.0
 
             avg_exec_latency = (
                 sum(self._execution_latencies) / len(self._execution_latencies)
@@ -272,4 +270,3 @@ class ExecutionMetricsCollector:
             self._active_connections = 0
             self._circuit_breaker_open = False
             self._broker_metrics.clear()
-

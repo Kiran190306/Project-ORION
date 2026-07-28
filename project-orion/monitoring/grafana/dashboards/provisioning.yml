@@ -1,0 +1,15 @@
+# ════════════════════════════════════════════════════════════
+# ORION Grafana Dashboard Provisioning
+# ════════════════════════════════════════════════════════════
+apiVersion: 1
+
+providers:
+  - name: "ORION Dashboards"
+    orgId: 1
+    folder: "ORION"
+    type: file
+    disableDeletion: true
+    editable: false
+    updateIntervalSeconds: 30
+    options:
+      path: /var/lib/grafana/dashboards

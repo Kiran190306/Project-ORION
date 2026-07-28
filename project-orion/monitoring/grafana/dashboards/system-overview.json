@@ -1,0 +1,108 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — System Overview",
+  "version": 1,
+  "uid": "orion-system-overview",
+  "panels": [
+    {
+      "title": "API Request Rate",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_http_requests_total[5m])", "legendFormat": "Request Rate"}
+      ],
+      "yaxes": [{"format": "reqps", "label": "Requests/s"}, {"show": false}]
+    },
+    {
+      "title": "Error Rate",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_http_requests_total{status=~\"5..\"}[5m])", "legendFormat": "5xx"},
+        {"expr": "rate(orion_http_requests_total{status=~\"4..\"}[5m])", "legendFormat": "4xx"}
+      ],
+      "yaxes": [{"format": "reqps", "label": "Errors/s"}, {"show": false}]
+    },
+    {
+      "title": "Average Latency (P95)",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, sum(rate(orion_http_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "P95"}
+      ],
+      "yaxes": [{"format": "s", "label": "Latency"}, {"show": false}]
+    },
+    {
+      "title": "CPU Utilization",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "avg(orion:node:cpu_utilization:5m)", "legendFormat": "CPU %"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "label": "CPU %"}, {"show": false}]
+    },
+    {
+      "title": "Memory Utilization",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "avg(orion:node:memory_utilization)", "legendFormat": "Memory %"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "label": "Memory %"}, {"show": false}]
+    },
+    {
+      "title": "Disk Utilization",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 8, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "avg(orion:node:disk_utilization)", "legendFormat": "Disk %"}
+      ],
+      "yaxes": [{"format": "percent", "max": 100, "label": "Disk %"}, {"show": false}]
+    },
+    {
+      "title": "Availability (7d)",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:slo:availability:7d"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    },
+    {
+      "title": "Error Budget Remaining",
+      "type": "stat",
+      "gridPos": {"x": 4, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:slo:error_budget_remaining_pct:30d"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    },
+    {
+      "title": "Active Workers",
+      "type": "stat",
+      "gridPos": {"x": 8, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(orion_worker_active_workers)"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    },
+    {
+      "title": "Queue Depth",
+      "type": "stat",
+      "gridPos": {"x": 12, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(orion_worker_queue_depth)"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    },
+    {
+      "title": "Research Active Jobs",
+      "type": "stat",
+      "gridPos": {"x": 16, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "sum(orion_research_active_jobs)"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    },
+    {
+      "title": "Orders Today",
+      "type": "stat",
+      "gridPos": {"x": 20, "y": 16, "w": 4, "h": 4},
+      "targets": [{"expr": "orion:business:total_orders:1d"}],
+      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

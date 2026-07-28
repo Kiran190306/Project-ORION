@@ -1,0 +1,206 @@
+# ════════════════════════════════════════════════════════════
+# ORION Enterprise Monitoring — Alert Rules
+# Version: 0.12.0-alpha.4
+# ════════════════════════════════════════════════════════════
+
+groups:
+  # ────────────────────────────────────────────────────────────
+  # API Alerts
+  # ────────────────────────────────────────────────────────────
+  - name: orion-api-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionAPIUnavailable
+        expr: absent(up{job="orion-api"} == 1)
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "ORION API is unavailable"
+          description: "The ORION API job has been down for more than 1 minute."
+          runbook: "https://docs.orion.example.com/runbooks/api-unavailable"
+
+      - alert: OrionAPIHighErrorRate
+        expr: |
+          (rate(orion_api_http_requests_total{status=~"5\\d\\d"}[5m])
+          /
+          rate(orion_api_http_requests_total[5m]) * 100) > 5
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "ORION API high error rate ({{ $value | humanizePercentage }})"
+          description: "API error rate is above 5% for the last 2 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/high-error-rate"
+
+      - alert: OrionAPIHighLatency
+        expr: |
+          histogram_quantile(0.95, sum(rate(orion_api_request_duration_seconds_bucket[5m])) by (le)) > 2
+        for: 3m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "ORION API high latency detected"
+          description: "P95 API latency exceeds 2s for 3 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/high-latency"
+
+      - alert: OrionAPIHealthEndpointFailure
+        expr: rate(orion_api_health_check_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "ORION API health endpoint failure"
+          description: "Health check endpoint is failing for {{ $labels.instance }}."
+          runbook: "https://docs.orion.example.com/runbooks/health-failure"
+
+  # ────────────────────────────────────────────────────────────
+  # Worker Alerts
+  # ────────────────────────────────────────────────────────────
+  - name: orion-worker-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionWorkerFailures
+        expr: rate(orion_worker_jobs_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "ORION Worker failures detected"
+          description: "Worker job error rate exceeds 0.1/s for 2 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/worker-failures"
+
+      - alert: OrionJobQueueGrowth
+        expr: orion_worker_queue_depth > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "ORION job queue growing"
+          description: "Worker queue depth is {{ $value }} (threshold: 100)."
+          runbook: "https://docs.orion.example.com/runbooks/job-queue-growth"
+
+    # ──────────────────────────────────────────────────────────
+    # Resource Alerts
+    # ──────────────────────────────────────────────────────────
+  - name: orion-resource-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionHighCPUUsage
+        expr: orion:node:cpu_utilization:5m > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage on {{ $labels.node }}"
+          description: "Node CPU utilization is {{ $value | humanizePercentage }} (threshold: 85%)."
+          runbook: "https://docs.orion.example.com/runbooks/high-cpu"
+
+      - alert: OrionHighMemoryUsage
+        expr: orion:node:memory_utilization > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage on {{ $labels.node }}"
+          description: "Node memory utilization is {{ $value | humanizePercentage }} (threshold: 85%)."
+          runbook: "https://docs.orion.example.com/runbooks/high-memory"
+
+      - alert: OrionHighDiskUsage
+        expr: orion:node:disk_utilization > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High disk usage on {{ $labels.node }}"
+          description: "Node disk utilization is {{ $value | humanizePercentage }} (threshold: 85%)."
+          runbook: "https://docs.orion.example.com/runbooks/high-disk"
+
+  # ────────────────────────────────────────────────────────────
+  # Research Alerts
+  # ────────────────────────────────────────────────────────────
+  - name: orion-research-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionResearchFailures
+        expr: rate(orion_research_jobs_total{status="error"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          team: research
+        annotations:
+          summary: "ORION Research failures detected"
+          description: "Research job error rate exceeds 0.1/s for 2 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/research-failures"
+
+      - alert: OrionResearchQueueGrowth
+        expr: orion_research_queue_depth > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: research
+        annotations:
+          summary: "ORION Research queue growing"
+          description: "Research queue depth is {{ $value }} (threshold: 50)."
+          runbook: "https://docs.orion.example.com/runbooks/research-queue-growth"
+
+  # ────────────────────────────────────────────────────────────
+  # Execution Alerts
+  # ────────────────────────────────────────────────────────────
+  - name: orion-execution-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionExecutionFailures
+        expr: rate(orion_execution_orders_total{status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: execution
+        annotations:
+          summary: "ORION Execution failures detected"
+          description: "Execution order error rate exceeds 0.05/s for 2 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/execution-failures"
+
+      - alert: OrionExecutionHighLatency
+        expr: histogram_quantile(0.95, rate(orion_execution_order_duration_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+          team: execution
+        annotations:
+          summary: "ORION Execution high latency"
+          description: "P95 execution latency exceeds 5s for 3 minutes."
+          runbook: "https://docs.orion.example.com/runbooks/execution-latency"
+
+  # ────────────────────────────────────────────────────────────
+  # Infrastructure Alerts
+  # ────────────────────────────────────────────────────────────
+  - name: orion-infrastructure-alerts
+    interval: 30s
+    rules:
+
+      - alert: OrionPrometheusUnavailable
+        expr: absent(up{job="orion-prometheus"} == 1)
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Prometheus is unavailable"
+          description: "Prometheus self-monitoring job is down."
+          runbook: "https://docs.orion.example.com/runbooks/prometheus-down"
+

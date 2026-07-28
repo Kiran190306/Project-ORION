@@ -1,0 +1,33 @@
+{{- if and .Values.mesh.enabled .Values.mesh.injection.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: {{ include "orion.fullname" . }}-default
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-sidecar
+spec:
+  workloadSelector:
+    labels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+  ingress:
+    - port:
+        number: 8080
+        protocol: HTTP
+        name: http
+      defaultEndpoint: 0.0.0.0:8080
+    - port:
+        number: 50051
+        protocol: GRPC
+        name: grpc
+      defaultEndpoint: 0.0.0.0:50051
+    - port:
+        number: {{ .Values.monitoring.metricsPort }}
+        protocol: HTTP
+        name: metrics
+      defaultEndpoint: 0.0.0.0:{{ .Values.monitoring.metricsPort }}
+  egress:
+    - hosts:
+        - "*/*"
+{{- end }}

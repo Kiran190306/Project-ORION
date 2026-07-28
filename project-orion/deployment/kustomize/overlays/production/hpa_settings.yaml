@@ -1,0 +1,15 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orion-api
+spec:
+  minReplicas: 3
+  maxReplicas: 15
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: orion-worker
+spec:
+  minReplicas: 3
+  maxReplicas: 10

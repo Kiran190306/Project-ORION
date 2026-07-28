@@ -1,0 +1,106 @@
+# ════════════════════════════════════════════════════════════
+# ORION Documentation Pipeline
+# ════════════════════════════════════════════════════════════
+name: Documentation
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "docs/**"
+      - "**.md"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "**.md"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  # ── Markdown Lint ────────────────────────────────────────
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Lint Markdown
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: |
+            **/*.md
+            !node_modules/**
+            !**/node_modules/**
+
+  # ── Link Check ───────────────────────────────────────────
+  link-check:
+    name: Link Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Links
+        uses: lycheeverse/lychee-action@v1
+        with:
+          args: >
+            --verbose
+            --no-progress
+            --exclude "https://github.com"
+            --exclude "https://artifacthub.io"
+            --exclude-mail
+            "./docs/**/*.md"
+            "./**/*.md"
+            "!./node_modules/**"
+            "!./**/node_modules/**"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Spell Check ──────────────────────────────────────────
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Spelling
+        uses: crate-ci/typos@master
+        with:
+          files: ./docs/**/*.md
+          config: .github/typos.toml
+        continue-on-error: true
+
+  # ── Deploy Docs ──────────────────────────────────────────
+  deploy:
+    name: Deploy Documentation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [markdown-lint, link-check, spell-check]
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build Documentation Site
+        run: |
+          mkdir -p _site
+          cp -r docs/* _site/
+          cp README.md _site/
+          echo "ORION Documentation" > _site/index.md
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+

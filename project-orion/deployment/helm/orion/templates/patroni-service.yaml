@@ -1,0 +1,63 @@
+{{- if .Values.patroni.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+    - name: patroni
+      port: {{ .Values.patroni.restapiPort | default 8008 }}
+      targetPort: {{ .Values.patroni.restapiPort | default 8008 }}
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni-primary
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+    role: master
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni-replica
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+spec:
+  type: ClusterIP
+  ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+  selector:
+    {{- include "orion.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+    role: replica
+{{- end }}

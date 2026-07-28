@@ -171,4 +171,3 @@ class TestExecutionAuditor:
         )
         with pytest.raises(AttributeError):
             entry.details = "modified"
-

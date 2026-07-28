@@ -1,0 +1,73 @@
+{{- if .Values.patroni.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orion.fullname" . }}-patroni
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: patroni
+data:
+  patroni.yml: |
+    scope: {{ .Values.patroni.scope | default "orion" }}
+    namespace: {{ .Release.Namespace }}
+    name: {{ include "orion.fullname" . }}-patroni-{{ .Values.patroni.replicas | default 3 }}
+    
+    restapi:
+      listen: 0.0.0.0:{{ .Values.patroni.restapiPort | default 8008 }}
+      connect_address: {{ include "orion.fullname" . }}-patroni-$(POD_INDEX).{{ include "orion.fullname" . }}-patroni.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.patroni.restapiPort | default 8008 }}
+    
+    etcd:
+      hosts: {{ toYaml .Values.patroni.etcdHosts | nindent 6 }}
+    
+    bootstrap:
+      dcs:
+        ttl: {{ .Values.patroni.ttl | default 30 }}
+        loop_wait: {{ .Values.patroni.loopWait | default 10 }}
+        retry_timeout: {{ .Values.patroni.retryTimeout | default 10 }}
+        maximum_lag_on_failover: {{ .Values.patroni.maxLagOnFailover | default 1048576 }}
+        postgresql:
+          use_pg_rewind: true
+          parameters:
+            max_connections: {{ .Values.config.dbPoolSize | default 20 }}
+            shared_buffers: 256MB
+            wal_level: replica
+            hot_standby: "on"
+            wal_log_hints: "on"
+      initdb:
+      - auth-host: md5
+      - auth-local: trust
+      pg_hba:
+      - host replication replicator 0.0.0.0/0 md5
+      - host all all 0.0.0.0/0 md5
+      users:
+        admin:
+          password: {{ .Values.secrets.dbPassword | default "orion-admin" }}
+          options:
+            - createrole
+            - createdb
+    
+    postgresql:
+      listen: 0.0.0.0:5432
+      connect_address: {{ include "orion.fullname" . }}-patroni-$(POD_INDEX).{{ include "orion.fullname" . }}-patroni.{{ .Release.Namespace }}.svc.cluster.local:5432
+      data_dir: /var/lib/postgresql/data/pgdata
+      bin_dir: /usr/lib/postgresql/16/bin
+      parameters:
+        unix_socket_directories: /var/run/postgresql
+      authentication:
+        replication:
+          username: replicator
+          password: {{ .Values.secrets.dbPassword | default "orion-replicator" | quote }}
+        superuser:
+          username: postgres
+          password: {{ .Values.secrets.dbPassword | default "orion-admin" | quote }}
+        rewind:
+          username: rewind_user
+          password: {{ .Values.secrets.dbPassword | default "orion-rewind" | quote }}
+    
+    tags:
+      nofailover: false
+      noloadbalance: false
+      clonefrom: false
+      nosync: false
+{{- end }}

@@ -137,4 +137,3 @@ class TestExecutionMetricsCollector:
         snapshot = await metrics.get_snapshot()
         assert snapshot.total_executions == 0
         assert snapshot.total_volume == Decimal("0")
-

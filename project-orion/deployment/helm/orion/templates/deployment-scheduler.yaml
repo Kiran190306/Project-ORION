@@ -1,0 +1,83 @@
+{{- if .Values.scheduler.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orion.fullname" . }}-scheduler
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: scheduler
+spec:
+  replicas: {{ .Values.scheduler.replicas }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  minReadySeconds: 30
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: scheduler
+  template:
+    metadata:
+      labels:
+        {{- include "orion.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: scheduler
+      annotations:
+        {{- if .Values.monitoring.prometheusAnnotations }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: {{ .Values.monitoring.metricsPort | quote }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "orion.serviceAccountName" . }}
+      automountServiceAccountToken: true
+      securityContext:
+        {{- include "orion.podSecurityContext" (dict "uid" .Values.scheduler.uid) | nindent 8 }}
+      terminationGracePeriodSeconds: 90
+      {{- with .Values.scheduler.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.scheduler.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: scheduler
+          image: "{{ .Values.global.imageRegistry }}/{{ .Values.images.scheduler.repository }}:{{ .Values.images.scheduler.tag }}"
+          imagePullPolicy: {{ .Values.images.scheduler.pullPolicy }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.monitoring.metricsPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "orion.configName" . }}
+            - secretRef:
+                name: {{ include "orion.secretName" . }}
+          env:
+            - name: ORION_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: ORION_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            {{- toYaml .Values.scheduler.resources | nindent 12 }}
+          securityContext:
+            {{- include "orion.containerSecurityContext" . | nindent 12 }}
+          livenessProbe:
+            {{- include "orion.probe" (dict "port" .Values.monitoring.metricsPort "path" "/health/live" "initialDelay" 15 "period" 20 "timeout" 5 "failureThreshold" 3) | nindent 12 }}
+          readinessProbe:
+            {{- include "orion.probe" (dict "port" .Values.monitoring.metricsPort "path" "/health/ready" "initialDelay" 10 "period" 15 "timeout" 3 "failureThreshold" 2) | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+{{- end }}

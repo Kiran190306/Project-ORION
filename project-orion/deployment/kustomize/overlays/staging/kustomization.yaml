@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: orion-staging
+
+namePrefix: staging-
+
+commonLabels:
+  environment: staging
+
+bases:
+  - ../../base
+
+patchesStrategicMerge:
+  - replica_count.yaml
+  - ingress_host.yaml
+
+configMapGenerator:
+  - name: orion-config
+    behavior: merge
+    literals:
+      - ORION_ENVIRONMENT=staging
+      - ORION_LOG_LEVEL=debug
+
+images:
+  - name: orion/api
+    newTag: staging-latest
+  - name: orion/worker
+    newTag: staging-latest
+  - name: orion/scheduler
+    newTag: staging-latest

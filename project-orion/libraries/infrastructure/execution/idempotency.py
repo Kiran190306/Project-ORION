@@ -233,9 +233,7 @@ class IdempotencyGuard:
         """
         async with self._lock:
             keys_to_remove = [
-                key
-                for key, record in self._records.items()
-                if record.execution_id == execution_id
+                key for key, record in self._records.items() if record.execution_id == execution_id
             ]
             for key in keys_to_remove:
                 self._records.pop(key, None)
@@ -270,4 +268,3 @@ class IdempotencyGuard:
                 key=lambda k: self._records[k].processed_at,
             )
             self._records.pop(oldest_key, None)
-

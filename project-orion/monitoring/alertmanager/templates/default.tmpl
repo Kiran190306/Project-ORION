@@ -1,0 +1,62 @@
+# ════════════════════════════════════════════════════════════
+# ORION Alertmanager Notification Templates
+# ════════════════════════════════════════════════════════════
+
+{{- define "orion.slack.default" -}}
+*Alert:* {{ .GroupLabels.alertname }}
+*Severity:* {{ .GroupLabels.severity | toUpper }}
+*Team:* {{ .GroupLabels.team }}
+
+{{ if .Alerts.Firing -}}
+*Status:* 🔴 FIRING
+{{- else -}}
+*Status:* ✅ RESOLVED
+{{- end }}
+
+*Description:*
+{{ range .Alerts }}
+  • {{ .Annotations.description }}
+  • Instance: {{ .Labels.instance | default "unknown" }}
+  • Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+{{ end }}
+
+*Runbook:* {{ (index .Alerts 0).Annotations.runbook | default "N/A" }}
+{{- end }}
+
+{{- define "orion.slack.critical" -}}
+🚨 *CRITICAL ALERT* 🚨
+
+*Alert:* {{ .GroupLabels.alertname }}
+*Severity:* {{ .GroupLabels.severity | toUpper }}
+*Team:* {{ .GroupLabels.team }}
+
+*Status:* 🔴 FIRING
+
+*Description:*
+{{ range .Alerts }}
+  • {{ .Annotations.description }}
+  • Instance: {{ .Labels.instance | default "unknown" }}
+  • Value: {{ .Labels.value | default "N/A" }}
+  • Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+{{ end }}
+
+*Runbook:* {{ (index .Alerts 0).Annotations.runbook | default "N/A" }}
+*Dashboard:* https://grafana.orion.example.com/d/orion-overview
+{{- end }}
+
+{{- define "orion.email.default" -}}
+Subject: [{{ .GroupLabels.severity | toUpper }}] {{ .GroupLabels.alertname }}
+
+Alert: {{ .GroupLabels.alertname }}
+Severity: {{ .GroupLabels.severity }}
+Team: {{ .GroupLabels.team }}
+Status: {{ if .Alerts.Firing }}FIRING{{ else }}RESOLVED{{ end }}
+
+Description:
+{{ range .Alerts }}
+  - {{ .Annotations.description }}
+{{ end }}
+
+Runbook: {{ (index .Alerts 0).Annotations.runbook | default "N/A" }}
+{{- end }}
+

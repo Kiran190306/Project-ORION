@@ -61,7 +61,6 @@ class TestTradeStatistics:
         assert result.total_trades == 3
         assert result.winning_trades == 2
         assert result.losing_trades == 1
-        # win_rate is rounded to 4 decimal places
         assert abs(result.win_rate - 2 / 3) < 0.001
 
     @pytest.mark.asyncio
@@ -79,6 +78,40 @@ class TestTradeStatistics:
         result = await stats.calculate()
         assert result.profit_factor == 4.0  # 200/50
 
+    @pytest.mark.asyncio
+    async def test_single_trade_large_pnl(self):
+        stats = TradeStatistics()
+        stats.add_trade({"pnl": 1000000.0})
+        result = await stats.calculate()
+        assert result.total_trades == 1
+        assert result.winning_trades == 1
+        assert result.largest_win == 1000000.0
+
+    @pytest.mark.asyncio
+    async def test_all_losing_trades(self):
+        stats = TradeStatistics()
+        stats.add_trade({"pnl": -10.0})
+        stats.add_trade({"pnl": -20.0})
+        result = await stats.calculate()
+        assert result.total_trades == 2
+        assert result.winning_trades == 0
+        assert result.losing_trades == 2
+        assert result.win_rate == 0.0
+        assert result.profit_factor == 0.0
+
+    @pytest.mark.asyncio
+    async def test_trade_largest_values(self):
+        stats = TradeStatistics()
+        stats.add_trade({"pnl": 10.0})
+        stats.add_trade({"pnl": -5.0})
+        stats.add_trade({"pnl": 8.0})
+        stats.add_trade({"pnl": -3.0})
+        stats.add_trade({"pnl": 6.0})
+        stats.add_trade({"pnl": -1.0})
+        result = await stats.calculate()
+        assert result.largest_win == 10.0
+        assert result.largest_loss == -5.0
+
 
 class TestPortfolioStatistics:
     """Test portfolio-level statistics."""
@@ -91,15 +124,9 @@ class TestPortfolioStatistics:
 
     @pytest.mark.asyncio
     async def test_with_snapshots(self):
-        stats = PortfolioStatistics()
-        snap = PortfolioSnapshot(
-            timestamp=...,
-            balance=Decimal("10000"),
-            equity=Decimal("10000"),
-        )
-        # Use a real datetime
         from datetime import datetime, timezone
 
+        stats = PortfolioStatistics()
         snap1 = PortfolioSnapshot(
             timestamp=datetime.now(timezone.utc), balance=Decimal("10000"), equity=Decimal("10000")
         )
@@ -111,6 +138,19 @@ class TestPortfolioStatistics:
         result = await stats.calculate()
         assert result.final_balance == 11000.0
         assert result.net_profit == 1000.0
+
+    @pytest.mark.asyncio
+    async def test_single_snapshot(self):
+        from datetime import datetime, timezone
+
+        stats = PortfolioStatistics()
+        snap = PortfolioSnapshot(
+            timestamp=datetime.now(timezone.utc), balance=Decimal("50000"), equity=Decimal("50000")
+        )
+        stats.add_snapshot(snap)
+        result = await stats.calculate()
+        assert result.final_balance == 50000.0
+        assert result.net_profit == 0.0
 
 
 class TestExecutionStatistics:
@@ -165,6 +205,21 @@ class TestRiskStatisticsCalculator:
         assert result.max_drawdown > 0
         assert result.max_drawdown_pct > 0
 
+    @pytest.mark.asyncio
+    async def test_flat_equity_curve(self):
+        calc = RiskStatisticsCalculator()
+        calc.add_equity(10000.0)
+        calc.add_equity(10000.0)
+        result = await calc.calculate()
+        assert result.max_drawdown == 0.0
+
+    @pytest.mark.asyncio
+    async def test_single_equity_point(self):
+        calc = RiskStatisticsCalculator()
+        calc.add_equity(10000.0)
+        result = await calc.calculate()
+        assert result.max_drawdown == 0.0
+
 
 class TestScenarioStatistics:
     """Test scenario tracking."""
@@ -184,3 +239,19 @@ class TestScenarioStatistics:
         assert result.scenario_count == 2
         assert result.passed_scenarios == 1
         assert result.pass_rate == 0.5
+
+    @pytest.mark.asyncio
+    async def test_all_passed(self):
+        stats = ScenarioStatistics()
+        stats.add_result("test1", True)
+        stats.add_result("test2", True)
+        result = await stats.calculate()
+        assert result.pass_rate == 1.0
+
+    @pytest.mark.asyncio
+    async def test_all_failed(self):
+        stats = ScenarioStatistics()
+        stats.add_result("test1", False)
+        stats.add_result("test2", False)
+        result = await stats.calculate()
+        assert result.pass_rate == 0.0

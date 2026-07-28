@@ -1,0 +1,105 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orion-default-deny
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: orion
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orion-allow-api-ingress
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: orion
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - port: 8080
+          protocol: TCP
+        - port: 50051
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orion-allow-metrics-ingress
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: orion
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: orion
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 9090
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orion-allow-dns-egress
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: orion
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: orion-allow-intra-namespace
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: orion
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: orion

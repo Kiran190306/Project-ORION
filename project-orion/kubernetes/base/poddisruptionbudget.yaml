@@ -1,0 +1,31 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orion-api
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: orion
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: orion
+      app.kubernetes.io/component: api
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: orion-worker
+  namespace: orion
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: pdb
+    app.kubernetes.io/part-of: orion
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: orion
+      app.kubernetes.io/component: worker

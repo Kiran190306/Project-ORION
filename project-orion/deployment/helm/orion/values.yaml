@@ -1,0 +1,469 @@
+# ════════════════════════════════════════════════════════════
+# ORION Global Values
+# ════════════════════════════════════════════════════════════
+
+global:
+  serviceName: "orion"
+  environment: "production"
+  version: "0.12.0"
+  imageRegistry: "docker.io/orion"
+  imagePullPolicy: "IfNotPresent"
+
+# ════════════════════════════════════════════════════════════
+# Image Configuration
+# ════════════════════════════════════════════════════════════
+
+images:
+  api:
+    repository: "api"
+    tag: "0.12.0"
+    pullPolicy: "IfNotPresent"
+  worker:
+    repository: "worker"
+    tag: "0.12.0"
+    pullPolicy: "IfNotPresent"
+  scheduler:
+    repository: "scheduler"
+    tag: "0.12.0"
+    pullPolicy: "IfNotPresent"
+
+# ════════════════════════════════════════════════════════════
+# Service Account
+# ════════════════════════════════════════════════════════════
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+# ════════════════════════════════════════════════════════════
+# API Server
+# ════════════════════════════════════════════════════════════
+
+api:
+  enabled: true
+  replicas: 3
+  uid: 10001
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+    grpcPort: 50051
+    annotations: {}
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 2
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - api
+            topologyKey: kubernetes.io/hostname
+
+# ════════════════════════════════════════════════════════════
+# Worker
+# ════════════════════════════════════════════════════════════
+
+worker:
+  enabled: true
+  replicas: 2
+  uid: 10002
+  serviceAccount:
+    create: false
+    name: ""
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  pdb:
+    enabled: true
+    minAvailable: 1
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: gp3
+  nodeSelector: {}
+  tolerations: []
+
+# ════════════════════════════════════════════════════════════
+# Scheduler
+# ════════════════════════════════════════════════════════════
+
+scheduler:
+  enabled: true
+  replicas: 1
+  uid: 10003
+  serviceAccount:
+    create: false
+    name: ""
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "250m"
+      memory: "256Mi"
+  pdb:
+    enabled: false
+  nodeSelector: {}
+  tolerations: []
+
+# ════════════════════════════════════════════════════════════
+# Ingress
+# ════════════════════════════════════════════════════════════
+
+ingress:
+  enabled: true
+  className: "nginx"
+  host: "api.orion.example.com"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "Authorization, Content-Type, X-Correlation-ID"
+    nginx.ingress.kubernetes.io/limit-rps: "100"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  tls:
+    enabled: true
+    secretName: "orion-tls"
+
+# ════════════════════════════════════════════════════════════
+# Network Policy
+# ════════════════════════════════════════════════════════════
+
+networkPolicy:
+  enabled: true
+
+# ════════════════════════════════════════════════════════════
+# Config & Secrets
+# ════════════════════════════════════════════════════════════
+
+config:
+  logLevel: "info"
+  logFormat: "json"
+  metricsEnabled: true
+  tracingEnabled: true
+  tracingExporter: "grpc"
+  healthCheckInterval: 30
+  dbPoolSize: 20
+  dbMaxOverflow: 40
+  redisPoolSize: 10
+  cacheTtlSeconds: 300
+  rateLimitRequests: 1000
+  rateLimitWindow: 60
+
+secrets:
+  external: false
+  dbPassword: "change-me-db-password"
+  redisPassword: "change-me-redis-password"
+  apiKey: "change-me-api-key"
+  jwtSecret: "change-me-jwt-secret"
+  encryptionKey: "change-me-encryption-key"
+  secretStoreRef: {}
+  # Use external-secrets with:
+  #   name: vault-backend
+  #   kind: ClusterSecretStore
+
+# ════════════════════════════════════════════════════════════
+# RBAC
+# ════════════════════════════════════════════════════════════
+
+rbac:
+  create: true
+  clusterRole: true
+
+# ════════════════════════════════════════════════════════════
+# Namespace
+# ════════════════════════════════════════════════════════════
+
+namespace:
+  create: true
+  name: "orion"
+
+# ════════════════════════════════════════════════════════════
+# Resource Management
+# ════════════════════════════════════════════════════════════
+
+resourceQuota:
+  enabled: true
+
+limitRange:
+  enabled: true
+
+priorityClasses:
+  enabled: true
+
+# ════════════════════════════════════════════════════════════
+# Monitoring
+# ════════════════════════════════════════════════════════════
+
+monitoring:
+  metricsPort: 9090
+  prometheusAnnotations: true
+  serviceMonitor:
+    enabled: false
+    interval: "30s"
+    scrapeTimeout: "10s"
+
+# ════════════════════════════════════════════════════════════
+# Patroni (PostgreSQL HA)
+# ════════════════════════════════════════════════════════════
+
+patroni:
+  enabled: false
+  replicas: 3
+  scope: "orion"
+  restapiPort: 8008
+  ttl: 30
+  loopWait: 10
+  retryTimeout: 10
+  maxLagOnFailover: 1048576
+  image:
+    repository: "docker.io/orion/patroni"
+    tag: "0.12.0"
+    pullPolicy: "IfNotPresent"
+  storage: "100Gi"
+  storageClass: "gp3"
+  etcdHosts:
+    - "etcd-0.etcd-headless.orion-system.svc.cluster.local:2379"
+    - "etcd-1.etcd-headless.orion-system.svc.cluster.local:2379"
+    - "etcd-2.etcd-headless.orion-system.svc.cluster.local:2379"
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+
+# ════════════════════════════════════════════════════════════
+# Redis HA (Sentinel)
+# ════════════════════════════════════════════════════════════
+
+redis:
+  enabled: false
+  replicas: 3
+  maxmemory: "512mb"
+  image:
+    repository: "docker.io/redis"
+    tag: "7.2-alpine"
+    pullPolicy: "IfNotPresent"
+  storage: "10Gi"
+  storageClass: "gp3"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  pdb:
+    enabled: true
+    maxUnavailable: 1
+  sentinel:
+    enabled: true
+    replicas: 3
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "64Mi"
+      limits:
+        cpu: "200m"
+        memory: "256Mi"
+
+# ════════════════════════════════════════════════════════════
+# Service Mesh (Istio)
+# ════════════════════════════════════════════════════════════
+
+mesh:
+  enabled: false
+  namespace: "orion-mesh"
+  injection:
+    enabled: true
+    label: "istio-injection"
+    value: "enabled"
+  trafficManagement:
+    retries:
+      attempts: 3
+      perTryTimeout: "5s"
+    timeout: "30s"
+  security:
+    mtls:
+      mode: "STRICT"
+    jwt:
+      issuer: "https://auth.orion.example.com"
+      audiences:
+        - "orion-api"
+      jwksUri: "https://auth.orion.example.com/.well-known/jwks.json"
+  tracing:
+    sampling: 100
+    address: "jaeger-collector.orion-mesh.svc.cluster.local:4317"
+  gateway:
+    enabled: false
+    hosts:
+      - "*.orion.example.com"
+    port: 443
+  serviceEntries:
+    enabled: false
+    entries: []
+
+# ════════════════════════════════════════════════════════════
+# DNS Health Check
+# ════════════════════════════════════════════════════════════
+
+dns:
+  enabled: false
+  checks:
+    - name: "orion-api"
+      host: "api.orion.example.com"
+      type: "A"
+    - name: "orion-worker"
+      host: "worker.orion.example.com"
+      type: "A"
+
+# ════════════════════════════════════════════════════════════
+# Certificate Management (cert-manager)
+# ════════════════════════════════════════════════════════════
+
+certManager:
+  enabled: false
+  clusterIssuer: "letsencrypt-prod"
+  acmeServer: "https://acme-v02.api.letsencrypt.org/directory"
+  acmeEmail: "admin@orion.example.com"
+  wildcardSecretName: "orion-wildcard-tls"
+  additionalDNSNames: []
+  certificates:
+    - name: "orion-tls"
+      secretName: "orion-tls"
+      dnsNames:
+        - "api.orion.example.com"
+        - "*.orion.example.com"
+      issuerRef:
+        name: "letsencrypt-prod"
+        kind: "ClusterIssuer"
+
+# ════════════════════════════════════════════════════════════
+# External Secrets
+# ════════════════════════════════════════════════════════════
+
+externalSecrets:
+  enabled: false
+  stores:
+    - name: "vault-backend"
+      provider: "vault"
+      vault:
+        server: "https://vault.orion.example.com"
+        path: "secret/data/orion"
+        version: "v2"
+        auth:
+          tokenSecretRef:
+            name: "vault-token"
+            key: "token"
+  secrets:
+    - name: "orion-secrets"
+      storeRef:
+        name: "vault-backend"
+        kind: "ClusterSecretStore"
+      target:
+        name: "orion-secrets"
+        creationPolicy: "Owner"
+      data:
+        - secretKey: "db-password"
+          remoteRef:
+            key: "secret/data/orion/database"
+            property: "password"
+        - secretKey: "redis-password"
+          remoteRef:
+            key: "secret/data/orion/redis"
+            property: "password"
+        - secretKey: "api-key"
+          remoteRef:
+            key: "secret/data/orion/api"
+            property: "key"
+        - secretKey: "jwt-secret"
+          remoteRef:
+            key: "secret/data/orion/auth"
+            property: "jwt-secret"
+        - secretKey: "encryption-key"
+          remoteRef:
+            key: "secret/data/orion/security"
+            property: "encryption-key"
+
+# ════════════════════════════════════════════════════════════
+# ArgoCD ApplicationSet
+# ════════════════════════════════════════════════════════════
+
+argocd:
+  enabled: false
+  project: "orion"
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - "CreateNamespace=true"
+      - "PruneLast=true"
+  destination:
+    server: "https://kubernetes.default.svc"
+
+# ════════════════════════════════════════════════════════════
+# Vertical Pod Autoscaler (VPA)
+# ════════════════════════════════════════════════════════════
+
+vpa:
+  enabled: false
+  updateMode: "Auto"
+  controlledResources:
+    - "cpu"
+    - "memory"
+
+# ════════════════════════════════════════════════════════════
+# Region Configuration
+# ════════════════════════════════════════════════════════════
+
+region:
+  enabled: false
+  name: "us-east-1"
+  zones:
+    - "us-east-1a"
+    - "us-east-1b"
+    - "us-east-1c"

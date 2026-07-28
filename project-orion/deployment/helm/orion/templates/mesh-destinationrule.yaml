@@ -1,0 +1,57 @@
+{{- if .Values.mesh.enabled }}
+{{- $tm := .Values.mesh.trafficManagement }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ include "orion.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-traffic
+spec:
+  host: {{ include "orion.fullname" . }}-api.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: {{ $tm.loadBalancer.simple }}
+    connectionPool:
+      tcp:
+        maxConnections: {{ $tm.circuitBreakers.maxConnections }}
+      http:
+        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests }}
+        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection }}
+        maxRetries: {{ $tm.circuitBreakers.maxRetries }}
+    outlierDetection:
+      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors }}
+      interval: {{ $tm.outlierDetection.interval }}
+      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime }}
+      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent }}
+    tls:
+      mode: {{ if .Values.mesh.mtls.enabled }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ include "orion.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-traffic
+spec:
+  host: {{ include "orion.fullname" . }}-worker.{{ .Release.Namespace }}.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: {{ $tm.loadBalancer.simple }}
+    connectionPool:
+      tcp:
+        maxConnections: {{ $tm.circuitBreakers.maxConnections }}
+      http:
+        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests }}
+        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection }}
+    outlierDetection:
+      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors }}
+      interval: {{ $tm.outlierDetection.interval }}
+      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime }}
+      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent }}
+    tls:
+      mode: {{ if .Values.mesh.mtls.enabled }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
+{{- end }}

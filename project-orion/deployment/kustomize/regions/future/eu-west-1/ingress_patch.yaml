@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: orion-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod-eu
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - "*.orion.example.com"
+        - "api-eu-west-1.orion.example.com"
+      secretName: orion-tls-eu-west-1
+  rules:
+    - host: api-eu-west-1.orion.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: orion-api
+                port:
+                  number: 80
+          - path: /health
+            pathType: Prefix
+            backend:
+              service:
+                name: orion-api
+                port:
+                  number: 80

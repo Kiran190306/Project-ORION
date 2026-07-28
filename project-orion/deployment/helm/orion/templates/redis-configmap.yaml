@@ -1,0 +1,39 @@
+{{- if .Values.redis.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orion.fullname" . }}-redis
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+data:
+  redis.conf: |
+    port 6379
+    bind 0.0.0.0
+    protected-mode yes
+    requirepass ${REDIS_PASSWORD}
+    masterauth ${REDIS_PASSWORD}
+    save 900 1
+    save 300 10
+    save 60 10000
+    appendonly yes
+    appendfsync everysec
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+    replica-serve-stale-data yes
+    replica-read-only yes
+    repl-diskless-sync yes
+    repl-diskless-sync-delay 5
+    rename-command FLUSHALL ""
+    rename-command FLUSHDB ""
+    rename-command CONFIG ""
+    maxmemory {{ .Values.redis.maxmemory | default "512mb" }}
+    maxmemory-policy allkeys-lru
+    timeout 300
+    tcp-keepalive 60
+    loglevel notice
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+    activedefrag yes
+{{- end }}

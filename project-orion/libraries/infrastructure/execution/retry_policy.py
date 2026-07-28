@@ -240,9 +240,7 @@ class ExecutionRetryPolicy:
                 attempts.append(record)
 
                 if not self.is_retryable(e):
-                    raise NonRetryableError(
-                        f"Non-retryable error in '{context}': {e}"
-                    ) from e
+                    raise NonRetryableError(f"Non-retryable error in '{context}': {e}") from e
 
         async with self._lock:
             self._attempts.extend(attempts)

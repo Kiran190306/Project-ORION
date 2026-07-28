@@ -1,0 +1,47 @@
+{{- if and .Values.mesh.enabled .Values.mesh.telemetry.enabled }}
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: {{ include "orion.fullname" . }}-mesh
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-observability
+spec:
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+  tracing:
+    {{- if .Values.mesh.telemetry.tracing.enabled }}
+    - providers:
+        - name: jaeger
+      randomSamplingPercentage: {{ mul .Values.mesh.telemetry.tracing.sampleRate 100.0 }}
+    {{- end }}
+  metrics:
+    {{- if .Values.mesh.telemetry.metrics.enabled }}
+    - providers:
+        - name: prometheus
+    {{- end }}
+---
+{{- if .Values.mesh.telemetry.kiali.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orion.fullname" . }}-kiali-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-observability
+data:
+  kiali-config.yaml: |
+    server:
+      port: {{ .Values.mesh.telemetry.kiali.dashboardPort }}
+    external_services:
+      jaeger:
+        url: http://jaeger-query.{{ .Values.mesh.namespace }}.svc:16686
+      prometheus:
+        url: http://prometheus.{{ .Values.mesh.namespace }}.svc:9090
+      grafana:
+        url: http://grafana.{{ .Values.mesh.namespace }}.svc:3000
+{{- end }}
+{{- end }}

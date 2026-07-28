@@ -1,0 +1,32 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: orion
+
+commonLabels:
+  app.kubernetes.io/name: orion
+  app.kubernetes.io/part-of: orion
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  - ../../kubernetes/base/namespace.yaml
+  - ../../kubernetes/base/serviceaccount.yaml
+  - ../../kubernetes/base/role.yaml
+  - ../../kubernetes/base/rolebinding.yaml
+  - ../../kubernetes/base/clusterrole.yaml
+  - ../../kubernetes/base/clusterrolebinding.yaml
+  - ../../kubernetes/base/configmap.yaml
+  - ../../kubernetes/base/secret-template.yaml
+  - ../../kubernetes/base/deployment-api.yaml
+  - ../../kubernetes/base/deployment-worker.yaml
+  - ../../kubernetes/base/deployment-scheduler.yaml
+  - ../../kubernetes/base/service-api.yaml
+  - ../../kubernetes/base/service-metrics.yaml
+  - ../../kubernetes/base/ingress.yaml
+  - ../../kubernetes/base/networkpolicy.yaml
+  - ../../kubernetes/base/horizontalpodautoscaler.yaml
+  - ../../kubernetes/base/poddisruptionbudget.yaml
+  - ../../kubernetes/base/priorityclass.yaml
+  - ../../kubernetes/base/resourcequota.yaml
+  - ../../kubernetes/base/limitrange.yaml
+  - ../../kubernetes/base/persistentvolumeclaim.yaml

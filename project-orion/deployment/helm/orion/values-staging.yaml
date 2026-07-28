@@ -1,0 +1,44 @@
+# ════════════════════════════════════════════════════════════
+# ORION Staging Overrides
+# ════════════════════════════════════════════════════════════
+
+global:
+  environment: "staging"
+
+api:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+worker:
+  replicas: 2
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+
+ingress:
+  enabled: true
+  host: "api-staging.orion.example.com"
+
+config:
+  logLevel: "debug"
+
+networkPolicy:
+  enabled: true

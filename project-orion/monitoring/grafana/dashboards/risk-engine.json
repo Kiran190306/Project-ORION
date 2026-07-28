@@ -1,0 +1,46 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "ORION — Risk Engine",
+  "version": 1,
+  "uid": "orion-risk-engine",
+  "panels": [
+    {
+      "title": "Risk Checks Rate",
+      "type": "graph",
+      "gridPos": {"x": 0, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_risk_checks_total[5m])", "legendFormat": "Checks/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Checks/s"}, {"show": false}]
+    },
+    {
+      "title": "Risk Violations",
+      "type": "graph",
+      "gridPos": {"x": 8, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "rate(orion_risk_violations_total[5m])", "legendFormat": "Violations/s"}
+      ],
+      "yaxes": [{"format": "short", "label": "Violations/s"}, {"show": false}]
+    },
+    {
+      "title": "Risk Check Duration",
+      "type": "graph",
+      "gridPos": {"x": 16, "y": 0, "w": 8, "h": 8},
+      "targets": [
+        {"expr": "histogram_quantile(0.95, rate(orion_risk_check_duration_seconds_bucket[5m]))", "legendFormat": "P95"},
+        {"expr": "histogram_quantile(0.50, rate(orion_risk_check_duration_seconds_bucket[5m]))", "legendFormat": "P50"}
+      ],
+      "yaxes": [{"format": "s", "label": "Duration"}, {"show": false}]
+    },
+    {
+      "title": "Risk Engine Availability",
+      "type": "stat",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [{"expr": "up{job=\"orion-risk-engine\"}"}],
+      "options": {"colorMode": "background", "graphMode": "none"}
+    }
+  ],
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser"
+}

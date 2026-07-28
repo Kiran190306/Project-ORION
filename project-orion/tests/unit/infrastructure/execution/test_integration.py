@@ -73,9 +73,7 @@ class TestExecutionIntegration:
         await paper.set_current_price("EURUSD", Decimal("1.20000"))
 
         # Create router
-        router = ExecutionRouter(
-            ExecutionRouterConfig(enable_fallback=True)
-        )
+        router = ExecutionRouter(ExecutionRouterConfig(enable_fallback=True))
         spec = ExecutionAdapterSpec(provider="paper", name="paper", priority=1)
         target = ExecutionAdapterFactory.create_routing_target(spec)
         await router.register_adapter(paper, target)
@@ -84,19 +82,17 @@ class TestExecutionIntegration:
         metrics = ExecutionMetricsCollector()
         auditor = ExecutionAuditor()
         idempotency = IdempotencyGuard(IdempotencyConfig())
-        retry = ExecutionRetryPolicy(ExecutionRetryConfig(
-            max_retries=2,
-            base_delay_ms=1.0,
-        ))
+        retry = ExecutionRetryPolicy(
+            ExecutionRetryConfig(
+                max_retries=2,
+                base_delay_ms=1.0,
+            )
+        )
         circuit_breaker = ExecutionCircuitBreaker(
             ExecutionCircuitBreakerConfig(name="execution", failure_threshold=5)
         )
-        order_recovery = OrderRecoveryEngine(
-            OrderRecoveryConfig(query_broker_on_recovery=False)
-        )
-        session_recovery = SessionRecoveryEngine(
-            SessionRecoveryConfig(max_reconnect_attempts=2)
-        )
+        order_recovery = OrderRecoveryEngine(OrderRecoveryConfig(query_broker_on_recovery=False))
+        session_recovery = SessionRecoveryEngine(SessionRecoveryConfig(max_reconnect_attempts=2))
         registry = ExecutionRegistry(
             router,
             ExecutionRegistryConfig(health_check_interval_seconds=3600),
@@ -135,11 +131,13 @@ class TestExecutionIntegration:
         assert decision.selected_broker == "paper"
 
         # 2. Check idempotency
-        request_hash = IdempotencyGuard.compute_request_hash({
-            "symbol": order.symbol,
-            "side": order.side.value,
-            "quantity": str(order.quantity),
-        })
+        request_hash = IdempotencyGuard.compute_request_hash(
+            {
+                "symbol": order.symbol,
+                "side": order.side.value,
+                "quantity": str(order.quantity),
+            }
+        )
         is_dup = await components["idempotency"].is_duplicate(
             order.execution_id, order.order_id, request_hash
         )
@@ -166,7 +164,7 @@ class TestExecutionIntegration:
         )
 
         # 5. Record metrics
-        status_str = result.status.value if hasattr(result.status, 'value') else str(result.status)
+        status_str = result.status.value if hasattr(result.status, "value") else str(result.status)
         await components["metrics"].record_execution(
             broker_name="paper",
             success=status_str in ("filled", "partially_filled"),
@@ -175,9 +173,7 @@ class TestExecutionIntegration:
         )
 
         # 6. Verify results
-        audit_record = await components["auditor"].get_execution_audit(
-            order.execution_id
-        )
+        audit_record = await components["auditor"].get_execution_audit(order.execution_id)
         assert audit_record.entry_count >= 1
 
         snapshot = await components["metrics"].get_snapshot()
@@ -199,9 +195,7 @@ class TestExecutionIntegration:
 
         # Simulate order recovery
         adapter = components["paper"]
-        result = await components["order_recovery"].recover_pending_order(
-            order, adapter
-        )
+        result = await components["order_recovery"].recover_pending_order(order, adapter)
         assert result.status.value in ("recovered", "not_found")
 
     @pytest.mark.asyncio
@@ -228,9 +222,7 @@ class TestExecutionIntegration:
             base_delay_ms=1.0,
         )
         retry = ExecutionRetryPolicy(config)
-        result, attempts = await retry.execute(
-            operation, context="integration test"
-        )
+        result, attempts = await retry.execute(operation, context="integration test")
         assert result == "success"
         assert call_count[0] >= 2
 
@@ -266,16 +258,12 @@ class TestExecutionIntegration:
         hash_val = "unique_hash_001"
 
         # First time should succeed
-        await components["idempotency"].check_and_register(
-            exec_id, order_id, hash_val
-        )
+        await components["idempotency"].check_and_register(exec_id, order_id, hash_val)
 
         # Second time should raise
         from libraries.infrastructure.execution.idempotency import (
             DuplicateExecutionError,
         )
-        with pytest.raises(DuplicateExecutionError):
-            await components["idempotency"].check_and_register(
-                exec_id, order_id, hash_val
-            )
 
+        with pytest.raises(DuplicateExecutionError):
+            await components["idempotency"].check_and_register(exec_id, order_id, hash_val)

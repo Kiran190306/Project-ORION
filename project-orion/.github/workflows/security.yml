@@ -1,0 +1,248 @@
+# ════════════════════════════════════════════════════════════
+# ORION Security Scanning Pipeline
+# Version: v0.12.0-alpha.4
+# ════════════════════════════════════════════════════════════
+
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"  # Every Monday at 06:00 UTC
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: "0.50.0"
+  GRYPE_VERSION: "v0.76.0"
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────
+  # SAST — CodeQL
+  # ────────────────────────────────────────────────────────────
+  codeql:
+    name: CodeQL SAST
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["python", "javascript", "go"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  # ────────────────────────────────────────────────────────────
+  # SAST — Semgrep
+  # ────────────────────────────────────────────────────────────
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: returntocorp/semgrep:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        run: |
+          semgrep --config=auto \
+            --error \
+            --metrics=off \
+            --output=semgrep-report.sarif \
+            --sarif \
+            .
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-report.sarif
+          category: semgrep
+
+  # ────────────────────────────────────────────────────────────
+  # Secrets — Gitleaks
+  # ────────────────────────────────────────────────────────────
+  gitleaks:
+    name: Gitleaks Secrets
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  # ────────────────────────────────────────────────────────────
+  # Container — Trivy
+  # ────────────────────────────────────────────────────────────
+  trivy:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t orion-base:latest -f docker/base/Dockerfile .
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "orion-base:latest"
+          format: "sarif"
+          output: "trivy-report.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-report.sarif
+          category: trivy-container
+
+  # ────────────────────────────────────────────────────────────
+  # Container — Grype
+  # ────────────────────────────────────────────────────────────
+  grype:
+    name: Grype Container Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t orion-base:latest -f docker/base/Dockerfile .
+
+      - name: Run Grype
+        uses: anchore/scan-action@v3
+        with:
+          image: "orion-base:latest"
+          fail-build: true
+          severity-cutoff: high
+          output-format: sarif
+
+      - name: Upload Grype SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: grype-report.sarif
+          category: grype-container
+
+  # ────────────────────────────────────────────────────────────
+  # Dependency — pip-audit & npm audit
+  # ────────────────────────────────────────────────────────────
+  dep-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: "1.7.0"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-3.11-${{ hashFiles('poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: pip-audit
+        run: poetry run pip-audit --strict --format=json > pip-audit-report.json || true
+
+      - name: npm audit
+        run: npm audit --json > npm-audit-report.json || true
+
+      - name: Upload dependency audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-reports
+          path: |
+            pip-audit-report.json
+            npm-audit-report.json
+          retention-days: 30
+
+  # ────────────────────────────────────────────────────────────
+  # License Compliance
+  # ────────────────────────────────────────────────────────────
+  license-check:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Setup Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: "1.7.0"
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Check Python licenses
+        run: |
+          poetry run pip-licenses --format=json \
+            --allow-only="MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;Python-2.0;Unlicense;CC0-1.0" \
+            > license-report.json || true
+
+      - name: Upload license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: license-report
+          path: license-report.json
+          retention-days: 30
+

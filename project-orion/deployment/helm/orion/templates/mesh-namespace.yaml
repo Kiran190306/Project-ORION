@@ -1,0 +1,10 @@
+{{- if .Values.mesh.enabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.mesh.namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: service-mesh
+    istio-operator-managed: "true"
+{{- end }}

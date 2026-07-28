@@ -1,0 +1,106 @@
+{{- if .Values.redis.sentinel.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "orion.fullname" . }}-redis-sentinel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-sentinel
+spec:
+  replicas: {{ .Values.redis.sentinel.replicas | default 3 }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis-sentinel
+  template:
+    metadata:
+      labels:
+        {{- include "orion.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis-sentinel
+    spec:
+      serviceAccountName: {{ include "orion.serviceAccountName" . }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/component
+                      operator: In
+                      values:
+                        - redis-sentinel
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: sentinel
+          image: {{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy | default "IfNotPresent" }}
+          command:
+            - redis-sentinel
+          args:
+            - /etc/redis/sentinel.conf
+          ports:
+            - name: sentinel
+              containerPort: 26379
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: redis-password
+          livenessProbe:
+            tcpSocket:
+              port: 26379
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - -p
+                - "26379"
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: config
+              mountPath: /etc/redis
+          resources:
+            {{- toYaml .Values.redis.sentinel.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "orion.fullname" . }}-redis-sentinel
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "orion.fullname" . }}-redis-sentinel
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis-sentinel
+data:
+  sentinel.conf: |
+    port 26379
+    bind 0.0.0.0
+    daemonize no
+    pidfile /var/run/redis-sentinel.pid
+    logfile ""
+    sentinel monitor orion-primary {{ include "orion.fullname" . }}-redis-0.{{ include "orion.fullname" . }}-redis.{{ .Release.Namespace }}.svc.cluster.local 6379 2
+    sentinel auth-pass orion-primary ${REDIS_PASSWORD}
+    sentinel down-after-milliseconds orion-primary 5000
+    sentinel failover-timeout orion-primary 30000
+    sentinel parallel-syncs orion-primary 1
+    sentinel resolve-hostnames yes
+    sentinel announce-hostnames yes
+{{- end }}

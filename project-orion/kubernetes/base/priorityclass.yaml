@@ -1,0 +1,35 @@
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: orion-critical
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: priority-class
+    app.kubernetes.io/part-of: orion
+value: 1000
+globalDefault: false
+description: "Critical priority for ORION API pods that must not be preempted"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: orion-high
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: priority-class
+    app.kubernetes.io/part-of: orion
+value: 500
+globalDefault: false
+description: "High priority for ORION worker pods"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: orion-default
+  labels:
+    app.kubernetes.io/name: orion
+    app.kubernetes.io/component: priority-class
+    app.kubernetes.io/part-of: orion
+value: 0
+globalDefault: true
+description: "Default priority for ORION scheduler and batch pods"

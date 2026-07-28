@@ -1,0 +1,21 @@
+{{- if .Values.resourceQuota.enabled }}
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: {{ include "orion.fullname" . }}-quota
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: resource-quota
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: "16Gi"
+    limits.cpu: "16"
+    limits.memory: "32Gi"
+    persistentvolumeclaims: "5"
+    pods: "50"
+    services: "10"
+    configmaps: "20"
+    secrets: "20"
+{{- end }}

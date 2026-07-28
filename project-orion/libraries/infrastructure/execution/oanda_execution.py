@@ -104,9 +104,7 @@ class OANDAExecutionAdapter(BrokerAdapter):
 
         # Validate connection by fetching account info
         try:
-            response = await self._client.get(
-                f"/v3/accounts/{self._oanda_config.account_id}"
-            )
+            response = await self._client.get(f"/v3/accounts/{self._oanda_config.account_id}")
             if response.status_code == 401:
                 raise AdapterAuthenticationError(
                     "OANDA authentication failed: invalid API key",
@@ -146,7 +144,9 @@ class OANDAExecutionAdapter(BrokerAdapter):
             )
             return {
                 "connected": self._connected and response.status_code == 200,
-                "latency_ms": response.elapsed.total_seconds() * 1000 if hasattr(response, "elapsed") else 0.0,
+                "latency_ms": (
+                    response.elapsed.total_seconds() * 1000 if hasattr(response, "elapsed") else 0.0
+                ),
                 "last_checked": datetime.now(timezone.utc).isoformat(),
                 "details": {
                     "status_code": response.status_code,
@@ -194,7 +194,9 @@ class OANDAExecutionAdapter(BrokerAdapter):
             order_create = data.get("orderCreateTransaction", {})
             order_fill = data.get("orderFillTransaction", data.get("orderCancelTransaction", {}))
 
-            broker_order_id = BrokerOrderId(str(order_create.get("id", order_create.get("orderID", ""))))
+            broker_order_id = BrokerOrderId(
+                str(order_create.get("id", order_create.get("orderID", "")))
+            )
 
             fills: list[Fill] = []
             fills_data = order_fill.get("tradesClosed", [])
@@ -215,13 +217,17 @@ class OANDAExecutionAdapter(BrokerAdapter):
             if filled_qty < 0:
                 filled_qty = abs(filled_qty)
 
-            status = OrderStatus.FILLED if filled_qty >= order.quantity else OrderStatus.PARTIALLY_FILLED
+            status = (
+                OrderStatus.FILLED if filled_qty >= order.quantity else OrderStatus.PARTIALLY_FILLED
+            )
 
             return OrderExecutionInfo(
                 broker_order_id=broker_order_id,
                 status=status,
                 filled_quantity=filled_qty,
-                average_fill_price=Decimal(str(order_fill.get("price", "0"))) if order_fill.get("price") else None,
+                average_fill_price=(
+                    Decimal(str(order_fill.get("price", "0"))) if order_fill.get("price") else None
+                ),
                 fills=tuple(fills),
             )
 
@@ -355,25 +361,29 @@ class OANDAExecutionAdapter(BrokerAdapter):
                 short = pos.get("short", {})
 
                 if long and long.get("units", "0") != "0":
-                    positions.append(PositionInfo(
-                        position_id=f"{symbol}|long",
-                        symbol=symbol,
-                        side=OrderSide.BUY,
-                        quantity=Decimal(str(long["units"])),
-                        open_price=Decimal(str(long.get("averagePrice", "0"))),
-                        current_price=Decimal(str(long.get("currentPrice", "0"))),
-                        profit=Decimal(str(long.get("unrealizedPL", "0"))),
-                    ))
+                    positions.append(
+                        PositionInfo(
+                            position_id=f"{symbol}|long",
+                            symbol=symbol,
+                            side=OrderSide.BUY,
+                            quantity=Decimal(str(long["units"])),
+                            open_price=Decimal(str(long.get("averagePrice", "0"))),
+                            current_price=Decimal(str(long.get("currentPrice", "0"))),
+                            profit=Decimal(str(long.get("unrealizedPL", "0"))),
+                        )
+                    )
                 if short and short.get("units", "0") != "0":
-                    positions.append(PositionInfo(
-                        position_id=f"{symbol}|short",
-                        symbol=symbol,
-                        side=OrderSide.SELL,
-                        quantity=Decimal(str(short["units"])),
-                        open_price=Decimal(str(short.get("averagePrice", "0"))),
-                        current_price=Decimal(str(short.get("currentPrice", "0"))),
-                        profit=Decimal(str(short.get("unrealizedPL", "0"))),
-                    ))
+                    positions.append(
+                        PositionInfo(
+                            position_id=f"{symbol}|short",
+                            symbol=symbol,
+                            side=OrderSide.SELL,
+                            quantity=Decimal(str(short["units"])),
+                            open_price=Decimal(str(short.get("averagePrice", "0"))),
+                            current_price=Decimal(str(short.get("currentPrice", "0"))),
+                            profit=Decimal(str(short.get("unrealizedPL", "0"))),
+                        )
+                    )
 
             return positions
         except Exception:
@@ -461,13 +471,15 @@ class OANDAExecutionAdapter(BrokerAdapter):
             for txn in data.get("transactions", [])[:limit]:
                 if symbol and txn.get("instrument") != symbol:
                     continue
-                results.append(OrderExecutionInfo(
-                    broker_order_id=BrokerOrderId(str(txn.get("id", ""))),
-                    status=OrderStatus.FILLED,
-                    filled_quantity=Decimal(str(txn.get("units", "0"))),
-                    average_fill_price=Decimal(str(txn.get("price", "0"))),
-                    commission=Decimal("0"),
-                ))
+                results.append(
+                    OrderExecutionInfo(
+                        broker_order_id=BrokerOrderId(str(txn.get("id", ""))),
+                        status=OrderStatus.FILLED,
+                        filled_quantity=Decimal(str(txn.get("units", "0"))),
+                        average_fill_price=Decimal(str(txn.get("price", "0"))),
+                        commission=Decimal("0"),
+                    )
+                )
             return results
         except Exception:
             return []
@@ -497,4 +509,3 @@ class OANDAExecutionAdapter(BrokerAdapter):
             order_data["order"]["price"] = str(order.stop_price)
 
         return order_data
-

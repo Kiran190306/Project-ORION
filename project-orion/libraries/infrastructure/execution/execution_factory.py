@@ -174,4 +174,3 @@ class ExecutionAdapterFactory:
             True if the provider is supported.
         """
         return provider.lower() in cls.SUPPORTED_PROVIDERS
-

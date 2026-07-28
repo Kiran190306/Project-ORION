@@ -1,0 +1,28 @@
+{{- if and .Values.mesh.enabled .Values.mesh.mtls.enabled }}
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ include "orion.fullname" . }}-mtls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-security
+spec:
+  mtls:
+    mode: {{ .Values.mesh.mtls.mode }}
+  selector:
+    matchLabels:
+      {{- include "orion.selectorLabels" . | nindent 6 }}
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: {{ include "orion.fullname" . }}-mtls-global
+  namespace: {{ .Values.mesh.namespace }}
+  labels:
+    {{- include "orion.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mesh-security
+spec:
+  mtls:
+    mode: {{ .Values.mesh.mtls.mode }}
+{{- end }}

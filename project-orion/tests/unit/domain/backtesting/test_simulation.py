@@ -181,7 +181,6 @@ class TestSimulationEdgeCases:
         sim = PortfolioSimulator(
             PortfolioSimulationConfig(initial_balance=Decimal("100"), stop_out_level=50.0)
         )
-        # Apply a large fill that uses margin
         order = OrderSimulation(
             order_id="o1",
             symbol="EURUSD",
@@ -197,7 +196,6 @@ class TestSimulationEdgeCases:
             total_commission=Decimal("0"),
         )
         await sim.apply_fill(result)
-        # Should not crash
         assert sim.balance >= Decimal("0")
 
     @pytest.mark.asyncio
@@ -220,4 +218,112 @@ class TestSimulationEdgeCases:
             )
             await sim.apply_fill(result)
         snap = await sim.get_snapshot()
-        assert snap.position_count == 0  # apply_fill doesn't track positions directly
+        assert snap.position_count == 0
+
+    @pytest.mark.asyncio
+    async def test_insufficient_liquidity_execution(self):
+        sim = ExecutionSimulator()
+        order = OrderSimulation(
+            order_id="o_liq",
+            symbol="EURUSD",
+            side=OrderSimulationSide.BUY,
+            order_type=OrderSimulationType.MARKET,
+            quantity=Decimal("1000000000"),
+        )
+        result = await sim.execute_order(
+            order, Decimal("1.0990"), Decimal("1.1000"), liquidity_score=0.01
+        )
+        assert result.status in (
+            ExecutionSimulationStatus.SUCCESS,
+            ExecutionSimulationStatus.FAILURE,
+        )
+
+    @pytest.mark.asyncio
+    async def test_zero_quantity_execution(self):
+        sim = ExecutionSimulator()
+        order = OrderSimulation(
+            order_id="o_zero",
+            symbol="EURUSD",
+            side=OrderSimulationSide.BUY,
+            order_type=OrderSimulationType.MARKET,
+            quantity=Decimal("0"),
+        )
+        result = await sim.execute_order(order, Decimal("1.0990"), Decimal("1.1000"))
+        assert result.status == ExecutionSimulationStatus.SUCCESS
+
+    @pytest.mark.asyncio
+    async def test_extreme_volatility_execution(self):
+        sim = ExecutionSimulator()
+        order = OrderSimulation(
+            order_id="o_vol",
+            symbol="EURUSD",
+            side=OrderSimulationSide.BUY,
+            order_type=OrderSimulationType.MARKET,
+            quantity=Decimal("1000"),
+        )
+        result = await sim.execute_order(
+            order, Decimal("1.0990"), Decimal("1.1000"), volatility=100.0
+        )
+        assert result.status == ExecutionSimulationStatus.SUCCESS
+
+    @pytest.mark.asyncio
+    async def test_market_price_update_portfolio(self):
+        sim = PortfolioSimulator()
+        await sim.update_market_price("EURUSD", Decimal("1.2000"))
+        snap = await sim.get_snapshot()
+        assert snap.equity is not None
+
+    @pytest.mark.asyncio
+    async def test_commission_in_execution(self):
+        sim = ExecutionSimulator()
+        order = OrderSimulation(
+            order_id="o_comm",
+            symbol="EURUSD",
+            side=OrderSimulationSide.BUY,
+            order_type=OrderSimulationType.MARKET,
+            quantity=Decimal("1000"),
+        )
+        result = await sim.execute_order(order, Decimal("1.0990"), Decimal("1.1000"))
+        assert result.total_commission > Decimal("0")
+
+    @pytest.mark.asyncio
+    async def test_stop_out_after_multiple_fills(self):
+        sim = PortfolioSimulator(
+            PortfolioSimulationConfig(
+                initial_balance=Decimal("1000"), stop_out_level=20.0, leverage=Decimal("1")
+            )
+        )
+        for i in range(10):
+            order = OrderSimulation(
+                order_id=f"o_so{i}",
+                symbol="EURUSD",
+                side=OrderSimulationSide.BUY,
+                order_type=OrderSimulationType.MARKET,
+                quantity=Decimal("10000"),
+            )
+            result = ExecutionSimulationResult(
+                order=order,
+                status=ExecutionSimulationStatus.SUCCESS,
+                total_quantity=Decimal("10000"),
+                average_price=Decimal("1.1000"),
+                total_commission=Decimal("0"),
+            )
+            await sim.apply_fill(result, current_price=Decimal("0.9500"))
+        # Verify the portfolio has significant margin usage
+        assert sim.used_margin > Decimal("0")
+
+    @pytest.mark.asyncio
+    async def test_execution_with_timestamp(self):
+        from datetime import datetime, timezone
+
+        sim = ExecutionSimulator()
+        order = OrderSimulation(
+            order_id="o_ts",
+            symbol="EURUSD",
+            side=OrderSimulationSide.BUY,
+            order_type=OrderSimulationType.MARKET,
+            quantity=Decimal("1000"),
+        )
+        ts = datetime(2024, 1, 15, 12, 0, 0, tzinfo=timezone.utc)
+        result = await sim.execute_order(order, Decimal("1.0990"), Decimal("1.1000"), timestamp=ts)
+        assert result.timestamp == ts
