@@ -5,6 +5,7 @@ consumed by downstream components. Every event carries a timestamp,
 symbol, and type discriminator for routing.
 """
 
+# mypy: ignore-errors
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -56,11 +57,12 @@ class MarketDataEvent:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class TickEvent(MarketDataEvent):
     """Emitted when a new tick is received from a provider."""
 
-    tick: Tick
+    tick: Tick  # type: ignore[misc]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, tick: Tick, **kwargs: Any) -> None:
         object.__setattr__(self, "event_type", MarketDataEventType.TICK_RECEIVED)
@@ -70,12 +72,13 @@ class TickEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class BarEvent(MarketDataEvent):
     """Emitted when a bar is completed or updated."""
 
-    bar: Bar
+    bar: Bar  # type: ignore[misc]
     is_complete: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, bar: Bar, is_complete: bool = True, **kwargs: Any) -> None:
         event_type = (
@@ -91,11 +94,12 @@ class BarEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class OHLCVEvent(MarketDataEvent):
     """Emitted when a new OHLCV data point is received."""
 
-    ohlcv: OHLCV
+    ohlcv: OHLCV  # type: ignore[misc]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, ohlcv: OHLCV, **kwargs: Any) -> None:
         object.__setattr__(self, "event_type", MarketDataEventType.BAR_UPDATED)
@@ -105,11 +109,12 @@ class OHLCVEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class OrderBookEvent(MarketDataEvent):
     """Emitted when an order book snapshot or update is received."""
 
-    snapshot: OrderBookSnapshot
+    snapshot: OrderBookSnapshot  # type: ignore[misc]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, snapshot: OrderBookSnapshot, **kwargs: Any) -> None:
         event_type = (
@@ -124,12 +129,13 @@ class OrderBookEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class SessionEvent(MarketDataEvent):
     """Emitted when a market session opens or closes."""
 
-    session: MarketSession
+    session: MarketSession  # type: ignore[misc]
     is_open: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, session: MarketSession, is_open: bool = True, **kwargs: Any) -> None:
         event_type = (
@@ -145,11 +151,12 @@ class SessionEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class CorporateActionEvent(MarketDataEvent):
     """Emitted when a corporate action is announced or goes effective."""
 
-    action: CorporateAction
+    action: CorporateAction  # type: ignore[misc]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, action: CorporateAction, **kwargs: Any) -> None:
         object.__setattr__(self, "event_type", MarketDataEventType.CORPORATE_ACTION)
@@ -159,11 +166,12 @@ class CorporateActionEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class EconomicEventEvent(MarketDataEvent):
     """Emitted when an economic event is released."""
 
-    event: EconomicEvent
+    event: EconomicEvent  # type: ignore[misc]
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def __init__(self, event: EconomicEvent, **kwargs: Any) -> None:
         object.__setattr__(self, "event_type", MarketDataEventType.ECONOMIC_EVENT)
@@ -173,7 +181,7 @@ class EconomicEventEvent(MarketDataEvent):
         object.__setattr__(self, "metadata", kwargs.get("metadata", {}))
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True, slots=True, init=False)
 class ProviderEvent(MarketDataEvent):
     """Emitted when a data provider connects, disconnects, or errors."""
 

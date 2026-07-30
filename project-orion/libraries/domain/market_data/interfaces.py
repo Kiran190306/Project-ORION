@@ -226,3 +226,49 @@ class BarBuilderPort(Protocol):
     async def current_bar(self) -> Bar | None:
         """Return the in-progress bar without completing it."""
         ...
+
+
+@runtime_checkable
+class MarketSnapshotProviderPort(Protocol):
+    """Port for fetching point-in-time market snapshots.
+
+    Provides a request-response interface for current market state
+    without requiring a persistent subscription. Useful for one-off
+    queries, health checks, and initial state loading.
+    """
+
+    async def snapshot(
+        self,
+        symbol: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Return a full market snapshot for the given symbol.
+
+        The snapshot dict typically contains tick, quote, order book,
+        and session information merged into a single response.
+        """
+        ...
+
+    async def latest(self, symbol: str) -> Tick | None:
+        """Return the latest data point for a symbol, or None."""
+        ...
+
+    async def stream(self) -> AsyncIterator[Tick]:
+        """Yield market snapshots as they change."""
+        ...
+
+    async def snapshot_tick(self, symbol: str) -> Tick | None:
+        """Return the latest tick snapshot, or None if unavailable."""
+        ...
+
+    async def snapshot_quote(self, symbol: str) -> Tick | None:
+        """Return the latest quote (bid/ask) snapshot, or None."""
+        ...
+
+    async def snapshot_order_book(
+        self,
+        symbol: str,
+        depth: int = 10,
+    ) -> OrderBookSnapshot | None:
+        """Return the current order book snapshot, or None."""
+        ...

@@ -170,9 +170,12 @@ def validate_optional_price(
     return validate_price(value, field_name)
 
 
+_SENTINEL = "__no_value__"
+
+
 def validate_tick_fields(
     *,
-    symbol: str = "",
+    symbol: str = _SENTINEL,
     price: Decimal | None = None,
     volume: Decimal | None = None,
     timestamp: datetime | None = None,
@@ -195,7 +198,7 @@ def validate_tick_fields(
         A dict of cleaned/validated fields.
     """
     result: dict[str, Any] = {}
-    if symbol:
+    if symbol is not _SENTINEL:
         result["symbol"] = validate_symbol(symbol)
     if price is not None:
         result["price"] = validate_price(price)
