@@ -90,18 +90,18 @@ runAsNonRoot: true
 {{- end -}}
 
 {{- define "orion.meshEnabled" -}}
-{{- and .Values.mesh.enabled (eq .Values.mesh.provider "istio") -}}
+{{- .Values.mesh.enabled | default false -}}
 {{- end -}}
 
 {{- define "orion.meshLabels" -}}
 {{- if eq (include "orion.meshEnabled" .) "true" }}
-istio.io/rev: {{ .Values.mesh.provider }}
+istio.io/rev: istio
 sidecar.istio.io/inject: {{ .Values.mesh.injection.enabled | toString | quote }}
 {{- end }}
 {{- end -}}
 
 {{- define "orion.meshSelectorLabels" -}}
 {{- if eq (include "orion.meshEnabled" .) "true" }}
-app.kubernetes.io/managed-by: {{ .Values.mesh.provider }}
+app.kubernetes.io/managed-by: istio
 {{- end }}
 {{- end -}}

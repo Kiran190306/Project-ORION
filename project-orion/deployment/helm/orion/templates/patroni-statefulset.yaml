@@ -64,7 +64,27 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "orion.secretName" . }}
-                  key: db-password
+                  key: ORION_DB_PASSWORD
+            - name: PATRONI_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: ORION_DB_PASSWORD
+            - name: PATRONI_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: ORION_DB_PASSWORD
+            - name: PATRONI_SUPERUSER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: ORION_DB_PASSWORD
+            - name: PATRONI_REWIND_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "orion.secretName" . }}
+                  key: ORION_DB_PASSWORD
           ports:
             - name: postgresql
               containerPort: 5432

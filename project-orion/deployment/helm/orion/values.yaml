@@ -44,10 +44,7 @@ api:
   enabled: true
   replicas: 3
   uid: 10001
-  serviceAccount:
-    create: true
-    name: ""
-    annotations: {}
+  # serviceAccount removed — uses top-level serviceAccount block
   service:
     type: ClusterIP
     port: 80
@@ -93,9 +90,7 @@ worker:
   enabled: true
   replicas: 2
   uid: 10002
-  serviceAccount:
-    create: false
-    name: ""
+  # serviceAccount removed — uses top-level serviceAccount block
   resources:
     requests:
       cpu: "250m"
@@ -127,9 +122,7 @@ scheduler:
   enabled: true
   replicas: 1
   uid: 10003
-  serviceAccount:
-    create: false
-    name: ""
+  # serviceAccount removed — uses top-level serviceAccount block
   resources:
     requests:
       cpu: "100m"
@@ -190,11 +183,14 @@ config:
 
 secrets:
   external: false
-  dbPassword: "change-me-db-password"
-  redisPassword: "change-me-redis-password"
-  apiKey: "change-me-api-key"
-  jwtSecret: "change-me-jwt-secret"
-  encryptionKey: "change-me-encryption-key"
+  # IMPORTANT: When secrets.external is false, ALL of the following
+  # fields MUST be provided by the user (via --set or a values override).
+  # The chart will fail rendering if any are missing.
+  dbPassword: null
+  redisPassword: null
+  apiKey: null
+  jwtSecret: null
+  encryptionKey: null
   secretStoreRef: {}
   # Use external-secrets with:
   #   name: vault-backend
@@ -435,15 +431,20 @@ externalSecrets:
 argocd:
   enabled: false
   project: "orion"
+  sourceRepoURL: "https://github.com/orion/trading-platform"
+  sourceTargetRevision: "main"
+  sourcePath: "deployment/helm/orion"
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+      allowEmpty: false
     syncOptions:
       - "CreateNamespace=true"
       - "PruneLast=true"
   destination:
     server: "https://kubernetes.default.svc"
+  destinationServer: "https://kubernetes.default.svc"
 
 # ════════════════════════════════════════════════════════════
 # Vertical Pod Autoscaler (VPA)

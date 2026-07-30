@@ -1,4 +1,4 @@
-{{- if and .Values.mesh.enabled .Values.mesh.mtls.enabled }}
+{{- if .Values.mesh.enabled }}
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
 metadata:
@@ -9,10 +9,10 @@ metadata:
     app.kubernetes.io/component: mesh-security
 spec:
   mtls:
-    mode: {{ .Values.mesh.mtls.mode }}
+    mode: {{ .Values.mesh.security.mtls.mode }}
   selector:
     matchLabels:
-      {{- include "orion.selectorLabels" . | nindent 6 }}
+      {{- include "orion.selectorLabels" . | nindent 6 -}}
 ---
 apiVersion: security.istio.io/v1beta1
 kind: PeerAuthentication
@@ -24,5 +24,5 @@ metadata:
     app.kubernetes.io/component: mesh-security
 spec:
   mtls:
-    mode: {{ .Values.mesh.mtls.mode }}
-{{- end }}
+    mode: {{ .Values.mesh.security.mtls.mode }}
+{{- end -}}

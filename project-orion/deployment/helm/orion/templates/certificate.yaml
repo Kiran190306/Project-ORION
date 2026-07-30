@@ -38,22 +38,4 @@ spec:
     {{- range .Values.certManager.additionalDNSNames }}
     - {{ . | quote }}
     {{- end }}
----
-apiVersion: cert-manager.io/v1
-kind: Certificate
-metadata:
-  name: {{ include "orion.fullname" . }}-regional
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "orion.labels" . | nindent 4 }}
-    app.kubernetes.io/component: cert-manager
-spec:
-  secretName: {{ .Values.ingress.tls.secretName }}
-  issuerRef:
-    name: {{ include "orion.fullname" . }}-cluster-issuer
-    kind: Issuer
-  commonName: {{ .Values.ingress.host }}
-  dnsNames:
-    - {{ .Values.ingress.host }}
-    - "{{ .Values.region.name }}.{{ .Values.region.dnsZone }}"
 {{- end }}

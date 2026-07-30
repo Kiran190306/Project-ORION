@@ -42,7 +42,7 @@ data:
       - host all all 0.0.0.0/0 md5
       users:
         admin:
-          password: {{ .Values.secrets.dbPassword | default "orion-admin" }}
+          password: ${PATRONI_ADMIN_PASSWORD}
           options:
             - createrole
             - createdb
@@ -57,13 +57,13 @@ data:
       authentication:
         replication:
           username: replicator
-          password: {{ .Values.secrets.dbPassword | default "orion-replicator" | quote }}
+          password: ${PATRONI_REPLICATION_PASSWORD}
         superuser:
           username: postgres
-          password: {{ .Values.secrets.dbPassword | default "orion-admin" | quote }}
+          password: ${PATRONI_SUPERUSER_PASSWORD}
         rewind:
           username: rewind_user
-          password: {{ .Values.secrets.dbPassword | default "orion-rewind" | quote }}
+          password: ${PATRONI_REWIND_PASSWORD}
     
     tags:
       nofailover: false

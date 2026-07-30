@@ -53,7 +53,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: {{ include "orion.secretName" . }}
-                  key: redis-password
+                  key: ORION_REDIS_PASSWORD
           livenessProbe:
             tcpSocket:
               port: 26379

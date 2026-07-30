@@ -1,4 +1,4 @@
-{{- if and .Values.mesh.enabled .Values.mesh.jwt.enabled }}
+{{- if .Values.mesh.enabled }}
 apiVersion: security.istio.io/v1beta1
 kind: RequestAuthentication
 metadata:
@@ -12,7 +12,7 @@ spec:
     matchLabels:
       app.kubernetes.io/component: api
   jwtRules:
-    - issuer: {{ .Values.mesh.jwt.issuer | quote }}
-      jwksUri: {{ .Values.mesh.jwt.jwksUri | quote }}
-      forwardOriginalToken: {{ .Values.mesh.jwt.forwardOriginalToken }}
-{{- end }}
+    - issuer: {{ .Values.mesh.security.jwt.issuer | quote }}
+      jwksUri: {{ .Values.mesh.security.jwt.jwksUri | default "https://auth.orion.example.com/.well-known/jwks.json" | quote }}
+      forwardOriginalToken: {{ .Values.mesh.security.jwt.forwardOriginalToken | default true | quote }}
+{{- end -}}

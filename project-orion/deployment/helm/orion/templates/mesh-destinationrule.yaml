@@ -12,21 +12,21 @@ spec:
   host: {{ include "orion.fullname" . }}-api.{{ .Release.Namespace }}.svc.cluster.local
   trafficPolicy:
     loadBalancer:
-      simple: {{ $tm.loadBalancer.simple }}
+      simple: {{ $tm.loadBalancer.simple | default "ROUND_ROBIN" }}
     connectionPool:
       tcp:
-        maxConnections: {{ $tm.circuitBreakers.maxConnections }}
+        maxConnections: {{ $tm.circuitBreakers.maxConnections | default 100 }}
       http:
-        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests }}
-        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection }}
-        maxRetries: {{ $tm.circuitBreakers.maxRetries }}
+        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests | default 10 }}
+        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection | default 10 }}
+        maxRetries: {{ $tm.circuitBreakers.maxRetries | default 3 }}
     outlierDetection:
-      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors }}
-      interval: {{ $tm.outlierDetection.interval }}
-      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime }}
-      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent }}
+      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors | default 5 }}
+      interval: {{ $tm.outlierDetection.interval | default "30s" }}
+      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime | default "30s" }}
+      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent | default 10 }}
     tls:
-      mode: {{ if .Values.mesh.mtls.enabled }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
+      mode: {{ if .Values.mesh.security.mtls.mode }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: DestinationRule
@@ -40,18 +40,18 @@ spec:
   host: {{ include "orion.fullname" . }}-worker.{{ .Release.Namespace }}.svc.cluster.local
   trafficPolicy:
     loadBalancer:
-      simple: {{ $tm.loadBalancer.simple }}
+      simple: {{ $tm.loadBalancer.simple | default "ROUND_ROBIN" }}
     connectionPool:
       tcp:
-        maxConnections: {{ $tm.circuitBreakers.maxConnections }}
+        maxConnections: {{ $tm.circuitBreakers.maxConnections | default 100 }}
       http:
-        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests }}
-        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection }}
+        http1MaxPendingRequests: {{ $tm.circuitBreakers.maxPendingRequests | default 10 }}
+        maxRequestsPerConnection: {{ $tm.circuitBreakers.maxRequestsPerConnection | default 10 }}
     outlierDetection:
-      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors }}
-      interval: {{ $tm.outlierDetection.interval }}
-      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime }}
-      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent }}
+      consecutive5xxErrors: {{ $tm.outlierDetection.consecutiveErrors | default 5 }}
+      interval: {{ $tm.outlierDetection.interval | default "30s" }}
+      baseEjectionTime: {{ $tm.outlierDetection.baseEjectionTime | default "30s" }}
+      maxEjectionPercent: {{ $tm.outlierDetection.maxEjectionPercent | default 10 }}
     tls:
-      mode: {{ if .Values.mesh.mtls.enabled }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
+      mode: {{ if .Values.mesh.security.mtls.mode }}ISTIO_MUTUAL{{ else }}DISABLE{{ end }}
 {{- end }}

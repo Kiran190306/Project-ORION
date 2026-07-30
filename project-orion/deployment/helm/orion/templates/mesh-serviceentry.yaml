@@ -1,5 +1,4 @@
 {{- if .Values.mesh.enabled }}
-{{- if .Values.mesh.mtls.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: ServiceEntry
 metadata:
@@ -10,7 +9,7 @@ metadata:
     app.kubernetes.io/component: mesh-security
 spec:
   hosts:
-    - "db.{{ .Values.region.dnsZone }}"
+    - "db.{{ .Values.region.name | default "us-east-1" }}.orion.example.com"
   ports:
     - number: 5432
       name: tcp-postgres
@@ -28,12 +27,11 @@ metadata:
     app.kubernetes.io/component: mesh-security
 spec:
   hosts:
-    - "redis.{{ .Values.region.dnsZone }}"
+    - "redis.{{ .Values.region.name | default "us-east-1" }}.orion.example.com"
   ports:
     - number: 6379
       name: tcp-redis
       protocol: TCP
   resolution: DNS
   location: MESH_EXTERNAL
-{{- end }}
-{{- end }}
+{{- end -}}

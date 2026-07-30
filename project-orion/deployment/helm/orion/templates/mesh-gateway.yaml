@@ -1,4 +1,4 @@
-{{- if and .Values.mesh.enabled .Values.mesh.ingressGateway.enabled }}
+{{- if .Values.mesh.enabled }}
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
 metadata:
@@ -9,14 +9,14 @@ metadata:
     app.kubernetes.io/component: mesh-gateway
 spec:
   selector:
-    istio: {{ include "orion.fullname" . }}-ingressgateway
+    istio: {{ .Values.mesh.gateway.selector | default "ingressgateway" }}
   servers:
     - port:
         number: 80
         name: http
         protocol: HTTP
       hosts:
-        - {{ .Values.ingress.host }}
+        - {{ .Values.ingress.host | default "api.orion.example.com" }}
       tls:
         httpsRedirect: true
     - port:
@@ -24,10 +24,10 @@ spec:
         name: https
         protocol: HTTPS
       hosts:
-        - {{ .Values.ingress.host }}
+        - {{ .Values.ingress.host | default "api.orion.example.com" }}
       tls:
         mode: SIMPLE
-        credentialName: {{ .Values.ingress.tls.secretName }}
+        credentialName: {{ .Values.ingress.tls.secretName | default "orion-tls" }}
 ---
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -67,4 +67,4 @@ spec:
             host: {{ include "orion.fullname" . }}-metrics
             port:
               number: {{ .Values.monitoring.metricsPort }}
-{{- end }}
+{{- end -}}

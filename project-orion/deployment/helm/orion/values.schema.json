@@ -1,0 +1,838 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "ORION Enterprise Helm Chart Values",
+  "description": "JSON Schema validation for ORION Enterprise Trading Platform Helm Chart values.yaml",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "global": {
+      "type": "object",
+      "description": "Global settings applied across all components",
+      "additionalProperties": false,
+      "properties": {
+        "serviceName": {
+          "type": "string",
+          "description": "Service name used for resource naming and labels",
+          "default": "orion"
+        },
+        "environment": {
+          "type": "string",
+          "description": "Deployment environment",
+          "enum": ["development", "staging", "production"],
+          "default": "production"
+        },
+        "version": {
+          "type": "string",
+          "description": "Application version",
+          "default": "0.12.0"
+        },
+        "imageRegistry": {
+          "type": "string",
+          "description": "Container image registry",
+          "default": "docker.io/orion"
+        },
+        "imagePullPolicy": {
+          "type": "string",
+          "description": "Default image pull policy",
+          "enum": ["Always", "IfNotPresent", "Never"],
+          "default": "IfNotPresent"
+        }
+      },
+      "required": ["serviceName", "environment"]
+    },
+    "images": {
+      "type": "object",
+      "description": "Container image configuration per component",
+      "additionalProperties": false,
+      "properties": {
+        "api": {
+          "type": "object",
+          "description": "API server image configuration",
+          "additionalProperties": false,
+          "properties": {
+            "repository": { "type": "string", "description": "Image repository name" },
+            "tag": { "type": "string", "description": "Image tag" },
+            "pullPolicy": {
+              "type": "string",
+              "enum": ["Always", "IfNotPresent", "Never"],
+              "description": "Image pull policy"
+            }
+          },
+          "required": ["repository", "tag"]
+        },
+        "worker": {
+          "type": "object",
+          "description": "Worker image configuration",
+          "additionalProperties": false,
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "required": ["repository", "tag"]
+        },
+        "scheduler": {
+          "type": "object",
+          "description": "Scheduler image configuration",
+          "additionalProperties": false,
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          },
+          "required": ["repository", "tag"]
+        }
+      },
+      "required": ["api", "worker", "scheduler"]
+    },
+    "serviceAccount": {
+      "type": "object",
+      "description": "Top-level Kubernetes ServiceAccount configuration (used by all components)",
+      "additionalProperties": false,
+      "properties": {
+        "create": { "type": "boolean", "description": "Create a dedicated ServiceAccount", "default": true },
+        "name": { "type": "string", "description": "ServiceAccount name (defaults to fullname)", "default": "" },
+        "annotations": {
+          "type": "object",
+          "description": "Annotations for the ServiceAccount",
+          "default": {}
+        }
+      },
+      "required": ["create"]
+    },
+    "api": {
+      "type": "object",
+      "description": "API server component configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "replicas": { "type": "integer", "minimum": 1, "maximum": 100, "default": 3 },
+        "uid": { "type": "integer", "minimum": 1000, "maximum": 65535, "default": 10001 },
+        "service": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"], "default": "ClusterIP" },
+            "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 80 },
+            "targetPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 8080 },
+            "grpcPort": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 50051 },
+            "annotations": { "type": "object", "default": {} }
+          },
+          "required": ["port", "targetPort"]
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource requests and limits",
+          "additionalProperties": false,
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            }
+          }
+        },
+        "autoscaling": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "minReplicas": { "type": "integer", "minimum": 1, "default": 3 },
+            "maxReplicas": { "type": "integer", "minimum": 1, "maximum": 100, "default": 10 },
+            "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100, "default": 70 },
+            "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "minAvailable": { "type": "integer", "minimum": 0, "default": 2 }
+          }
+        },
+        "nodeSelector": { "type": "object", "default": {} },
+        "tolerations": { "type": "array", "default": [] },
+        "affinity": { "type": "object", "default": {} }
+      },
+      "required": ["enabled"]
+    },
+    "worker": {
+      "type": "object",
+      "description": "Worker component configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "replicas": { "type": "integer", "minimum": 1, "maximum": 100, "default": 2 },
+        "uid": { "type": "integer", "minimum": 1000, "maximum": 65535, "default": 10002 },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            }
+          }
+        },
+        "autoscaling": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "minReplicas": { "type": "integer", "minimum": 1, "default": 2 },
+            "maxReplicas": { "type": "integer", "minimum": 1, "maximum": 100, "default": 8 },
+            "targetCPUUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100, "default": 75 },
+            "targetMemoryUtilizationPercentage": { "type": "integer", "minimum": 1, "maximum": 100, "default": 80 }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "minAvailable": { "type": "integer", "minimum": 0, "default": 1 }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "size": { "type": "string", "pattern": "^[0-9]+(Gi|Ti)$", "default": "50Gi" },
+            "storageClass": { "type": "string", "default": "gp3" }
+          }
+        },
+        "nodeSelector": { "type": "object", "default": {} },
+        "tolerations": { "type": "array", "default": [] }
+      },
+      "required": ["enabled"]
+    },
+    "scheduler": {
+      "type": "object",
+      "description": "Scheduler component configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "replicas": { "type": "integer", "minimum": 1, "maximum": 10, "default": 1 },
+        "uid": { "type": "integer", "minimum": 1000, "maximum": 65535, "default": 10003 },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false }
+          }
+        },
+        "nodeSelector": { "type": "object", "default": {} },
+        "tolerations": { "type": "array", "default": [] }
+      },
+      "required": ["enabled"]
+    },
+    "ingress": {
+      "type": "object",
+      "description": "Ingress controller configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "className": { "type": "string", "default": "nginx" },
+        "host": { "type": "string", "format": "hostname", "default": "api.orion.example.com" },
+        "annotations": { "type": "object", "default": {} },
+        "tls": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "secretName": { "type": "string", "default": "orion-tls" }
+          }
+        }
+      },
+      "required": ["enabled"]
+    },
+    "networkPolicy": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true }
+      }
+    },
+    "config": {
+      "type": "object",
+      "description": "Application configuration settings",
+      "additionalProperties": false,
+      "properties": {
+        "logLevel": { "type": "string", "enum": ["debug", "info", "warn", "error"], "default": "info" },
+        "logFormat": { "type": "string", "enum": ["json", "text"], "default": "json" },
+        "metricsEnabled": { "type": "boolean", "default": true },
+        "tracingEnabled": { "type": "boolean", "default": true },
+        "tracingExporter": { "type": "string", "default": "grpc" },
+        "healthCheckInterval": { "type": "integer", "minimum": 5, "maximum": 300, "default": 30 },
+        "dbPoolSize": { "type": "integer", "minimum": 1, "maximum": 200, "default": 20 },
+        "dbMaxOverflow": { "type": "integer", "minimum": 0, "maximum": 400, "default": 40 },
+        "redisPoolSize": { "type": "integer", "minimum": 1, "maximum": 200, "default": 10 },
+        "cacheTtlSeconds": { "type": "integer", "minimum": 0, "maximum": 86400, "default": 300 },
+        "rateLimitRequests": { "type": "integer", "minimum": 1, "default": 1000 },
+        "rateLimitWindow": { "type": "integer", "minimum": 1, "default": 60 }
+      }
+    },
+    "secrets": {
+      "type": "object",
+      "description": "Secret configuration. When external=false, all password fields are REQUIRED",
+      "additionalProperties": false,
+      "properties": {
+        "external": { "type": "boolean", "description": "Use external secret management (external-secrets, SealedSecrets)", "default": false },
+        "dbPassword": { "type": ["string", "null"], "description": "Database password (required when secrets.external=false)" },
+        "redisPassword": { "type": ["string", "null"], "description": "Redis password (required when secrets.external=false)" },
+        "apiKey": { "type": ["string", "null"], "description": "API key for external services (required when secrets.external=false)" },
+        "jwtSecret": { "type": ["string", "null"], "description": "JWT signing secret (required when secrets.external=false)" },
+        "encryptionKey": { "type": ["string", "null"], "description": "Encryption key for sensitive data (required when secrets.external=false)" },
+        "secretStoreRef": {
+          "type": "object",
+          "description": "Reference to an external secret store",
+          "properties": {
+            "name": { "type": "string" },
+            "kind": { "type": "string", "enum": ["SecretStore", "ClusterSecretStore"] }
+          }
+        }
+      }
+    },
+    "rbac": {
+      "type": "object",
+      "description": "RBAC configuration",
+      "additionalProperties": false,
+      "properties": {
+        "create": { "type": "boolean", "default": true },
+        "clusterRole": { "type": "boolean", "default": true }
+      }
+    },
+    "namespace": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": { "type": "boolean", "default": true },
+        "name": { "type": "string", "default": "orion" }
+      }
+    },
+    "resourceQuota": {
+      "type": "object",
+      "properties": { "enabled": { "type": "boolean", "default": true } }
+    },
+    "limitRange": {
+      "type": "object",
+      "properties": { "enabled": { "type": "boolean", "default": true } }
+    },
+    "priorityClasses": {
+      "type": "object",
+      "properties": { "enabled": { "type": "boolean", "default": true } }
+    },
+    "monitoring": {
+      "type": "object",
+      "description": "Monitoring and metrics configuration",
+      "additionalProperties": false,
+      "properties": {
+        "metricsPort": { "type": "integer", "minimum": 1024, "maximum": 65535, "default": 9090 },
+        "prometheusAnnotations": { "type": "boolean", "default": true },
+        "serviceMonitor": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "interval": { "type": "string", "default": "30s" },
+            "scrapeTimeout": { "type": "string", "default": "10s" }
+          }
+        }
+      }
+    },
+    "patroni": {
+      "type": "object",
+      "description": "Patroni PostgreSQL HA cluster configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "replicas": { "type": "integer", "minimum": 1, "maximum": 9, "default": 3 },
+        "scope": { "type": "string", "default": "orion" },
+        "restapiPort": { "type": "integer", "default": 8008 },
+        "ttl": { "type": "integer", "minimum": 5, "maximum": 300, "default": 30 },
+        "loopWait": { "type": "integer", "minimum": 1, "maximum": 60, "default": 10 },
+        "retryTimeout": { "type": "integer", "minimum": 1, "maximum": 60, "default": 10 },
+        "maxLagOnFailover": { "type": "integer", "minimum": 1, "default": 1048576 },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "storage": { "type": "string", "pattern": "^[0-9]+(Gi|Ti)$", "default": "100Gi" },
+        "storageClass": { "type": "string", "default": "gp3" },
+        "etcdHosts": { "type": "array", "items": { "type": "string" } },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "maxUnavailable": { "type": "integer", "minimum": 0, "default": 1 }
+          }
+        }
+      }
+    },
+    "redis": {
+      "type": "object",
+      "description": "Redis HA cluster configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "replicas": { "type": "integer", "minimum": 1, "maximum": 9, "default": 3 },
+        "maxmemory": { "type": "string", "pattern": "^[0-9]+(mb|gb|Mb|Gb)$", "default": "512mb" },
+        "image": {
+          "type": "object",
+          "properties": {
+            "repository": { "type": "string" },
+            "tag": { "type": "string" },
+            "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+          }
+        },
+        "storage": { "type": "string", "pattern": "^[0-9]+(Gi|Ti)$", "default": "10Gi" },
+        "storageClass": { "type": "string", "default": "gp3" },
+        "resources": {
+          "type": "object",
+          "properties": {
+            "requests": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            },
+            "limits": {
+              "type": "object",
+              "properties": {
+                "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+              }
+            }
+          }
+        },
+        "pdb": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "maxUnavailable": { "type": "integer", "minimum": 0, "default": 1 }
+          }
+        },
+        "sentinel": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "replicas": { "type": "integer", "minimum": 1, "maximum": 9, "default": 3 },
+            "resources": {
+              "type": "object",
+              "properties": {
+                "requests": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                    "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+                  }
+                },
+                "limits": {
+                  "type": "object",
+                  "properties": {
+                    "cpu": { "type": "string", "pattern": "^[0-9]+m?$" },
+                    "memory": { "type": "string", "pattern": "^[0-9]+(Mi|Gi)$" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mesh": {
+      "type": "object",
+      "description": "Istio service mesh configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "namespace": { "type": "string", "default": "orion-mesh" },
+        "injection": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "label": { "type": "string", "default": "istio-injection" },
+            "value": { "type": "string", "default": "enabled" }
+          }
+        },
+        "trafficManagement": {
+          "type": "object",
+          "properties": {
+            "retries": {
+              "type": "object",
+              "properties": {
+                "attempts": { "type": "integer", "minimum": 0, "default": 3 },
+                "perTryTimeout": { "type": "string", "default": "5s" }
+              }
+            },
+            "timeout": { "type": "string", "default": "30s" },
+            "loadBalancer": {
+              "type": "object",
+              "properties": {
+                "simple": { "type": "string", "default": "ROUND_ROBIN" }
+              }
+            },
+            "circuitBreakers": {
+              "type": "object",
+              "properties": {
+                "maxConnections": { "type": "integer", "minimum": 1, "default": 100 },
+                "maxPendingRequests": { "type": "integer", "minimum": 1, "default": 10 },
+                "maxRequestsPerConnection": { "type": "integer", "minimum": 1, "default": 10 },
+                "maxRetries": { "type": "integer", "minimum": 0, "default": 3 }
+              }
+            },
+            "outlierDetection": {
+              "type": "object",
+              "properties": {
+                "consecutiveErrors": { "type": "integer", "minimum": 1, "default": 5 },
+                "interval": { "type": "string", "default": "30s" },
+                "baseEjectionTime": { "type": "string", "default": "30s" },
+                "maxEjectionPercent": { "type": "integer", "minimum": 0, "maximum": 100, "default": 10 }
+              }
+            }
+          }
+        },
+        "security": {
+          "type": "object",
+          "properties": {
+            "mtls": {
+              "type": "object",
+              "properties": {
+                "mode": { "type": "string", "enum": ["STRICT", "PERMISSIVE", "DISABLE"], "default": "STRICT" }
+              }
+            },
+            "jwt": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": true },
+                "issuer": { "type": "string", "default": "https://auth.orion.example.com" },
+                "audiences": { "type": "array", "items": { "type": "string" } },
+                "jwksUri": { "type": "string", "default": "https://auth.orion.example.com/.well-known/jwks.json" },
+                "forwardOriginalToken": { "type": "boolean", "default": true }
+              }
+            }
+          }
+        },
+        "tracing": {
+          "type": "object",
+          "properties": {
+            "sampling": { "type": "integer", "minimum": 0, "maximum": 100, "default": 100 },
+            "address": { "type": "string", "default": "jaeger-collector.orion-mesh.svc.cluster.local:4317" }
+          }
+        },
+        "gateway": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "hosts": { "type": "array", "items": { "type": "string" } },
+            "port": { "type": "integer", "default": 443 }
+          }
+        },
+        "serviceEntries": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": false },
+            "entries": { "type": "array", "default": [] }
+          }
+        },
+        "telemetry": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "tracing": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": true },
+                "sampleRate": { "type": "number", "minimum": 0, "maximum": 1, "default": 1.0 }
+              }
+            },
+            "metrics": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": true }
+              }
+            },
+            "kiali": {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean", "default": false },
+                "dashboardPort": { "type": "integer", "default": 20001 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "dns": {
+      "type": "object",
+      "description": "DNS health check configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "host": { "type": "string" },
+              "type": { "type": "string", "default": "A" }
+            }
+          }
+        }
+      }
+    },
+    "certManager": {
+      "type": "object",
+      "description": "cert-manager configuration for TLS certificates",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "clusterIssuer": { "type": "string", "default": "letsencrypt-prod" },
+        "acmeServer": { "type": "string", "default": "https://acme-v02.api.letsencrypt.org/directory" },
+        "acmeEmail": { "type": "string", "format": "email", "default": "admin@orion.example.com" },
+        "wildcardSecretName": { "type": "string", "default": "orion-wildcard-tls" },
+        "additionalDNSNames": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "certificates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "secretName": { "type": "string" },
+              "dnsNames": { "type": "array", "items": { "type": "string" } },
+              "issuerRef": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "kind": { "type": "string", "enum": ["Issuer", "ClusterIssuer"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "externalSecrets": {
+      "type": "object",
+      "description": "External Secrets Operator configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "stores": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "provider": { "type": "string", "enum": ["aws", "vault"] },
+              "region": { "type": "string" },
+              "vault": {
+                "type": "object",
+                "properties": {
+                  "server": { "type": "string" },
+                  "path": { "type": "string" },
+                  "version": { "type": "string" },
+                  "mountPath": { "type": "string" },
+                  "role": { "type": "string" },
+                  "auth": {
+                    "type": "object",
+                    "properties": {
+                      "tokenSecretRef": {
+                        "type": "object",
+                        "properties": {
+                          "name": { "type": "string" },
+                          "key": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "secrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "refreshInterval": { "type": "string" },
+              "storeRef": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "kind": { "type": "string" }
+                }
+              },
+              "target": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "creationPolicy": { "type": "string" }
+                }
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "secretKey": { "type": "string" },
+                    "remoteRef": {
+                      "type": "object",
+                      "properties": {
+                        "key": { "type": "string" },
+                        "property": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              },
+              "remoteKeys": {
+                "type": "array",
+                "description": "Alternative format for remote key references (legacy support)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": { "type": "string" },
+                    "remoteRef": { "type": "string" },
+                    "property": { "type": "string" }
+                  }
+                }
+              },
+              "targetSecretName": {
+                "type": "string",
+                "description": "Legacy field - use target.name instead"
+              }
+            }
+          }
+        }
+      }
+    },
+    "argocd": {
+      "type": "object",
+      "description": "ArgoCD ApplicationSet configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "project": { "type": "string", "default": "orion" },
+        "syncPolicy": {
+          "type": "object",
+          "properties": {
+            "automated": {
+              "type": "object",
+              "properties": {
+                "prune": { "type": "boolean", "default": true },
+                "selfHeal": { "type": "boolean", "default": true },
+                "allowEmpty": { "type": "boolean", "default": false }
+              }
+            },
+            "syncOptions": {
+              "type": "array",
+              "items": { "type": "string" },
+              "default": ["CreateNamespace=true", "PruneLast=true"]
+            }
+          }
+        },
+        "destination": {
+          "type": "object",
+          "properties": {
+            "server": { "type": "string", "default": "https://kubernetes.default.svc" }
+          }
+        },
+        "sourceRepoURL": { "type": "string", "description": "Git repository URL for ArgoCD Application sources" },
+        "sourceTargetRevision": { "type": "string", "description": "Git target revision/branch for ArgoCD sources", "default": "main" },
+        "sourcePath": { "type": "string", "description": "Path within git repo for Helm chart", "default": "deployment/helm/orion" },
+        "destinationServer": { "type": "string", "description": "Destination Kubernetes API server URL", "default": "https://kubernetes.default.svc" }
+      }
+    },
+    "vpa": {
+      "type": "object",
+      "description": "Vertical Pod Autoscaler configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "updateMode": { "type": "string", "enum": ["Auto", "Initial", "Off"], "default": "Auto" },
+        "controlledResources": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["cpu", "memory"] },
+          "default": ["cpu", "memory"]
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "description": "Multi-region deployment configuration",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "name": { "type": "string", "default": "us-east-1" },
+        "dnsZone": { "type": "string", "description": "DNS zone for region-specific ingress" },
+        "zones": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["us-east-1a", "us-east-1b", "us-east-1c"]
+        }
+      }
+    }
+  },
+  "required": ["global", "images", "serviceAccount", "api", "config", "secrets"]
+}
+
