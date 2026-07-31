@@ -1,7 +1,7 @@
 """Immutable data models for the Strategy Abstraction Layer.
 
 Defines broker-agnostic representations of trading signals, orders,
-positions, trades, and strategy definitions.
+positions, trades, strategy definitions, and execution decisions.
 """
 
 from __future__ import annotations
@@ -82,6 +82,23 @@ class StrategyStatus(StrEnum):
     STOPPED = "stopped"
     ARCHIVED = "archived"
     FAILED = "failed"
+
+
+class ExecutionAction(StrEnum):
+    """Action to execute based on a strategy decision."""
+
+    ENTER_LONG = "enter_long"
+    ENTER_SHORT = "enter_short"
+    EXIT_LONG = "exit_long"
+    EXIT_SHORT = "exit_short"
+    HOLD = "hold"
+    ADJUST_STOP = "adjust_stop"
+    ADJUST_TARGET = "adjust_target"
+
+
+# ---------------------------------------------------------------------------
+# Existing models (preserved from Sprint-1)
+# ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True, slots=True)
@@ -203,3 +220,110 @@ class StrategyDefinition:
     allocation: AssetAllocation | None = None
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+# ---------------------------------------------------------------------------
+# Sprint-2: New models
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class OrderIntent:
+    """Intent to place an order, before risk checks and execution.
+
+    Represents what a strategy *wants* to do. The execution engine
+    validates this against risk limits before converting to an
+    OrderRequest.
+    """
+
+    strategy_id: str
+    symbol: str
+    action: ExecutionAction
+    quantity: Decimal
+    limit_price: Decimal | None = None
+    stop_price: Decimal | None = None
+    time_in_force: str = "gtc"
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    signal_id: str = ""
+    reason: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class PositionIntent:
+    """Desired position state after execution.
+
+    Defines the target position a strategy wants to achieve,
+    including risk management parameters.
+    """
+
+    strategy_id: str
+    symbol: str
+    side: PositionSide
+    target_quantity: Decimal
+    stop_loss: Decimal | None = None
+    take_profit: Decimal | None = None
+    max_risk: Decimal | None = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    reason: str = ""
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class StrategyContext:
+    """Contextual information available to a strategy during evaluation.
+
+    Provides market data, current positions, and account state
+    without exposing infrastructure details.
+    """
+
+    strategy_id: str
+    symbol: str
+    current_price: Decimal
+    position: Position | None = None
+    account_equity: Decimal = Decimal("0")
+    account_balance: Decimal = Decimal("0")
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class StrategyResult:
+    """Result of a single strategy evaluation cycle.
+
+    Contains the generated signal, order intent, and any
+    diagnostic information from the evaluation.
+    """
+
+    strategy_id: str
+    symbol: str
+    signal: Signal | None = None
+    order_intent: OrderIntent | None = None
+    position_intent: PositionIntent | None = None
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionDecision:
+    """Final execution decision after all risk and validation checks.
+
+    This is the output of the strategy pipeline, ready for
+    the execution engine to process.
+    """
+
+    strategy_id: str
+    symbol: str
+    action: ExecutionAction
+    quantity: Decimal
+    order_type: OrderType
+    limit_price: Decimal | None = None
+    stop_price: Decimal | None = None
+    time_in_force: str = "gtc"
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    signal_id: str = ""
+    reason: str = ""
+    risk_approved: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
