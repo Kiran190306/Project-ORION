@@ -53,7 +53,8 @@ class HistoricalDataProviderPort(Protocol):
             Dict with keys like timestamp, open, high, low, close, volume.
         """
         ...  # pragma: no cover
-        yield  # pragma: no cover
+        if False:  # pragma: no cover
+            yield {}  # pragma: no cover
 
     async def validate_data(self, symbol: str, timeframe: str) -> bool:
         """Check if data is available and valid for the given parameters.

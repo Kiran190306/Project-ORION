@@ -127,7 +127,7 @@ class WalkForwardAnalyzer:
     async def execute(
         self,
         train_func: Callable[[date, date], Any],
-        validate_func: Callable[[Any, date, date], dict[str, Any]],
+        validate_func: Callable[[Any, date, date], Any],
     ) -> list[WalkForwardResult]:
         """Execute walk-forward analysis.
 
@@ -196,7 +196,7 @@ class WalkForwardAnalyzer:
             if "max_drawdown_pct" in r.parameters
         ]
 
-        def mean(vals):
+        def mean(vals: list[float]) -> float:
             return sum(vals) / len(vals) if vals else 0.0
 
         return {
