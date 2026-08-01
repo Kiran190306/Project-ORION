@@ -183,6 +183,29 @@ from libraries.domain.backtesting.statistics import (
     TradeStatistics,
 )
 from libraries.domain.backtesting.swap_model import SwapModel, SwapModelConfig
+from libraries.domain.backtesting.benchmark import (
+    BenchmarkComparator,
+    BenchmarkComparisonConfig,
+    BenchmarkStatistics,
+)
+from libraries.domain.backtesting.validation import (
+    detect_duplicate_execution,
+    validate_backtest_operation,
+    validate_cash_balance,
+    validate_currency,
+    validate_currency_consistency,
+    validate_execution_result,
+    validate_fill_price,
+    validate_fill_quantity,
+    validate_margin_consistency,
+    validate_order_side,
+    validate_order_transition,
+    validate_order_type,
+    validate_portfolio_consistency,
+    validate_position_lifecycle,
+    validate_timestamp_not_future,
+    validate_timestamp_ordering,
+)
 from libraries.domain.backtesting.walk_forward import (
     WalkForwardAnalyzer,
     WalkForwardWindow,
@@ -328,6 +351,9 @@ __all__ = [
     "RiskMetricsCalculator",
     "ExecutionMetricsCalculator",
     "StatisticalMetricsCalculator",
+    "BenchmarkComparator",
+    "BenchmarkComparisonConfig",
+    "BenchmarkStatistics",
     "WalkForwardAnalyzer",
     "WalkForwardWindow",
     "MonteCarloSimulator",
@@ -336,6 +362,23 @@ __all__ = [
     "ParameterGrid",
     "OptimizationHook",
     "ScenarioEngine",
+    # ─── Validation ────────────────────────────────────────
+    "detect_duplicate_execution",
+    "validate_backtest_operation",
+    "validate_cash_balance",
+    "validate_currency",
+    "validate_currency_consistency",
+    "validate_execution_result",
+    "validate_fill_price",
+    "validate_fill_quantity",
+    "validate_margin_consistency",
+    "validate_order_side",
+    "validate_order_transition",
+    "validate_order_type",
+    "validate_portfolio_consistency",
+    "validate_position_lifecycle",
+    "validate_timestamp_not_future",
+    "validate_timestamp_ordering",
     # ─── Reporting Layer ───────────────────────────────────
     "JsonReportGenerator",
     "CsvReportGenerator",

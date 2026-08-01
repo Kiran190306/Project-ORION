@@ -62,18 +62,18 @@ class MeanReversionStrategy(BaseStrategy):
         mean = self._calculate_mean()
         std = self._calculate_std(mean)
 
-        if std == Decimal("0"):
+        if std == Decimal(0):
             return None
 
         z_score = (context.current_price - mean) / std
 
         if z_score <= -self._entry_threshold:
             direction = SignalDirection.BUY
-            confidence = min(float(abs(z_score) / Decimal("3")), 0.95)
+            confidence = min(float(abs(z_score) / Decimal(3)), 0.95)
             reason = f"Price below mean by {z_score:.2f} std devs"
         elif z_score >= self._entry_threshold:
             direction = SignalDirection.SELL
-            confidence = min(float(abs(z_score) / Decimal("3")), 0.95)
+            confidence = min(float(abs(z_score) / Decimal(3)), 0.95)
             reason = f"Price above mean by {z_score:.2f} std devs"
         else:
             return None
@@ -91,7 +91,7 @@ class MeanReversionStrategy(BaseStrategy):
     def _calculate_mean(self) -> Decimal:
         """Calculate the mean of recent prices."""
         recent = self._prices[-self._lookback_period:]
-        total = sum(recent, Decimal("0"))
+        total = sum(recent, Decimal(0))
         return total / Decimal(str(self._lookback_period))
 
     def _calculate_std(self, mean: Decimal) -> Decimal:

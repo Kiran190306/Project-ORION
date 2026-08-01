@@ -55,7 +55,10 @@ class TestLiquidityModel:
 
     def test_default_liquidity_score(self):
         model = LiquidityModel()
-        score = model.get_liquidity_score("EURUSD", Decimal("1"))
+        # Use deterministic timestamp during regular market hours (10 AM UTC)
+        # to avoid time-dependent failures when tests run during London/NY overlap.
+        ts = datetime(2023, 1, 1, 10, 0, tzinfo=timezone.utc)
+        score = model.get_liquidity_score("EURUSD", Decimal("1"), timestamp=ts)
         assert score == 0.8
 
     def test_custom_base_score(self):

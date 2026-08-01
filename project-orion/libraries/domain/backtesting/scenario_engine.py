@@ -7,18 +7,13 @@ news events, broker disconnects, and gap opens.
 
 from __future__ import annotations
 
-import uuid
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 from libraries.domain.backtesting.models import (
     PerformanceMetrics,
     ScenarioConfig,
     ScenarioEffect,
     ScenarioResult,
-    ScenarioType,
 )
 
 

@@ -26,7 +26,6 @@ from libraries.domain.backtesting.models import (
     FillSimulation,
     OrderSimulation,
     OrderSimulationSide,
-    OrderSimulationStatus,
     OrderSimulationType,
 )
 from libraries.domain.backtesting.slippage_model import SlippageModel, SlippageModelConfig

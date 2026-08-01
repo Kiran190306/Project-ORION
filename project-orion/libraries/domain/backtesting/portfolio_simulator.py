@@ -12,9 +12,7 @@ from decimal import Decimal
 from typing import Any
 
 from libraries.domain.backtesting.models import (
-    BalanceSnapshot,
     DrawdownSnapshot,
-    EquitySnapshot,
     ExecutionSimulationResult,
     PortfolioSnapshot,
 )

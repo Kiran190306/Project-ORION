@@ -59,7 +59,7 @@ class MomentumStrategy(BaseStrategy):
         past_price = self._prices[-(self._momentum_period + 1)]
         current_price = context.current_price
 
-        if past_price == Decimal("0"):
+        if past_price == Decimal(0):
             return None
 
         momentum = (current_price - past_price) / past_price

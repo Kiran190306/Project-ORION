@@ -6,9 +6,8 @@ anchored window walk-forward optimization methodologies.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
-from decimal import Decimal
 from typing import Any, Callable
 
 from libraries.domain.backtesting.models import WalkForwardConfig, WalkForwardResult
@@ -150,7 +149,6 @@ class WalkForwardAnalyzer:
             # Validate
             metrics = await validate_func(model, window.val_start, window.val_end)
 
-            from libraries.domain.backtesting.models import PerformanceMetrics
 
             result = WalkForwardResult(
                 window_index=window.window_index,

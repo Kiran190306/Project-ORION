@@ -91,7 +91,7 @@ class TrendFollowingStrategy(BaseStrategy):
     def _calculate_ma(self, period: int) -> Decimal:
         """Calculate simple moving average for the given period."""
         if len(self._prices) < period:
-            return Decimal("0")
+            return Decimal(0)
         recent = self._prices[-period:]
-        total = sum(recent, Decimal("0"))
+        total = sum(recent, Decimal(0))
         return total / Decimal(str(period))

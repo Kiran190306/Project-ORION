@@ -8,11 +8,10 @@ with parallel evaluation support.
 from __future__ import annotations
 
 import itertools
-import math
 import random
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from dataclasses import dataclass
+from typing import Any, Awaitable, Callable
 
 from libraries.domain.backtesting.models import (
     OptimizationAlgorithm,
@@ -46,8 +45,9 @@ class ParameterGrid:
         Returns:
             List of parameter combination dicts.
         """
-        param_values = []
+        param_values: list[list[Any]] = []
         for p in params:
+            values: list[Any] = []
             if p.param_type == "int":
                 if p.step:
                     values = list(
@@ -57,7 +57,6 @@ class ParameterGrid:
                     values = list(range(int(p.min_value or 0), int(p.max_value or 100) + 1))
             elif p.param_type == "float":
                 if p.step:
-                    values = []
                     current = p.min_value or 0.0
                     while current <= (p.max_value or 1.0):
                         values.append(round(current, 4))
@@ -101,7 +100,7 @@ class ParameterOptimizer:
     async def optimize(
         self,
         params: list[Parameter],
-        objective_func: Callable[[dict[str, Any]], dict[str, Any]],
+        objective_func: Callable[[dict[str, Any]], Awaitable[dict[str, Any]]],
     ) -> OptimizationResult:
         """Run parameter optimization.
 
@@ -123,7 +122,6 @@ class ParameterOptimizer:
 
         if algorithm_str == "grid_search":
             param_grid = ParameterGrid.generate_grid(params)
-            total = len(param_grid)
             for i, combo in enumerate(param_grid):
                 if i >= cfg.max_iterations:
                     break
@@ -181,7 +179,7 @@ class ParameterOptimizer:
         Returns:
             Random parameter combination dict.
         """
-        combo = {}
+        combo: dict[str, Any] = {}
         for p in params:
             if p.param_type == "int":
                 min_v = int(p.min_value or 0)
@@ -192,10 +190,11 @@ class ParameterOptimizer:
                 else:
                     combo[p.name] = self._random.randint(min_v, max_v)
             elif p.param_type == "float":
-                min_v = p.min_value or 0.0
-                max_v = p.max_value or 1.0
-                combo[p.name] = round(self._random.uniform(min_v, max_v), 4)
+                min_f = p.min_value or 0.0
+                max_f = p.max_value or 1.0
+                combo[p.name] = round(self._random.uniform(min_f, max_f), 4)
             elif p.param_type == "choice":
                 choices = p.choices or []
-                combo[p.name] = self._random.choice(choices) if choices else None
+                val: Any | None = self._random.choice(choices) if choices else None
+                combo[p.name] = val
         return combo

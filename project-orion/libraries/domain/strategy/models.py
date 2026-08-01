@@ -144,8 +144,8 @@ class Position:
     quantity: Decimal
     entry_price: Decimal
     current_price: Decimal
-    unrealized_pnl: Decimal = Decimal("0")
-    realized_pnl: Decimal = Decimal("0")
+    unrealized_pnl: Decimal = Decimal(0)
+    realized_pnl: Decimal = Decimal(0)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -160,9 +160,9 @@ class Trade:
     side: str
     quantity: Decimal
     price: Decimal
-    commission: Decimal = Decimal("0")
-    swap: Decimal = Decimal("0")
-    profit: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
+    swap: Decimal = Decimal(0)
+    profit: Decimal = Decimal(0)
     status: TradeStatus = TradeStatus.CLOSED
     open_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     close_time: datetime | None = None
@@ -187,9 +187,9 @@ class BacktestResult:
     total_trades: int = 0
     winning_trades: int = 0
     losing_trades: int = 0
-    total_return: Decimal = Decimal("0")
+    total_return: Decimal = Decimal(0)
     sharpe_ratio: float = 0.0
-    max_drawdown: Decimal = Decimal("0")
+    max_drawdown: Decimal = Decimal(0)
     win_rate: float = 0.0
     profit_factor: float = 0.0
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -281,8 +281,8 @@ class StrategyContext:
     symbol: str
     current_price: Decimal
     position: Position | None = None
-    account_equity: Decimal = Decimal("0")
-    account_balance: Decimal = Decimal("0")
+    account_equity: Decimal = Decimal(0)
+    account_balance: Decimal = Decimal(0)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
 

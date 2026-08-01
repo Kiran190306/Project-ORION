@@ -11,12 +11,12 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Callable
+from typing import Any
 
 from libraries.domain.backtesting.event_scheduler import EventScheduler, ScheduledEvent
 from libraries.domain.backtesting.exceptions import ReplayError, ReplaySeekError, ReplayStateError
 from libraries.domain.backtesting.historical_data import HistoricalDataProvider
-from libraries.domain.backtesting.models import ReplayConfig, ReplayMode, ReplayState, Timeframe
+from libraries.domain.backtesting.models import ReplayMode, ReplayState, Timeframe
 
 
 @dataclass(frozen=True, slots=True)

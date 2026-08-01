@@ -7,9 +7,8 @@ and symbol-specific liquidity scores.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
@@ -72,16 +71,18 @@ class LiquidityModel:
             decay = cfg.liquidity_decay_factor**excess_lots
             score *= decay
 
-        # Time-based liquidity adjustment (simplified)
-        ts = timestamp or datetime.now(timezone.utc)
-        hour = ts.hour
-        # Lower liquidity during Asian session, higher during London/NY overlap
-        if 0 <= hour < 7:
-            score *= 0.7
-        elif 13 <= hour < 17:
-            score *= 1.2
-        elif 17 <= hour < 21:
-            score *= 0.85
+        # Time-based liquidity adjustment only applies when an explicit
+        # timestamp is provided. Without one, the score is deterministic
+        # and independent of wall-clock time.
+        if timestamp is not None:
+            hour = timestamp.hour
+            # Lower liquidity during Asian session, higher during London/NY overlap
+            if 0 <= hour < 7:
+                score *= 0.7
+            elif 13 <= hour < 17:
+                score *= 1.2
+            elif 17 <= hour < 21:
+                score *= 0.85
 
         # Ensure minimum
         if score < cfg.min_liquidity_score:

@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass, field
 from typing import Any
 
 from libraries.domain.backtesting.models import MonteCarloConfig, MonteCarloResult
@@ -255,7 +254,7 @@ class MonteCarloSimulator:
         std_val = math.sqrt(variance) if variance > 0 else 0.0
         pct_positive = sum(1 for x in sorted_outcomes if x > 0) / n
 
-        def percentile(sorted_data, p):
+        def percentile(sorted_data: list[float], p: float) -> float:
             idx = int(len(sorted_data) * p / 100)
             return sorted_data[min(idx, len(sorted_data) - 1)]
 

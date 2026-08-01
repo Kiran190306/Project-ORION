@@ -11,8 +11,6 @@ Calculates comprehensive performance metrics including:
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -25,9 +23,6 @@ from libraries.domain.backtesting.models import (
 )
 from libraries.domain.backtesting.statistics import (
     ExecutionStatisticsResult,
-    PortfolioStatisticsResult,
-    RiskStatisticsResult,
-    TradeStatisticsResult,
 )
 
 
@@ -87,7 +82,6 @@ class PortfolioMetricsCalculator:
             if initial_balance > 0
             else 0.0
         )
-        peak = max(equity_curve)
 
         return PortfolioMetrics(
             return_pct=round(total_return_pct, 2),
@@ -154,7 +148,6 @@ class RiskMetricsCalculator:
         sortino = self.calculate_sortino_ratio(returns, risk_free_rate)
 
         if equity_curve and len(equity_curve) > 1:
-            peak = max(equity_curve)
             total_return = (
                 ((equity_curve[-1] - equity_curve[0]) / equity_curve[0]) * 100
                 if equity_curve[0] > 0
@@ -262,7 +255,6 @@ class PerformanceEngine:
                 returns.append((equity_curve[i] - equity_curve[i - 1]) / equity_curve[i - 1])
 
         risk_metrics = self._risk_calc.calculate(returns, equity_curve)
-        ulcer_index = self._statistical_calc.calculate_ulcer_index(equity_curve)
 
         return PerformanceMetrics(
             trade_metrics=trade_metrics,

@@ -11,7 +11,7 @@ Coordinates the full backtesting pipeline:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import Any, Callable
@@ -24,9 +24,6 @@ from libraries.domain.backtesting.historical_data import HistoricalDataProvider
 from libraries.domain.backtesting.models import (
     BacktestConfig,
     BacktestResult,
-    EquitySnapshot,
-    ExecutionSimulationResult,
-    PerformanceMetrics,
     ReplayMode,
     Timeframe,
 )

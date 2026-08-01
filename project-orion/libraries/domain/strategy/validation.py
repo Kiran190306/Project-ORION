@@ -19,17 +19,16 @@ from libraries.domain.strategy.models import (
     Signal,
 )
 
-
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
 
 _MIN_CONFIDENCE = 0.0
 _MAX_CONFIDENCE = 1.0
-_MIN_POSITION_SIZE = Decimal("0")
-_MAX_POSITION_SIZE = Decimal("999999999")
+_MIN_POSITION_SIZE = Decimal(0)
+_MAX_POSITION_SIZE = Decimal(999999999)
 _MIN_RISK_REWARD_RATIO = Decimal("0.01")
-_MAX_RISK_REWARD_RATIO = Decimal("100")
+_MAX_RISK_REWARD_RATIO = Decimal(100)
 
 
 # ---------------------------------------------------------------------------
@@ -125,7 +124,7 @@ def validate_risk_reward_ratio(
     risk = abs(entry_price - stop_loss)
     reward = abs(take_profit - entry_price)
 
-    if risk <= Decimal("0"):
+    if risk <= Decimal(0):
         raise InvalidRiskRewardError("Risk must be positive")
 
     ratio = reward / risk
@@ -211,7 +210,7 @@ def validate_position_intent(intent: PositionIntent) -> PositionIntent:
         validate_stop_loss_take_profit(
             stop_loss=intent.stop_loss,
             take_profit=intent.take_profit,
-            entry_price=Decimal("0"),  # Will be set at execution
+            entry_price=Decimal(0),  # Will be set at execution
             side=intent.side.value,
         )
 

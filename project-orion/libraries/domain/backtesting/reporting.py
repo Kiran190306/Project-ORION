@@ -15,11 +15,9 @@ from typing import Any
 
 from libraries.domain.backtesting.models import (
     EquitySnapshot,
-    MonteCarloResult,
     PerformanceMetrics,
     PortfolioSnapshot,
     ScenarioResult,
-    WalkForwardResult,
 )
 
 

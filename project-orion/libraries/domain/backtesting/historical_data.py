@@ -9,18 +9,15 @@ from __future__ import annotations
 
 import abc
 import csv
-import io
-from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, AsyncIterator
 
 from libraries.domain.backtesting.exceptions import (
-    DataCorruptionError,
     DataFormatError,
     DataNotFoundError,
 )
-from libraries.domain.backtesting.models import HistoricalDataSource, Timeframe
+from libraries.domain.backtesting.models import Timeframe
 
 
 class HistoricalDataProvider(abc.ABC):

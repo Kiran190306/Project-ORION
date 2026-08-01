@@ -9,12 +9,10 @@ from __future__ import annotations
 from typing import Any, AsyncIterator, Protocol, runtime_checkable
 
 from libraries.domain.backtesting.models import (
-    BacktestConfig,
     BacktestEvent,
     BacktestEventType,
     BacktestRunRecord,
     ExecutionSimulationResult,
-    MarketEvent,
     OrderSimulation,
     PerformanceMetrics,
     PortfolioSnapshot,

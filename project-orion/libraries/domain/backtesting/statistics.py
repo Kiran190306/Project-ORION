@@ -6,10 +6,7 @@ statistics used for performance evaluation and reporting.
 
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from decimal import Decimal
+from dataclasses import dataclass
 from typing import Any
 
 from libraries.domain.backtesting.models import (

@@ -6,7 +6,6 @@ backtesting engine and its components.
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any

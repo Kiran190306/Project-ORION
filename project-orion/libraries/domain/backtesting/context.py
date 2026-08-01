@@ -13,7 +13,6 @@ from typing import Any
 
 from libraries.domain.backtesting.models import (
     BacktestConfig,
-    BacktestEvent,
     PortfolioSnapshot,
     ReplayConfig,
     ReplayState,

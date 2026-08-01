@@ -136,7 +136,7 @@ class BaseStrategy(ABC):
 
         try:
             signal = await self.generate_signal(context)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - intentional: any signal-generation failure becomes a StrategyResult error
             errors.append(f"Signal generation failed: {e}")
             return StrategyResult(
                 strategy_id=self.strategy_id,
@@ -182,7 +182,6 @@ class BaseStrategy(ABC):
         Args:
             decision: The execution decision that was filled.
         """
-        pass
 
     async def on_error(self, error: Exception) -> None:
         """Called when an error occurs during strategy execution.
@@ -192,7 +191,6 @@ class BaseStrategy(ABC):
         Args:
             error: The exception that occurred.
         """
-        pass
 
     # ------------------------------------------------------------------
     # Abstract methods
@@ -240,7 +238,7 @@ class BaseStrategy(ABC):
             strategy_id=self.strategy_id,
             symbol=signal.symbol,
             side=side,
-            target_quantity=Decimal("1000"),
+            target_quantity=Decimal(1000),
             reason=signal.reason,
         )
 
@@ -300,7 +298,6 @@ class BaseStrategy(ABC):
         Raises:
             StrategyExecutionError: If parameters are invalid.
         """
-        pass
 
     def _check_symbol_supported(self, symbol: str) -> None:
         """Check if a symbol is supported by this strategy.
