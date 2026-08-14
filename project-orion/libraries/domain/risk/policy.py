@@ -13,8 +13,7 @@ from __future__ import annotations
 import asyncio
 import math
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
@@ -466,11 +465,12 @@ class MaximumExposurePolicy(BaseRiskPolicy):
         if context.portfolio_risk is not None:
             total_exposure = float(context.portfolio_risk.gross_exposure)
         elif context.account_balance > 0:
+            # Include the pending/current trade notional so that exposure from
+            # the trade being evaluated is also accounted for.
+            pending_notional = float(context.notional_value or 0)
             total_exposure = (
-                float(sum(p.notional_value for p in context.current_positions))
-                / float(context.account_balance)
-                * 100.0
-            )
+                float(sum(p.notional_value for p in context.current_positions)) + pending_notional
+            ) / float(context.account_balance) * 100.0
         else:
             return await self._record_result(self._make_result(True, 100.0, "No exposure data"))
 
@@ -559,29 +559,44 @@ class MaximumCurrencyExposurePolicy(BaseRiskPolicy):
                 self._make_result(True, 100.0, "Currency exposure check disabled")
             )
 
-        if context.portfolio_risk and context.portfolio_risk.currency_exposure:
-            exposures = context.portfolio_risk.currency_exposure
-            violations = []
-            for currency, exposure in exposures.items():
-                exp_pct = float(exposure)
-                if exp_pct > max_ccy:
-                    violations.append(f"{currency}: {exp_pct:.2f}%")
-            if violations:
-                score = max(0.0, 100.0 - (len(violations) * 20.0))
-                return await self._record_result(
-                    self._make_result(
-                        False,
-                        score,
-                        f"Currency exposure limit exceeded for: {', '.join(violations)}",
-                        details=f"Violations: {violations}, Limit: {max_ccy:.1f}%",
-                    )
-                )
+        # Build the base exposure map (existing positions), then add the
+        # notional of the trade being evaluated so currency exposure from the
+        # pending trade is also accounted for.
+        exposures: dict[str, Decimal] = {}
+        if context.portfolio_risk is not None and context.portfolio_risk.currency_exposure:
+            exposures = dict(context.portfolio_risk.currency_exposure)
+        elif context.account_balance > 0:
+            # Fallback: estimate exposure grouped by base currency from notional.
+            for position in context.current_positions:
+                base = position.symbol[:3]
+                exposures[base] = exposures.get(base, Decimal(0)) + position.notional_value
+
+        if context.notional_value and context.account_balance > 0:
+            base_currency = context.symbol[:3] or "UNK"
+            exposures[base_currency] = exposures.get(base_currency, Decimal(0)) + context.notional_value
+
+        if not exposures or context.account_balance <= 0:
             return await self._record_result(
-                self._make_result(True, 100.0, "All currency exposures within limits")
+                self._make_result(True, 100.0, "No currency exposure data")
             )
 
+        violations = []
+        for currency, exposure in exposures.items():
+            exp_pct = float(exposure / context.account_balance * 100)
+            if exp_pct > max_ccy:
+                violations.append(f"{currency}: {exp_pct:.2f}%")
+        if violations:
+            score = max(0.0, 100.0 - (len(violations) * 20.0))
+            return await self._record_result(
+                self._make_result(
+                    False,
+                    score,
+                    f"Currency exposure limit exceeded for: {', '.join(violations)}",
+                    details=f"Violations: {violations}, Limit: {max_ccy:.1f}%",
+                )
+            )
         return await self._record_result(
-            self._make_result(True, 100.0, "No currency exposure data")
+            self._make_result(True, 100.0, "All currency exposures within limits")
         )
 
 
@@ -701,8 +716,11 @@ class MarginProtectionPolicy(BaseRiskPolicy):
         if math.isinf(margin_level):
             return await self._record_result(self._make_result(True, 100.0, "No margin used"))
 
-        passed, score = self._apply_profile_threshold(margin_level, threshold, invert=True)
-        if not passed:
+        # Margin level must remain above the margin-call threshold. Unlike
+        # liquidity scoring, this is a hard safety threshold rather than a
+        # half-threshold warning band.
+        score = min(100.0, margin_level / threshold * 100.0)
+        if margin_level < threshold:
             return await self._record_result(
                 self._make_result(
                     False,
@@ -712,6 +730,22 @@ class MarginProtectionPolicy(BaseRiskPolicy):
                     f"Level: {margin_level:.1f}%, Threshold: {threshold:.1f}%",
                 )
             )
+
+        # Free margin must remain above the minimum free-margin percentage.
+        min_free_pct = self._config.min_free_margin_pct
+        if min_free_pct > 0 and context.account_equity > 0:
+            free_margin_pct = float(context.margin_free / context.account_equity * 100)
+            if free_margin_pct < min_free_pct:
+                return await self._record_result(
+                    self._make_result(
+                        False,
+                        max(0.0, free_margin_pct / min_free_pct * 100.0),
+                        f"Free margin {free_margin_pct:.1f}% below minimum {min_free_pct:.1f}%",
+                        details=f"Equity: {context.account_equity}, Free margin: {context.margin_free}, "
+                        f"Free margin %: {free_margin_pct:.1f}%, Minimum: {min_free_pct:.1f}%",
+                    )
+                )
+
         return await self._record_result(
             self._make_result(
                 True,
@@ -1172,29 +1206,29 @@ class CooldownTimerPolicy(BaseRiskPolicy):
         # Check if in cooldown
         now = datetime.now(timezone.utc)
 
-        if self._cooldown_end and now < self._cooldown_end:
-            remaining = (self._cooldown_end - now).total_seconds()
+        cooldown_end = self._cooldown_end
+        if cooldown_end is not None and now < cooldown_end:
+            remaining = (cooldown_end - now).total_seconds()
             return await self._record_result(
                 self._make_result(
                     False,
                     10.0,
                     f"Cooldown active - {remaining:.0f}s remaining",
-                    details=f"Cooldown until {self._cooldown_end.isoformat()}, "
+                    details=f"Cooldown until {cooldown_end.isoformat()}, "
                     f"remaining: {remaining:.0f}s",
                 )
-            )
+)
 
         # Trigger cooldown if consecutive losses reached threshold
-        if context.consecutive_losses >= self._config.max_consecutive_losses:
-            self._cooldown_end = now.replace(tzinfo=timezone.utc) + __import__(
-                "datetime"
-            ).timedelta(minutes=cooldown_minutes)
+        if self._config.max_consecutive_losses > 0 and context.consecutive_losses >= self._config.max_consecutive_losses:
+            cooldown_end = now.replace(tzinfo=timezone.utc) + timedelta(minutes=cooldown_minutes)
+            self._cooldown_end = cooldown_end
             return await self._record_result(
                 self._make_result(
                     False,
                     20.0,
                     f"Cooldown triggered after {context.consecutive_losses} consecutive losses",
-                    details=f"Cooldown for {cooldown_minutes:.0f} minutes until {self._cooldown_end.isoformat()}",
+                    details=f"Cooldown for {cooldown_minutes:.0f} minutes until {cooldown_end.isoformat()}",
                 )
             )
 
@@ -1207,7 +1241,7 @@ class RecoveryModePolicy(BaseRiskPolicy):
     def __init__(self, config: RiskProfileConfig | None = None) -> None:
         super().__init__(
             name="recovery_mode",
-            description="Manages recovery mode after significant losses - reduces position sizes",
+            description="Restricts new trading while the account recovers from significant losses",
             category=PolicyCategory.ACCOUNT_PROTECTION,
             severity=PolicySeverity.HIGH,
             priority=74,
@@ -1226,11 +1260,11 @@ class RecoveryModePolicy(BaseRiskPolicy):
             score = max(0.0, 50.0 - current_dd)
             return await self._record_result(
                 self._make_result(
-                    True,
+                    False,
                     score,
-                    "Recovery mode active - reduced position sizes",
+                    "Recovery mode active - trading restricted",
                     details=f"Current DD: {current_dd:.2f}%, Max DD: {max_dd:.2f}%. "
-                    f"Trading with reduced risk until recovery.",
+                    "Account is in recovery mode; new trading is restricted until recovery.",
                 )
             )
 
@@ -1392,7 +1426,7 @@ class EmergencyStopPolicy(BaseRiskPolicy):
                 self._make_result(
                     False,
                     0.0,
-                    f"EMERGENCY STOP ACTIVE - all trading blocked",
+                    f"EMERGENCY STOP ACTIVE - all trading blocked (triggers: {trigger_str})",
                     details=f"Emergency triggers: {trigger_str}. "
                     f"All trading is suspended until emergency is resolved.",
                     metadata={"emergency_triggers": triggers},

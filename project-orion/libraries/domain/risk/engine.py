@@ -16,23 +16,19 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from decimal import Decimal
+from dataclasses import dataclass
 from typing import Any
 
 from libraries.domain.risk.context import RiskContext
 from libraries.domain.risk.evaluator import RiskEvaluator
-from libraries.domain.risk.exceptions import EngineError, EngineNotReadyError, EngineShutdownError
+from libraries.domain.risk.exceptions import (
+    EngineError,
+    EngineShutdownError,
+)
 from libraries.domain.risk.models import (
-    AccountProtectionStatus,
-    DrawdownMetrics,
-    EmergencyModeStatus,
     PolicyCategory,
     PolicyResult,
     PolicySeverity,
-    PortfolioRisk,
-    PositionRisk,
     RiskDecision,
     RiskResult,
     RiskScore,
@@ -40,6 +36,16 @@ from libraries.domain.risk.models import (
 from libraries.domain.risk.registry import RiskPolicyRegistry
 from libraries.domain.risk.statistics import RiskStatistics
 from libraries.domain.risk.validator import RiskValidator
+
+POLICY_EVALUATION_ERRORS = (
+    ArithmeticError,
+    AttributeError,
+    KeyError,
+    LookupError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -104,23 +110,26 @@ class RiskEngine:
         Initializes all registered policies.
         """
         async with self._lock:
-            if self._initialized:
-                return
+            await self._initialize_internal()
 
-            # Initialize all policies
-            policies = await self._registry.get_all()
-            init_tasks = []
-            for policy in policies:
-                if hasattr(policy, "initialize") and callable(policy.initialize):
-                    init_tasks.append(policy.initialize())
+    async def _initialize_internal(self) -> None:
+        if self._initialized:
+            return
 
-            if init_tasks:
-                async with asyncio.TaskGroup() as tg:
-                    for task in init_tasks:
-                        tg.create_task(task)
+        # Initialize all policies
+        policies = await self._registry.get_all()
+        init_tasks = []
+        for policy in policies:
+            if hasattr(policy, "initialize") and callable(policy.initialize):
+                init_tasks.append(policy.initialize())
 
-            self._initialized = True
-            self._shutdown = False
+        if init_tasks:
+            async with asyncio.TaskGroup() as tg:
+                for task in init_tasks:
+                    tg.create_task(task)
+
+        self._initialized = True
+        self._shutdown = False
 
     async def shutdown(self) -> None:
         """Shutdown the risk engine.
@@ -128,23 +137,26 @@ class RiskEngine:
         Disposes all registered policies.
         """
         async with self._lock:
-            if self._shutdown:
-                return
+            await self._shutdown_internal()
 
-            # Dispose all policies
-            policies = await self._registry.get_all()
-            dispose_tasks = []
-            for policy in policies:
-                if hasattr(policy, "dispose") and callable(policy.dispose):
-                    dispose_tasks.append(policy.dispose())
+    async def _shutdown_internal(self) -> None:
+        if self._shutdown:
+            return
 
-            if dispose_tasks:
-                async with asyncio.TaskGroup() as tg:
-                    for task in dispose_tasks:
-                        tg.create_task(task)
+        # Dispose all policies
+        policies = await self._registry.get_all()
+        dispose_tasks = []
+        for policy in policies:
+            if hasattr(policy, "dispose") and callable(policy.dispose):
+                dispose_tasks.append(policy.dispose())
 
-            self._shutdown = True
-            self._initialized = False
+        if dispose_tasks:
+            async with asyncio.TaskGroup() as tg:
+                for task in dispose_tasks:
+                    tg.create_task(task)
+
+        self._shutdown = True
+        self._initialized = False
 
     # ─── Main Evaluation ──────────────────────────────────────
 
@@ -176,14 +188,14 @@ class RiskEngine:
             EngineNotReadyError: If engine is not initialized.
             EngineShutdownError: If engine has been shutdown.
         """
-        start_time = time.monotonic()
+        time.monotonic()
 
         async with self._lock:
             if self._shutdown:
                 raise EngineShutdownError("RiskEngine has been shutdown")
             if not self._initialized:
                 # Auto-initialize if not already done
-                await self.initialize()
+                await self._initialize_internal()
 
             self._evaluation_count += 1
 
@@ -194,13 +206,12 @@ class RiskEngine:
 
             # Validate decision
             validation = await self._validator.validate_trade_decision(decision)
-            if not validation.is_valid:
-                if self._config.strict_mode:
-                    return self._build_error_result(
-                        RiskDecision.REJECTED,
-                        100.0,
-                        tuple(validation.errors),
-                    )
+            if not validation.is_valid and self._config.strict_mode:
+                return self._build_error_result(
+                    RiskDecision.REJECTED,
+                    100.0,
+                    tuple(validation.errors),
+                )
 
             # Validate context
             ctx_validation = await self._validator.validate_context(context)
@@ -221,47 +232,50 @@ class RiskEngine:
                     warnings=("No risk policies enabled - trade approved by default",),
                 )
 
-            # Execute all policies using TaskGroup for concurrent evaluation
+            # Execute all policies using TaskGroup for concurrent evaluation.
+            # The TaskGroup context manager awaits all tasks on exit, so
+            # task.result() must be called only after the with-block completes.
             policy_results: list[PolicyResult] = []
-            evaluations: list[Any] = []
+            eval_tasks: dict[str, asyncio.Task[PolicyResult | None]] = {}
 
             async with asyncio.TaskGroup() as tg:
-                eval_tasks = {}
                 for policy in enabled_policies:
                     if hasattr(policy, "evaluate") and callable(policy.evaluate):
                         task = tg.create_task(self._safe_evaluate(policy, context))
                         eval_tasks[policy.name] = task
 
-                # Collect results
-                for policy_name, task in eval_tasks.items():
-                    try:
-                        result = task.result()
-                        if result is not None:
-                            policy_results.append(result)
-                    except Exception:
-                        if self._config.fail_open:
-                            policy_results.append(
-                                PolicyResult(
-                                    policy_name=policy_name,
-                                    policy_category=PolicyCategory.SYSTEM_HEALTH,
-                                    severity=PolicySeverity.CRITICAL,
-                                    passed=True,
-                                    score=100.0,
-                                    message=f"Policy '{policy_name}' evaluation failed (fail-open mode)",
-                                )
+            # Collect results (all tasks have completed)
+            for policy_name, task in eval_tasks.items():
+                try:
+                    policy_result = task.result()
+                    if policy_result is not None:
+                        policy_results.append(policy_result)
+                except asyncio.CancelledError:
+                    raise
+                except POLICY_EVALUATION_ERRORS:
+                    if self._config.fail_open:
+                        policy_results.append(
+                            PolicyResult(
+                                policy_name=policy_name,
+                                policy_category=PolicyCategory.SYSTEM_HEALTH,
+                                severity=PolicySeverity.CRITICAL,
+                                passed=True,
+                                score=100.0,
+                                message=f"Policy '{policy_name}' evaluation failed (fail-open mode)",
                             )
-                        else:
-                            policy_results.append(
-                                PolicyResult(
-                                    policy_name=policy_name,
-                                    policy_category=PolicyCategory.SYSTEM_HEALTH,
-                                    severity=PolicySeverity.CRITICAL,
-                                    passed=False,
-                                    score=0.0,
-                                    message=f"Policy '{policy_name}' evaluation error",
-                                    details="Policy execution failed. See engine logs for details.",
-                                )
+                        )
+                    else:
+                        policy_results.append(
+                            PolicyResult(
+                                policy_name=policy_name,
+                                policy_category=PolicyCategory.SYSTEM_HEALTH,
+                                severity=PolicySeverity.CRITICAL,
+                                passed=False,
+                                score=0.0,
+                                message=f"Policy '{policy_name}' evaluation error",
+                                details="Policy execution failed. See engine logs for details.",
                             )
+                        )
 
             # Convert to evaluations and aggregate
             evaluations = [pr.to_evaluation() for pr in policy_results]
@@ -310,7 +324,7 @@ class RiskEngine:
 
         except asyncio.CancelledError:
             raise
-        except Exception as e:
+        except Exception as e:  # fail-open/fail-closed engine wrapper
             if self._config.fail_open:
                 return self._build_error_result(
                     RiskDecision.APPROVED,
@@ -361,9 +375,12 @@ class RiskEngine:
             if hasattr(policy, "evaluate") and callable(policy.evaluate):
                 try:
                     result = await policy.evaluate(context)
-                    evaluations.append(result.to_evaluation())
-                except Exception:
+                except asyncio.CancelledError:
+                    raise
+                except POLICY_EVALUATION_ERRORS:
                     pass
+                else:
+                    evaluations.append(result.to_evaluation())
         return await self._evaluator.compute_risk_score(evaluations)
 
     # ─── Internal Helpers ─────────────────────────────────────
@@ -381,17 +398,28 @@ class RiskEngine:
         try:
             if hasattr(policy, "evaluate") and callable(policy.evaluate):
                 result = await policy.evaluate(context)
-                return result
+                if isinstance(result, PolicyResult):
+                    return result
+                return None
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except POLICY_EVALUATION_ERRORS:
+            if self._config.fail_open:
+                return PolicyResult(
+                    policy_name=getattr(policy, "name", "unknown"),
+                    policy_category=getattr(policy, "category", PolicyCategory.SYSTEM_HEALTH),
+                    severity=PolicySeverity.CRITICAL,
+                    passed=True,
+                    score=100.0,
+                    message=f"Policy '{getattr(policy, 'name', 'unknown')}' evaluation failed (fail-open mode)",
+                )
             return PolicyResult(
                 policy_name=getattr(policy, "name", "unknown"),
                 policy_category=getattr(policy, "category", PolicyCategory.SYSTEM_HEALTH),
                 severity=PolicySeverity.CRITICAL,
                 passed=False,
                 score=0.0,
-                message=f"Policy execution error",
+                message="Policy execution error",
                 details=f"Policy '{getattr(policy, 'name', 'unknown')}' threw an exception during evaluation.",
             )
         return None

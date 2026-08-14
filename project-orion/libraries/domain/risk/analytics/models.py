@@ -230,3 +230,83 @@ class ExposureMetrics:
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: dict[str, Any] = field(default_factory=dict)
 
+
+# ---------------------------------------------------------------------------
+# Stress analysis models
+# ---------------------------------------------------------------------------
+
+
+class StressTestType(StrEnum):
+    """Classification of a stress test methodology."""
+
+    SCENARIO = "scenario"
+    HISTORICAL = "historical"
+    PORTFOLIO_SHOCK = "portfolio_shock"
+    MARKET_CRASH = "market_crash"
+    VOLATILITY_SHOCK = "volatility_shock"
+
+
+@dataclass(frozen=True, slots=True)
+class Scenario:
+    """A named stress scenario applied to a set of instruments.
+
+    ``shock_factors`` maps each symbol to a percentage shock expressed as
+    a fraction (e.g. ``0.15`` = a 15% adverse move). Negative factors
+    represent losses. ``volatility_multiplier`` optionally scales the
+    historical volatility of each symbol.
+    """
+
+    name: str
+    shock_factors: dict[str, float]
+    description: str = ""
+    volatility_multiplier: float = 1.0
+
+    @property
+    def symbols(self) -> tuple[str, ...]:
+        """Return the symbols covered by this scenario."""
+        return tuple(self.shock_factors.keys())
+
+
+@dataclass(frozen=True, slots=True)
+class StressTestResult:
+    """Result of a single stress test run.
+
+    ``symbol_returns`` maps each symbol to its shocked return as a
+    fraction (e.g. ``-0.18`` = an 18% loss). ``portfolio_return`` is the
+    weighted portfolio return; ``portfolio_value`` is the portfolio value
+    after applying the shock.
+    """
+
+    test_type: StressTestType
+    name: str
+    portfolio_value: Decimal
+    portfolio_return: float
+    symbol_returns: dict[str, float] = field(default_factory=dict)
+    description: str = ""
+    volatility_multiplier: float = 1.0
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def portfolio_loss_pct(self) -> float:
+        """Return the portfolio loss as a positive percentage."""
+        return max(0.0, -self.portfolio_return) * 100.0
+
+
+@dataclass(frozen=True, slots=True)
+class StressTestSummary:
+    """Aggregated summary across a set of stress test results.
+
+    ``worst_case_return`` and ``best_case_return`` are fractions.
+    """
+
+    test_type: StressTestType
+    name: str
+    worst_case_return: float
+    best_case_return: float
+    average_return: float
+    portfolio_shock_pct: float
+    results: tuple[StressTestResult, ...] = ()
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: dict[str, Any] = field(default_factory=dict)
+

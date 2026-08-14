@@ -12,8 +12,7 @@ Each profile defines thresholds for all risk policies.
 from __future__ import annotations
 
 import asyncio
-from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 from libraries.domain.risk.exceptions import (

@@ -89,9 +89,9 @@ def risky_context() -> RiskContext:
         direction="buy",
         account_balance=Decimal("10000"),
         account_equity=Decimal("8000"),
-        margin_used=Decimal("5000"),
+        margin_used=Decimal("10000"),
         margin_free=Decimal("3000"),
-        leverage=50.0,
+        leverage=51.0,
         daily_pnl=-1500.0,
         weekly_pnl=-3000.0,
         monthly_pnl=-8000.0,
@@ -150,10 +150,11 @@ class TestBasePolicyProperties:
         for p in create_default_policies():
             assert p.priority >= 0, f"Policy '{p.name}' has negative priority"
 
-    def test_statistics_structure(self):
+    @pytest.mark.asyncio
+    async def test_statistics_structure(self):
         policies = create_default_policies()
         for p in policies[:3]:
-            stats = p.statistics()
+            stats = await p.statistics()
             assert "policy_name" in stats
             assert "evaluation_count" in stats
             assert "pass_count" in stats
@@ -607,6 +608,13 @@ class TestRecoveryModePolicy:
         ctx = RiskContext(symbol="EURUSD")
         result = await policy.evaluate(ctx)
         assert result.passed
+
+    @pytest.mark.asyncio
+    async def test_blocks_trading_in_recovery_mode(self, risky_context, default_config):
+        policy = RecoveryModePolicy(default_config)
+        result = await policy.evaluate(risky_context)
+        assert not result.passed
+        assert "trading restricted" in result.message
 
 
 # ─── Tests: System Health ─────────────────────────────────────────────────

@@ -19,6 +19,9 @@ from libraries.domain.risk.analytics.models import (
     KellyResult,
     PerformanceMetrics,
     PositionExposure,
+    Scenario,
+    StressTestResult,
+    StressTestSummary,
     VaRMethod,
     VaRResult,
     VolatilityMethod,
@@ -222,6 +225,110 @@ class ConcentrationPort(Protocol):
 
         Returns:
             A ConcentrationMetrics result.
+        """
+        ...
+
+
+@runtime_checkable
+class StressTestPort(Protocol):
+    """Port for running portfolio stress tests.
+
+    Implementations cover scenario analysis, historical stress testing,
+    portfolio shock analysis, market crash simulation, and volatility
+    shocks. All methods are deterministic and pure domain logic.
+    """
+
+    async def apply_scenario(
+        self,
+        returns_by_symbol: Mapping[str, Sequence[float]],
+        scenario: Scenario,
+        portfolio_value: Decimal,
+    ) -> StressTestResult:
+        """Apply a named scenario to a set of symbols.
+
+        Args:
+            returns_by_symbol: Map of symbol to its historical returns.
+            scenario: The scenario to apply.
+            portfolio_value: Current portfolio value.
+
+        Returns:
+            A StressTestResult.
+        """
+        ...
+
+    async def run_historical_stress(
+        self,
+        returns_by_symbol: Mapping[str, Mapping[str, Sequence[float]]],
+        portfolio_weights: Mapping[str, float],
+        portfolio_value: Decimal,
+    ) -> StressTestSummary:
+        """Run historical stress testing across named windows.
+
+        Args:
+            returns_by_symbol: Map of window name to symbol returns.
+            portfolio_weights: Map of symbol to portfolio weight.
+            portfolio_value: Current portfolio value.
+
+        Returns:
+            A StressTestSummary.
+        """
+        ...
+
+    async def apply_portfolio_shock(
+        self,
+        returns_by_symbol: Mapping[str, Sequence[float]],
+        portfolio_weights: Mapping[str, float],
+        shock_pct: float,
+        portfolio_value: Decimal,
+    ) -> StressTestSummary:
+        """Apply a simultaneous shock to all portfolio symbols.
+
+        Args:
+            returns_by_symbol: Map of symbol to its historical returns.
+            portfolio_weights: Map of symbol to portfolio weight.
+            shock_pct: Uniform shock to apply (e.g. 0.10 = 10%).
+            portfolio_value: Current portfolio value.
+
+        Returns:
+            A StressTestSummary.
+        """
+        ...
+
+    async def simulate_market_crash(
+        self,
+        returns: Sequence[float],
+        crash_pct: float,
+        recovery_days: int,
+        portfolio_value: Decimal,
+    ) -> StressTestResult:
+        """Simulate a market crash followed by a recovery path.
+
+        Args:
+            returns: Historical returns for the symbol.
+            crash_pct: Crash magnitude as a fraction (e.g. 0.30 = 30%).
+            recovery_days: Number of recovery days to simulate.
+            portfolio_value: Current portfolio value.
+
+        Returns:
+            A StressTestResult.
+        """
+        ...
+
+    async def apply_volatility_shock(
+        self,
+        returns: Sequence[float],
+        volatility_multiplier: float,
+        portfolio_value: Decimal,
+    ) -> StressTestResult:
+        """Apply a volatility multiplier to a returns series.
+
+        Args:
+            returns: Historical returns for the symbol.
+            volatility_multiplier: Multiplier applied to the price shocks.
+            portfolio_value: Current portfolio value.
+
+        Returns:
+            A StressTestResult.
         """
         ...
 

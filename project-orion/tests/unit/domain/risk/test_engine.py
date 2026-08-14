@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import cast
 
 import pytest
 
 from libraries.domain.risk.context import RiskContext
 from libraries.domain.risk.engine import RiskEngine, RiskEngineConfig
 from libraries.domain.risk.evaluator import RiskEvaluator
+from libraries.domain.risk.interfaces import RiskPolicy
 from libraries.domain.risk.models import (
     DrawdownMetrics,
     PolicyCategory,
@@ -249,7 +251,7 @@ class TestRiskEngine:
             async def dispose(self):
                 pass
 
-        await registry.register(BrokenPolicy())  # type: ignore[arg-type]
+        await registry.register(cast(RiskPolicy, BrokenPolicy()))
         decision = MockDecision()
         result = await engine.evaluate(decision)
         assert result.decision == RiskDecision.APPROVED  # fail-open => approved

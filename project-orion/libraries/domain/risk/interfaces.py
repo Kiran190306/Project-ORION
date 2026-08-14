@@ -15,14 +15,12 @@ from __future__ import annotations
 from typing import Any, Protocol, runtime_checkable
 
 from libraries.domain.risk.models import (
-    AccountProtectionLevel,
     AccountProtectionStatus,
     EmergencyModeStatus,
     EmergencyTrigger,
     PolicyCategory,
     PolicyResult,
     PolicySeverity,
-    PositionSizingMethod,
     RiskProfileType,
     RiskResult,
 )

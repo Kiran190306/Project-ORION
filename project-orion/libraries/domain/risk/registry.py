@@ -12,12 +12,11 @@ Supports:
 from __future__ import annotations
 
 import asyncio
-from typing import Any
+import builtins
 
 from libraries.domain.risk.exceptions import (
     PolicyNotFoundError,
     PolicyRegistrationError,
-    RegistryError,
     RegistryFullError,
 )
 from libraries.domain.risk.interfaces import RiskPolicy
@@ -108,7 +107,7 @@ class RiskPolicyRegistry:
         category: PolicyCategory | None = None,
         severity: PolicySeverity | None = None,
         enabled_only: bool | None = None,
-    ) -> list[RiskPolicy]:
+    ) -> builtins.list[RiskPolicy]:
         """List registered policies, optionally filtered.
 
         Results are ordered by priority (ascending) then severity
@@ -142,11 +141,11 @@ class RiskPolicyRegistry:
 
         return policies
 
-    async def list_enabled(self) -> list[RiskPolicy]:
+    async def list_enabled(self) -> builtins.list[RiskPolicy]:
         """Convenience: return all enabled policies in execution order."""
         return await self.list(enabled_only=True)
 
-    async def list_by_category(self, category: PolicyCategory) -> list[RiskPolicy]:
+    async def list_by_category(self, category: PolicyCategory) -> builtins.list[RiskPolicy]:
         """Convenience: return all policies in a category."""
         return await self.list(category=category)
 
@@ -177,7 +176,7 @@ class RiskPolicyRegistry:
         async with self._lock:
             return sum(1 for p in self._policies.values() if not p.enabled)
 
-    async def get_all(self) -> list[RiskPolicy]:
+    async def get_all(self) -> builtins.list[RiskPolicy]:
         """Return all registered policies (unordered)."""
         async with self._lock:
             return list(self._policies.values())
@@ -187,12 +186,12 @@ class RiskPolicyRegistry:
         async with self._lock:
             self._policies.clear()
 
-    async def get_policy_names(self) -> list[str]:
+    async def get_policy_names(self) -> builtins.list[str]:
         """Return names of all registered policies."""
         async with self._lock:
             return list(self._policies.keys())
 
-    async def get_categories(self) -> list[PolicyCategory]:
+    async def get_categories(self) -> builtins.list[PolicyCategory]:
         """Return distinct categories of registered policies."""
         async with self._lock:
             categories: set[PolicyCategory] = {p.category for p in self._policies.values()}

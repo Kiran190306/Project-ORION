@@ -117,6 +117,7 @@ class TestRiskManager:
         await manager.start()
         result = await manager.evaluate("test")
         assert result is not None
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_health_check(self):
@@ -126,6 +127,7 @@ class TestRiskManager:
         assert health["running"]
         assert "total_policies" in health
         assert "enabled_policies" in health
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_policy_management(self):
@@ -141,6 +143,7 @@ class TestRiskManager:
         await manager.enable_policy("maximum_daily_loss")
         enabled = await manager.get_enabled_policies()
         assert "maximum_daily_loss" in [p.name for p in enabled]
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_get_policy(self):
@@ -148,6 +151,7 @@ class TestRiskManager:
         await manager.start()
         policy = await manager.get_policy("maximum_daily_loss")
         assert policy.name == "maximum_daily_loss"
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_statistics_after_evaluation(self):
@@ -156,6 +160,7 @@ class TestRiskManager:
         await manager.evaluate("test")
         snapshot = await manager.get_statistics_snapshot()
         assert snapshot.total_evaluations >= 0
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_reset_statistics(self):
@@ -164,6 +169,7 @@ class TestRiskManager:
         await manager.reset_statistics()
         snapshot = await manager.get_statistics_snapshot()
         assert snapshot.total_evaluations == 0
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_evaluate_blocks_during_emergency(self):
@@ -173,6 +179,7 @@ class TestRiskManager:
         result = await manager.evaluate("test")
         assert result.decision == RiskDecision.REJECTED
         assert result.risk_score == 100.0
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_multiple_emergency_triggers(self):
@@ -212,6 +219,7 @@ class TestRiskManager:
         await manager.start()
         await manager.start()  # Should not raise
         assert manager.running
+        await manager.stop()
 
     @pytest.mark.asyncio
     async def test_stop_when_not_running(self):

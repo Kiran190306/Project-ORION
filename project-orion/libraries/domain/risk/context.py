@@ -46,10 +46,10 @@ class RiskContext:
     signal_strength: str = ""
 
     # ─── Account Data ──────────────────────────────────────────
-    account_balance: Decimal = Decimal("0")
-    account_equity: Decimal = Decimal("0")
-    margin_used: Decimal = Decimal("0")
-    margin_free: Decimal = Decimal("0")
+    account_balance: Decimal = Decimal(0)
+    account_equity: Decimal = Decimal(0)
+    margin_used: Decimal = Decimal(0)
+    margin_free: Decimal = Decimal(0)
     leverage: float = 1.0
     daily_pnl: float = 0.0
     weekly_pnl: float = 0.0

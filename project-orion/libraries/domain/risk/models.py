@@ -12,7 +12,7 @@ Defines:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import IntEnum, StrEnum
 from typing import Any
@@ -43,6 +43,11 @@ class PolicySeverity(IntEnum):
     MEDIUM = 20
     HIGH = 30
     CRITICAL = 40
+
+    @property
+    def numeric(self) -> int:
+        """Return the numeric severity value used in risk calculations."""
+        return self.value
 
 
 class PolicyCategory(StrEnum):
@@ -78,6 +83,7 @@ class AccountProtectionLevel(StrEnum):
     NONE = "none"
     SOFT_STOP = "soft_stop"
     HARD_STOP = "hard_stop"
+    EMERGENCY_STOP = "hard_stop"
     TRADING_LOCK = "trading_lock"
     RECOVERY_MODE = "recovery_mode"
 
@@ -204,6 +210,16 @@ class RiskResult:
         return sum(1 for p in self.policy_results if not p.passed)
 
     @property
+    def approved_policies_count(self) -> int:
+        """Return the number of policy evaluations that passed."""
+        return self.approved_count
+
+    @property
+    def rejected_policies_count(self) -> int:
+        """Return the number of policy evaluations that failed."""
+        return self.rejected_count
+
+    @property
     def summary(self) -> str:
         """Return a human-readable summary."""
         parts = [
@@ -249,10 +265,10 @@ class PortfolioRisk:
     """Aggregated portfolio-level risk metrics."""
 
     portfolio_heat: float = 0.0  # 0–100
-    net_exposure: Decimal = Decimal("0")
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
-    gross_exposure: Decimal = Decimal("0")
+    net_exposure: Decimal = Decimal(0)
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
     currency_exposure: dict[str, Decimal] = field(default_factory=dict)
     correlation_exposure: dict[str, float] = field(default_factory=dict)
     sector_exposure: dict[str, Decimal] = field(default_factory=dict)
@@ -305,13 +321,7 @@ class AccountProtectionStatus:
     def can_trade(self) -> bool:
         if self.trading_locked or self.hard_stop_triggered:
             return False
-        if (
-            self.cooldown_active
-            and self.cooldown_until
-            and datetime.now(timezone.utc) < self.cooldown_until
-        ):
-            return False
-        return True
+        return not (self.cooldown_active and self.cooldown_until and datetime.now(timezone.utc) < self.cooldown_until)
 
 
 @dataclass(frozen=True, slots=True)
@@ -373,3 +383,18 @@ class RiskScore:
     @property
     def is_dangerous(self) -> bool:
         return self.overall >= 60.0
+
+    @property
+    def max_risk(self) -> float:
+        """Return the highest category-level risk contribution."""
+        scores = (
+            self.position_size_score,
+            self.loss_limit_score,
+            self.exposure_score,
+            self.leverage_score,
+            self.market_condition_score,
+            self.account_protection_score,
+            self.system_health_score,
+            self.compliance_score,
+        )
+        return max(0.0, 100.0 - min(scores))

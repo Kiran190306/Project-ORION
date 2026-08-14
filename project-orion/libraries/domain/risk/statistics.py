@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 
 from libraries.domain.risk.models import PolicyCategory, RiskDecision
@@ -163,8 +163,8 @@ class RiskStatistics:
                 total_approved=self._total_approved,
                 total_rejected=self._total_rejected,
                 total_deferred=self._total_deferred,
-                approval_rate=round(approval_rate, 4),
-                rejection_rate=round(rejection_rate, 4),
+                approval_rate=approval_rate,
+                rejection_rate=rejection_rate,
                 average_risk_score=round(avg_score, 2),
                 policy_violations=dict(self._policy_violations),
                 category_violations=dict(self._category_violations),

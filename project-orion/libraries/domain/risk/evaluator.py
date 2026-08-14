@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Any
 
 from libraries.domain.risk.models import (
     PolicyCategory,
     PolicyEvaluation,
+    PolicyResult,
     PolicySeverity,
     RiskDecision,
     RiskResult,
@@ -39,8 +39,8 @@ DEFAULT_CATEGORY_WEIGHTS: dict[PolicyCategory, float] = {
 class RiskEvaluatorConfig:
     """Configuration for the RiskEvaluator."""
 
-    approve_threshold: float = 30.0  # risk score <= this = APPROVED
-    reject_threshold: float = 60.0  # risk score >= this = REJECTED
+    approval_threshold: float = 30.0  # risk score <= this = APPROVED
+    rejection_threshold: float = 60.0  # risk score >= this = REJECTED
     deferred_threshold: float = 45.0  # risk score >= this and < reject = DEFERRED
     category_weights: dict[PolicyCategory, float] = field(
         default_factory=lambda: dict(DEFAULT_CATEGORY_WEIGHTS)
@@ -185,7 +185,7 @@ class RiskEvaluator:
 
         return RiskResult(
             decision=decision,
-            risk_score=round(risk_score, 2),
+            risk_score=100.0 if is_emergency_mode else round(risk_score, 2),
             policy_results=policy_results,
             evaluations=tuple(evaluations),
             rejection_reasons=tuple(rejection_reasons),
@@ -251,17 +251,17 @@ class RiskEvaluator:
         high_failures = [
             e for e in evaluations if not e.passed and e.severity == PolicySeverity.HIGH
         ]
-        if high_failures and risk_score >= self._config.reject_threshold:
+        if high_failures and risk_score >= self._config.rejection_threshold:
             return RiskDecision.REJECTED
 
         # Score-based thresholds
-        if risk_score >= self._config.reject_threshold:
+        if risk_score >= self._config.rejection_threshold:
             return RiskDecision.REJECTED
 
         if risk_score >= self._config.deferred_threshold:
             return RiskDecision.DEFERRED
 
-        if risk_score <= self._config.approve_threshold:
+        if risk_score <= self._config.approval_threshold:
             return RiskDecision.APPROVED
 
         # Medium severity failures with score in middle range = DEFERRED

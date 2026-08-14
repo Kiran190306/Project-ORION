@@ -12,8 +12,6 @@ from datetime import datetime, timezone
 from typing import Any
 
 from libraries.domain.risk.context import RiskContext
-from libraries.domain.risk.exceptions import ContextError
-from libraries.domain.risk.models import RiskDecision, RiskResult
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,19 +90,23 @@ class RiskValidator:
         if context.position_size is not None and context.position_size < 0:
             errors.append(f"Negative position size: {context.position_size}")
 
-        if context.account_balance > 0 and context.position_size is not None:
-            if context.position_size > context.account_balance:
-                warnings.append(
-                    f"Position size {context.position_size} exceeds account balance "
-                    f"{context.account_balance}"
-                )
+        if (
+            context.account_balance > 0
+            and context.position_size is not None
+            and context.position_size > context.account_balance
+        ):
+            warnings.append(
+                f"Position size {context.position_size} exceeds account balance "
+                f"{context.account_balance}"
+            )
 
         # Market data validation
         if context.spread_pips < 0:
             errors.append(f"Negative spread: {context.spread_pips}")
         elif context.spread_pips > self._max_spread_pips:
             warnings.append(
-                f"Spread {context.spread_pips:.1f} pips exceeds max {self._max_spread_pips:.1f} pips"
+                f"Spread {context.spread_pips:.1f} pips exceeds max "
+                f"{self._max_spread_pips:.1f} pips"
             )
 
         if not 0.0 <= context.liquidity_score <= 1.0:
@@ -125,11 +127,13 @@ class RiskValidator:
             warnings.append("Data feed is not active")
 
         # Drawdown validation
-        if context.drawdown is not None:
-            if not 0.0 <= context.drawdown.current_drawdown <= 100.0:
-                warnings.append(
-                    f"Drawdown {context.drawdown.current_drawdown:.1f}% out of expected range"
-                )
+        if (
+            context.drawdown is not None
+            and not 0.0 <= context.drawdown.current_drawdown <= 100.0
+        ):
+            warnings.append(
+                f"Drawdown {context.drawdown.current_drawdown:.1f}% out of expected range"
+            )
 
         # Protection status validation
         if context.protection_status is not None and context.protection_status.is_locked:
@@ -162,9 +166,12 @@ class RiskValidator:
         if hasattr(decision, "outcome") and not decision.outcome:
             warnings.append("TradeDecision outcome is empty")
 
-        if hasattr(decision, "position_size") and decision.position_size is not None:
-            if decision.position_size < 0:
-                errors.append(f"TradeDecision negative position size: {decision.position_size}")
+        if (
+            hasattr(decision, "position_size")
+            and decision.position_size is not None
+            and decision.position_size < 0
+        ):
+            errors.append(f"TradeDecision negative position size: {decision.position_size}")
 
         if hasattr(decision, "direction") and decision.direction is not None:
             valid_directions = {"buy", "sell", "long", "short"}

@@ -500,10 +500,8 @@ class TestCombinedScenarios:
             result = await p.evaluate(ctx)
             results.append(result)
 
-        # All policies should reject
-        assert all(
-            not r.passed for r in results
-        ), f"Expected all policies to reject, but {sum(1 for r in results if r.passed)} passed"
+        # All policies should reject.
+        assert all(not result.passed for result in results)
 
     @pytest.mark.asyncio
     async def test_everything_perfect(self):

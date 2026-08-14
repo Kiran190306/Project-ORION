@@ -7,22 +7,14 @@ Central coordination point for the Risk Management Engine.
 from __future__ import annotations
 
 import asyncio
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from libraries.domain.risk.context import RiskContext
 from libraries.domain.risk.engine import RiskEngine
-from libraries.domain.risk.evaluator import RiskEvaluator, RiskEvaluatorConfig
-from libraries.domain.risk.exceptions import (
-    EmergencyAlreadyActiveError,
-    EmergencyModeError,
-    EngineNotReadyError,
-    PolicyNotFoundError,
-    ProfileNotFoundError,
-    RiskError,
-)
+from libraries.domain.risk.evaluator import RiskEvaluator
+from libraries.domain.risk.exceptions import EngineNotReadyError, ProfileNotFoundError
 from libraries.domain.risk.interfaces import (
     AccountDataPort,
     BrokerHealthPort,
@@ -30,14 +22,13 @@ from libraries.domain.risk.interfaces import (
     MarketDataPort,
     MarketIntelligencePort,
     PortfolioDataPort,
+    RiskPolicy,
 )
 from libraries.domain.risk.models import (
     AccountProtectionLevel,
     AccountProtectionStatus,
     EmergencyModeStatus,
     EmergencyTrigger,
-    PolicyCategory,
-    PolicySeverity,
     RiskDecision,
     RiskProfileType,
     RiskResult,
@@ -47,6 +38,16 @@ from libraries.domain.risk.profile import RiskProfileConfig, RiskProfileManager
 from libraries.domain.risk.registry import RiskPolicyRegistry
 from libraries.domain.risk.statistics import RiskStatistics
 from libraries.domain.risk.validator import RiskValidator
+
+HEALTH_CHECK_ERRORS = (
+    ArithmeticError,
+    AttributeError,
+    KeyError,
+    LookupError,
+    RuntimeError,
+    TypeError,
+    ValueError,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -88,6 +89,7 @@ class RiskManager:
         broker_port: BrokerHealthPort | None = None,
         intelligence_port: MarketIntelligencePort | None = None,
         emergency_handler: EmergencyHandlerPort | None = None,
+        track_statistics: bool | None = None,
     ) -> None:
         self._registry = registry or RiskPolicyRegistry()
         self._evaluator = evaluator or RiskEvaluator()
@@ -95,6 +97,8 @@ class RiskManager:
         self._statistics = statistics or RiskStatistics()
         self._profile_manager = profile_manager or RiskProfileManager()
         self._config = config or RiskManagerConfig()
+        if track_statistics is not None:
+            self._config = replace(self._config, track_statistics=track_statistics)
 
         # External ports
         self._portfolio_port = portfolio_port
@@ -291,11 +295,6 @@ class RiskManager:
             details: Explanation.
         """
         async with self._lock:
-            if self._emergency_status.active:
-                raise EmergencyAlreadyActiveError(
-                    f"Emergency mode already active (triggered by: {trigger.value})"
-                )
-
             now = datetime.now(timezone.utc)
             triggers = list(self._emergency_status.triggers)
             if trigger not in triggers:
@@ -304,17 +303,38 @@ class RiskManager:
             self._emergency_status = EmergencyModeStatus(
                 active=True,
                 triggers=tuple(triggers),
-                activated_at=now,
+                activated_at=self._emergency_status.activated_at or now,
                 auto_resolve=True,
                 auto_resolve_after_seconds=self._config.emergency_auto_resolve_seconds,
                 execution_engine_notified=False,
-                broker_disconnected=trigger == EmergencyTrigger.BROKER_DISCONNECT,
-                market_feed_failed=trigger == EmergencyTrigger.MARKET_FEED_FAILURE,
-                extreme_spread_detected=trigger == EmergencyTrigger.EXTREME_SPREAD,
-                extreme_slippage_detected=trigger == EmergencyTrigger.EXTREME_SLIPPAGE,
-                margin_call_risk=trigger == EmergencyTrigger.MARGIN_CALL_RISK,
-                connection_timeout=trigger == EmergencyTrigger.CONNECTION_TIMEOUT,
-                manual_override=trigger == EmergencyTrigger.MANUAL_OVERRIDE,
+                broker_disconnected=(
+                    self._emergency_status.broker_disconnected
+                    or trigger == EmergencyTrigger.BROKER_DISCONNECT
+                ),
+                market_feed_failed=(
+                    self._emergency_status.market_feed_failed
+                    or trigger == EmergencyTrigger.MARKET_FEED_FAILURE
+                ),
+                extreme_spread_detected=(
+                    self._emergency_status.extreme_spread_detected
+                    or trigger == EmergencyTrigger.EXTREME_SPREAD
+                ),
+                extreme_slippage_detected=(
+                    self._emergency_status.extreme_slippage_detected
+                    or trigger == EmergencyTrigger.EXTREME_SLIPPAGE
+                ),
+                margin_call_risk=(
+                    self._emergency_status.margin_call_risk
+                    or trigger == EmergencyTrigger.MARGIN_CALL_RISK
+                ),
+                connection_timeout=(
+                    self._emergency_status.connection_timeout
+                    or trigger == EmergencyTrigger.CONNECTION_TIMEOUT
+                ),
+                manual_override=(
+                    self._emergency_status.manual_override
+                    or trigger == EmergencyTrigger.MANUAL_OVERRIDE
+                ),
             )
 
             await self._statistics.record_emergency_activation()
@@ -417,15 +437,15 @@ class RiskManager:
         if hasattr(policy, "_enabled"):
             policy._enabled = False
 
-    async def get_enabled_policies(self) -> list[BaseRiskPolicy]:
+    async def get_enabled_policies(self) -> list[RiskPolicy]:
         """Get all enabled policies.
 
         Returns:
             List of enabled policies.
         """
-        return await self._registry.list_enabled()  # type: ignore[return-value]
+        return await self._registry.list_enabled()
 
-    async def get_policy(self, policy_name: str) -> BaseRiskPolicy:
+    async def get_policy(self, policy_name: str) -> RiskPolicy:
         """Get a specific policy.
 
         Args:
@@ -434,7 +454,7 @@ class RiskManager:
         Returns:
             The policy instance.
         """
-        return await self._registry.get(policy_name)  # type: ignore[return-value]
+        return await self._registry.get(policy_name)
 
     # ─── Engine Evaluation ────────────────────────────────────
 
@@ -540,5 +560,5 @@ class RiskManager:
 
             except asyncio.CancelledError:
                 break
-            except Exception:
-                pass  # Log and continue
+            except HEALTH_CHECK_ERRORS:
+                pass
