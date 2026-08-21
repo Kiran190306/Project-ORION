@@ -12,19 +12,18 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
 class BalanceSnapshot:
     """Immutable snapshot of account balance state."""
 
-    balance: Decimal = Decimal("0")
-    previous_balance: Decimal = Decimal("0")
-    change: Decimal = Decimal("0")
+    balance: Decimal = Decimal(0)
+    previous_balance: Decimal = Decimal(0)
+    change: Decimal = Decimal(0)
     change_pct: float = 0.0
-    buying_power: Decimal = Decimal("0")
-    available_funds: Decimal = Decimal("0")
+    buying_power: Decimal = Decimal(0)
+    available_funds: Decimal = Decimal(0)
     currency: str = "USD"
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -42,16 +41,16 @@ class BalanceManager:
 
     def __init__(
         self,
-        initial_balance: Decimal = Decimal("0"),
+        initial_balance: Decimal = Decimal(0),
         currency: str = "USD",
-        max_leverage: Decimal = Decimal("100"),
+        max_leverage: Decimal = Decimal(100),
     ) -> None:
         self._lock = asyncio.Lock()
         self._balance = initial_balance
         self._previous_balance = initial_balance
         self._currency = currency
         self._max_leverage = max_leverage
-        self._reserved_funds: Decimal = Decimal("0")
+        self._reserved_funds: Decimal = Decimal(0)
 
     @property
     def balance(self) -> Decimal:
@@ -74,7 +73,7 @@ class BalanceManager:
 
     async def get_buying_power(
         self,
-        used_margin: Decimal = Decimal("0"),
+        used_margin: Decimal = Decimal(0),
         equity: Decimal | None = None,
     ) -> Decimal:
         """Calculate available buying power.
@@ -91,11 +90,11 @@ class BalanceManager:
         async with self._lock:
             eq = equity if equity is not None else self._balance
             max_power = eq * self._max_leverage
-            return max(Decimal("0"), max_power - used_margin)
+            return max(Decimal(0), max_power - used_margin)
 
     async def get_available_funds(
         self,
-        used_margin: Decimal = Decimal("0"),
+        used_margin: Decimal = Decimal(0),
         equity: Decimal | None = None,
     ) -> Decimal:
         """Calculate available funds (free margin).
@@ -111,7 +110,7 @@ class BalanceManager:
         """
         async with self._lock:
             eq = equity if equity is not None else self._balance
-            return max(Decimal("0"), eq - used_margin - self._reserved_funds)
+            return max(Decimal(0), eq - used_margin - self._reserved_funds)
 
     async def deposit(self, amount: Decimal, reason: str = "") -> BalanceSnapshot:
         """Deposit funds into the account.
@@ -220,11 +219,11 @@ class BalanceManager:
             amount: Amount to release.
         """
         async with self._lock:
-            self._reserved_funds = max(Decimal("0"), self._reserved_funds - amount)
+            self._reserved_funds = max(Decimal(0), self._reserved_funds - amount)
 
     async def get_snapshot(
         self,
-        used_margin: Decimal = Decimal("0"),
+        used_margin: Decimal = Decimal(0),
         equity: Decimal | None = None,
     ) -> BalanceSnapshot:
         """Get current balance snapshot.
@@ -238,8 +237,8 @@ class BalanceManager:
         """
         async with self._lock:
             eq = equity if equity is not None else self._balance
-            buying_power = max(Decimal("0"), eq * self._max_leverage - used_margin)
-            available = max(Decimal("0"), eq - used_margin - self._reserved_funds)
+            buying_power = max(Decimal(0), eq * self._max_leverage - used_margin)
+            available = max(Decimal(0), eq - used_margin - self._reserved_funds)
             change = self._balance - self._previous_balance
             change_pct = (
                 float(change / self._previous_balance * 100) if self._previous_balance != 0 else 0.0
@@ -255,9 +254,9 @@ class BalanceManager:
                 currency=self._currency,
             )
 
-    async def reset(self, balance: Decimal = Decimal("0")) -> None:
+    async def reset(self, balance: Decimal = Decimal(0)) -> None:
         """Reset balance manager (for testing)."""
         async with self._lock:
             self._balance = balance
             self._previous_balance = balance
-            self._reserved_funds = Decimal("0")
+            self._reserved_funds = Decimal(0)

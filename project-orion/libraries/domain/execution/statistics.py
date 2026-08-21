@@ -11,7 +11,6 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any
 
 
 class ExecutionOutcome(StrEnum):
@@ -38,8 +37,8 @@ class ExecutionStats:
     fill_rate: float = 0.0
     average_latency_ms: float = 0.0
     average_slippage_pips: float = 0.0
-    total_volume: Decimal = Decimal("0")
-    total_commission: Decimal = Decimal("0")
+    total_volume: Decimal = Decimal(0)
+    total_commission: Decimal = Decimal(0)
     broker_breakdown: dict[str, int] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -56,8 +55,8 @@ class ExecutionStatistics:
         self._outcomes: dict[ExecutionOutcome, int] = {}
         self._latencies: list[float] = []
         self._slippages: list[float] = []
-        self._total_volume: Decimal = Decimal("0")
-        self._total_commission: Decimal = Decimal("0")
+        self._total_volume: Decimal = Decimal(0)
+        self._total_commission: Decimal = Decimal(0)
         self._broker_counts: dict[str, int] = {}
         self._max_history: int = 10000
 
@@ -67,8 +66,8 @@ class ExecutionStatistics:
         broker_id: str = "",
         latency_ms: float = 0.0,
         slippage_pips: float = 0.0,
-        volume: Decimal = Decimal("0"),
-        commission: Decimal = Decimal("0"),
+        volume: Decimal = Decimal(0),
+        commission: Decimal = Decimal(0),
     ) -> None:
         """Record an execution outcome.
 
@@ -136,6 +135,6 @@ class ExecutionStatistics:
             self._outcomes.clear()
             self._latencies.clear()
             self._slippages.clear()
-            self._total_volume = Decimal("0")
-            self._total_commission = Decimal("0")
+            self._total_volume = Decimal(0)
+            self._total_commission = Decimal(0)
             self._broker_counts.clear()

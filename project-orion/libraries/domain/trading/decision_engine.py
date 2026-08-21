@@ -7,17 +7,14 @@ and Position Sizing to produce a single decision per symbol.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 from libraries.domain.trading.confidence import ConfidenceScorer
-from libraries.domain.trading.decision_context import DecisionContext
 from libraries.domain.trading.decision_result import DecisionOutcome, TradeDecision
 from libraries.domain.trading.execution_filter import ExecutionFilter
-from libraries.domain.trading.market_state import MarketState, MarketStateDetector
-from libraries.domain.trading.models import StrategyType, TradingSignal
+from libraries.domain.trading.market_state import MarketStateDetector
 from libraries.domain.trading.position_sizer import (
     ATRPositionSizer,
     FixedPositionSizer,
@@ -28,9 +25,10 @@ from libraries.domain.trading.position_sizer import (
 )
 from libraries.domain.trading.risk_filter import RiskFilter
 from libraries.domain.trading.signal_generator import SignalGenerator
-from libraries.domain.trading.signals import SignalDirection
 from libraries.domain.trading.statistics import TradeStatistics
-from libraries.domain.trading.strategy_router import StrategyRouter, StrategyRouterConfig
+from libraries.domain.trading.strategy_router import (
+    StrategyRouter,
+)
 from libraries.domain.trading.trade_validator import TradeValidator
 
 
@@ -41,7 +39,7 @@ class EngineConfig:
     min_confidence: float = 30.0
     max_spread_pips: float = 5.0
     min_liquidity: float = 0.3
-    default_account_balance: Decimal = Decimal("10000")
+    default_account_balance: Decimal = Decimal(10000)
     position_sizing_method: str = "risk_percent"
     risk_percent: float = 1.0
     max_position_size: float = 0.1

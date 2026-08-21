@@ -19,8 +19,6 @@ import asyncio
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,11 +93,9 @@ class PortfolioAnalyticsEngine:
         """
         async with self._lock:
             self._equity_curve.append(equity)
-            if equity > self._peak_equity:
-                self._peak_equity = equity
+            self._peak_equity = max(self._peak_equity, equity)
             self._current_dd = self._peak_equity - equity
-            if self._current_dd > self._max_dd:
-                self._max_dd = self._current_dd
+            self._max_dd = max(self._max_dd, self._current_dd)
 
     # ─── Analytics Calculation ───────────────────────────────
 
@@ -126,13 +122,12 @@ class PortfolioAnalyticsEngine:
             losses = [
                 pnl for pnl, outcome in zip(self._pnl_history, self._trade_outcomes) if outcome < 0
             ]
-            breakeven = [
+            [
                 pnl for pnl, outcome in zip(self._pnl_history, self._trade_outcomes) if outcome == 0
             ]
 
             win_count = len(wins)
             loss_count = len(losses)
-            be_count = len(breakeven)
 
             win_rate = win_count / total if total > 0 else 0.0
 

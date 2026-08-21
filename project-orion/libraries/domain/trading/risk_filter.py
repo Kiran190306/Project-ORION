@@ -8,10 +8,8 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
 
 from libraries.domain.trading.models import TradingSignal
-from libraries.domain.trading.signals import SignalDirection
 
 
 @dataclass(frozen=True, slots=True)

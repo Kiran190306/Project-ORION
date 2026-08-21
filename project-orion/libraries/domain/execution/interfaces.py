@@ -16,9 +16,7 @@ from libraries.domain.execution.models import (
     Fill,
     Order,
     OrderId,
-    OrderSide,
     OrderStatus,
-    OrderType,
     SlippageMetrics,
 )
 from libraries.domain.trading.decision_result import TradeDecision

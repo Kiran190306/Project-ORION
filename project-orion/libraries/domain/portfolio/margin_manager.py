@@ -15,7 +15,6 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 from libraries.domain.portfolio.models import MarginCallThresholds
 
@@ -24,10 +23,10 @@ from libraries.domain.portfolio.models import MarginCallThresholds
 class MarginSnapshot:
     """Immutable snapshot of margin state."""
 
-    required_margin: Decimal = Decimal("0")
-    used_margin: Decimal = Decimal("0")
-    free_margin: Decimal = Decimal("0")
-    equity: Decimal = Decimal("0")
+    required_margin: Decimal = Decimal(0)
+    used_margin: Decimal = Decimal(0)
+    free_margin: Decimal = Decimal(0)
+    equity: Decimal = Decimal(0)
     margin_level: float = 0.0  # equity / used_margin * 100
     margin_utilization_pct: float = 0.0
     margin_call_active: bool = False
@@ -77,7 +76,7 @@ class MarginManager:
     async def calculate_required_margin(
         self,
         notional_value: Decimal,
-        leverage: Decimal = Decimal("100"),
+        leverage: Decimal = Decimal(100),
         margin_rate: Decimal = Decimal("0.01"),
     ) -> Decimal:
         """Calculate required margin for a position.
@@ -92,17 +91,17 @@ class MarginManager:
         Returns:
             Required margin amount.
         """
-        return (notional_value * margin_rate) / max(leverage, Decimal("1"))
+        return (notional_value * margin_rate) / max(leverage, Decimal(1))
 
     async def get_required_margin(self) -> Decimal:
         """Return total required margin across all positions."""
         async with self._lock:
-            return sum(self._position_margins.values())
+            return sum(self._position_margins.values(), Decimal(0))
 
     async def get_used_margin(self) -> Decimal:
         """Return total used margin."""
         async with self._lock:
-            return sum(self._position_margins.values())
+            return sum(self._position_margins.values(), Decimal(0))
 
     async def register_position_margin(
         self,
@@ -160,8 +159,8 @@ class MarginManager:
             Free margin amount.
         """
         async with self._lock:
-            used = sum(self._position_margins.values())
-            return max(Decimal("0"), equity - used)
+            used = sum(self._position_margins.values(), Decimal(0))
+            return max(Decimal(0), equity - used)
 
     async def get_margin_level(
         self,
@@ -178,7 +177,7 @@ class MarginManager:
             Margin level as percentage.
         """
         async with self._lock:
-            used = sum(self._position_margins.values())
+            used = sum(self._position_margins.values(), Decimal(0))
             if used == 0:
                 return float("inf")
             return float(equity / used * 100)
@@ -196,7 +195,7 @@ class MarginManager:
             Margin utilization percentage.
         """
         async with self._lock:
-            used = sum(self._position_margins.values())
+            used = sum(self._position_margins.values(), Decimal(0))
             if equity == 0:
                 return 0.0
             return float(used / equity * 100)
@@ -250,8 +249,8 @@ class MarginManager:
             MarginSnapshot.
         """
         async with self._lock:
-            used = sum(self._position_margins.values())
-            free = max(Decimal("0"), equity - used)
+            used = sum(self._position_margins.values(), Decimal(0))
+            free = max(Decimal(0), equity - used)
             level = float(equity / used * 100) if used > 0 else float("inf")
             utilization = float(used / equity * 100) if equity > 0 else 0.0
 

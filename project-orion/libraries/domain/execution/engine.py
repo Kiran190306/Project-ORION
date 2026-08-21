@@ -13,26 +13,23 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass, field
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Awaitable, Callable
+from typing import Any
 
-from libraries.domain.execution.builder import OrderBuilder, OrderBuilderConfig
+from libraries.domain.execution.builder import OrderBuilder
 from libraries.domain.execution.confirmation import (
     FillConfirmation,
     FillValidator,
-    FillValidatorConfig,
 )
 from libraries.domain.execution.context import ExecutionContext, ExecutionMode
 from libraries.domain.execution.deduplication import (
-    DeduplicationConfig,
     OrderDeduplicator,
 )
 from libraries.domain.execution.exceptions import (
     DuplicateOrderError,
-    ExecutionEngineNotReadyError,
-    ExecutionEngineShutdownError,
     FillValidationError,
     OrderBuildError,
     OrderValidationError,
@@ -40,16 +37,14 @@ from libraries.domain.execution.exceptions import (
     RoutingError,
 )
 from libraries.domain.execution.lifecycle import OrderLifecycleTracker
-from libraries.domain.execution.models import Order, OrderStatus, OrderType
+from libraries.domain.execution.models import Order, OrderTimeInForce, OrderType
 from libraries.domain.execution.recovery import (
     OrderRecoveryHandler,
-    RecoveryConfig,
 )
-from libraries.domain.execution.retry import RetryConfig, RetryHandler
+from libraries.domain.execution.retry import RetryHandler
 from libraries.domain.execution.router import (
     BrokerCapabilities,
     OrderRouter,
-    OrderRouterConfig,
 )
 from libraries.domain.execution.state_machine import Trigger
 from libraries.domain.execution.statistics import (
@@ -59,7 +54,6 @@ from libraries.domain.execution.statistics import (
 from libraries.domain.execution.tracker import OrderTracker
 from libraries.domain.execution.validator import (
     OrderValidator,
-    OrderValidatorConfig,
     ValidationResult,
 )
 from libraries.domain.trading.decision_result import TradeDecision
@@ -307,7 +301,7 @@ class ExecutionEngine:
                     outcome=ExecutionOutcome.FILLED,
                     broker_id=routing.selected_broker,
                     latency_ms=(time.monotonic() - start_time) * 1000,
-                    volume=order.quantity or Decimal("0"),
+                    volume=order.quantity or Decimal(0),
                 )
 
             # 10. Check if recovery is needed
@@ -354,8 +348,16 @@ class ExecutionEngine:
         context: ExecutionContext,
     ) -> Order:
         """Build an Order from a TradeDecision."""
-        order_type = context.order_type_override
-        tif = context.time_in_force_override
+        order_type = (
+            OrderType(context.order_type_override)
+            if context.order_type_override is not None
+            else None
+        )
+        tif = (
+            OrderTimeInForce(context.time_in_force_override)
+            if context.time_in_force_override is not None
+            else None
+        )
         price = context.price_override
 
         return self._builder.build(
@@ -384,7 +386,7 @@ class ExecutionEngine:
     async def _check_deduplication(self, order: Order) -> None:
         """Check for duplicate order submission."""
         await self._deduplicator.check_and_register(
-            order_id=order.order_id,
+            order_id=str(order.order_id),
             decision_id=order.decision_id,
             symbol=order.symbol,
             side=order.side.value,
@@ -396,7 +398,6 @@ class ExecutionEngine:
         context: ExecutionContext,
     ) -> Any:
         """Route an order to the optimal broker."""
-        from libraries.domain.execution.router import RoutingResult
 
         return await self._router.route(
             order=order,
@@ -414,14 +415,15 @@ class ExecutionEngine:
         Uses the injected submit function if available, otherwise
         delegates to infrastructure layer.
         """
-        if self._submit_fn is None:
+        submit_fn = self._submit_fn
+        if submit_fn is None:
             # No submission function injected: simulate success
             return True
 
         try:
 
             async def submit() -> Any:
-                return await self._submit_fn(order, broker_id)
+                return await submit_fn(order, broker_id)
 
             await self._retry_handler.execute(submit, f"submit {order.order_id}")
             return True

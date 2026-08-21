@@ -16,33 +16,28 @@ Responsible for:
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from libraries.domain.portfolio.analytics import PortfolioAnalytics, PortfolioAnalyticsEngine
+from libraries.domain.portfolio.analytics import (
+    PortfolioAnalytics,
+    PortfolioAnalyticsEngine,
+)
 from libraries.domain.portfolio.balance_manager import BalanceManager
 from libraries.domain.portfolio.equity_manager import EquityManager
-from libraries.domain.portfolio.exceptions import (
-    DuplicatePositionError,
-    InvalidPositionStateError,
-    PositionNotFoundError,
-    PositionSizeError,
-)
 from libraries.domain.portfolio.exposure_manager import ExposureManager
 from libraries.domain.portfolio.journal import JournalEntryType, TradeJournal
 from libraries.domain.portfolio.margin_manager import MarginManager
 from libraries.domain.portfolio.models import (
     AccountSnapshot,
+    CurrencyPosition,
     DrawdownSnapshot,
     MarginCallThresholds,
     PnLBreakdown,
     PortfolioSnapshot,
     Position,
     PositionSide,
-    PositionStatus,
-    PositionSummary,
 )
 from libraries.domain.portfolio.position_manager import PositionManager
 
@@ -51,9 +46,9 @@ from libraries.domain.portfolio.position_manager import PositionManager
 class PortfolioManagerConfig:
     """Configuration for the PortfolioManager."""
 
-    initial_balance: Decimal = Decimal("10000")
-    initial_equity: Decimal = Decimal("10000")
-    max_leverage: Decimal = Decimal("100")
+    initial_balance: Decimal = Decimal(10000)
+    initial_equity: Decimal = Decimal(10000)
+    max_leverage: Decimal = Decimal(100)
     account_currency: str = "USD"
     margin_call_level: float = 100.0
     stop_out_level: float = 50.0
@@ -164,10 +159,10 @@ class PortfolioManager:
         strategy: str = "",
         currency: str = "USD",
         broker: str = "",
-        leverage: Decimal = Decimal("1"),
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        leverage: Decimal = Decimal(1),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         tags: tuple[str, ...] = (),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
@@ -246,7 +241,7 @@ class PortfolioManager:
         balance = await self._balance_manager.get_balance()
         await self._equity_manager.update(
             balance=balance,
-            unrealized_pnl=Decimal("0"),
+            unrealized_pnl=Decimal(0),
         )
 
         # Journal
@@ -276,9 +271,9 @@ class PortfolioManager:
         close_price: Decimal,
         close_reason: str = "",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Close a position with full portfolio integration.
@@ -321,7 +316,7 @@ class PortfolioManager:
         # Update equity — must account for remaining open positions' unrealized P&L
         balance = await self._balance_manager.get_balance()
         all_open = await self._position_manager.get_open_positions()
-        total_unrealized = sum(p.unrealized_pnl for p in all_open)
+        total_unrealized = sum((p.unrealized_pnl for p in all_open), Decimal(0))
         await self._equity_manager.update(
             balance=balance,
             unrealized_pnl=total_unrealized,
@@ -371,9 +366,9 @@ class PortfolioManager:
         close_price: Decimal,
         close_reason: str = "",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Partially close a position with portfolio integration."""
@@ -400,7 +395,7 @@ class PortfolioManager:
         # Update equity — account for remaining unrealized P&L on the position
         balance = await self._balance_manager.get_balance()
         all_open = await self._position_manager.get_open_positions()
-        total_unrealized = sum(p.unrealized_pnl for p in all_open)
+        total_unrealized = sum((p.unrealized_pnl for p in all_open), Decimal(0))
         await self._equity_manager.update(
             balance=balance,
             unrealized_pnl=total_unrealized,
@@ -429,9 +424,9 @@ class PortfolioManager:
         additional_quantity: Decimal,
         entry_price: Decimal,
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Increase position size with exposure and journal updates."""
@@ -524,7 +519,7 @@ class PortfolioManager:
         # Always update equity with ALL open positions' unrealized P&L
         balance = await self._balance_manager.get_balance()
         all_open = await self._position_manager.get_open_positions()
-        total_unrealized = sum(p.unrealized_pnl for p in all_open)
+        total_unrealized = sum((p.unrealized_pnl for p in all_open), Decimal(0))
         await self._equity_manager.update(
             balance=balance,
             unrealized_pnl=total_unrealized,
@@ -541,11 +536,11 @@ class PortfolioManager:
         open_positions = await self._position_manager.get_open_positions()
         closed_positions = await self._position_manager.get_closed_positions()
 
-        total_realized = sum(p.realized_pnl for p in all_positions)
-        total_unrealized = sum(p.unrealized_pnl for p in all_positions)
-        total_commission = sum(p.commission for p in all_positions)
-        total_swap = sum(p.swap for p in all_positions)
-        total_fees = sum(p.fees for p in all_positions)
+        total_realized = sum((p.realized_pnl for p in all_positions), Decimal(0))
+        total_unrealized = sum((p.unrealized_pnl for p in all_positions), Decimal(0))
+        total_commission = sum((p.commission for p in all_positions), Decimal(0))
+        total_swap = sum((p.swap for p in all_positions), Decimal(0))
+        total_fees = sum((p.fees for p in all_positions), Decimal(0))
 
         exposure = await self._exposure_manager.get_snapshot()
 
@@ -565,7 +560,16 @@ class PortfolioManager:
             short_exposure=exposure.short_exposure,
             position_count=len(all_positions),
             open_position_count=len(open_positions),
-            currency_exposures=exposure.currency_exposures,
+            currency_exposures=tuple(
+                CurrencyPosition(
+                    currency=ce.currency,
+                    long_exposure=ce.long_exposure,
+                    short_exposure=ce.short_exposure,
+                    net_exposure=ce.net_exposure,
+                    position_count=ce.position_count,
+                )
+                for ce in exposure.currency_exposures
+            ),
         )
 
     async def get_account_snapshot(self) -> AccountSnapshot:
@@ -654,11 +658,11 @@ class PortfolioManager:
         all_positions = await self._position_manager.get_all_positions()
         open_positions = await self._position_manager.get_open_positions()
 
-        realized = sum(p.realized_pnl for p in all_positions)
-        unrealized = sum(p.unrealized_pnl for p in open_positions)
-        commission = sum(p.commission for p in all_positions)
-        swap = sum(p.swap for p in all_positions)
-        fees = sum(p.fees for p in all_positions)
+        realized = sum((p.realized_pnl for p in all_positions), Decimal(0))
+        unrealized = sum((p.unrealized_pnl for p in open_positions), Decimal(0))
+        commission = sum((p.commission for p in all_positions), Decimal(0))
+        swap = sum((p.swap for p in all_positions), Decimal(0))
+        fees = sum((p.fees for p in all_positions), Decimal(0))
 
         wins = [p.realized_pnl for p in all_positions if p.realized_pnl > 0]
         losses = [p.realized_pnl for p in all_positions if p.realized_pnl < 0]
@@ -667,8 +671,8 @@ class PortfolioManager:
             realized_pnl=realized,
             unrealized_pnl=unrealized,
             floating_pnl=unrealized,
-            gross_profit=sum(wins) if wins else Decimal("0"),
-            gross_loss=sum(losses) if losses else Decimal("0"),
+            gross_profit=sum(wins, Decimal(0)) if wins else Decimal(0),
+            gross_loss=sum(losses, Decimal(0)) if losses else Decimal(0),
             commission=commission,
             swap=swap,
             fees=fees,

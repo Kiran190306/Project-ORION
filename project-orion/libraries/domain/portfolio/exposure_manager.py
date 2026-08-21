@@ -14,9 +14,8 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
-from libraries.domain.portfolio.models import CurrencyPosition, PositionSide
+from libraries.domain.portfolio.models import PositionSide
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,10 +23,10 @@ class SymbolExposure:
     """Exposure for a single symbol."""
 
     symbol: str
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
-    net_exposure: Decimal = Decimal("0")
-    gross_exposure: Decimal = Decimal("0")
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
+    net_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
     position_count: int = 0
 
     @property
@@ -48,10 +47,10 @@ class CurrencyExposure:
     """Exposure for a single currency."""
 
     currency: str
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
-    net_exposure: Decimal = Decimal("0")
-    gross_exposure: Decimal = Decimal("0")
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
+    net_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
     position_count: int = 0
 
 
@@ -59,11 +58,11 @@ class CurrencyExposure:
 class ExposureSnapshot:
     """Immutable snapshot of portfolio exposure."""
 
-    net_exposure: Decimal = Decimal("0")
-    gross_exposure: Decimal = Decimal("0")
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
-    max_exposure: Decimal = Decimal("0")
+    net_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
+    max_exposure: Decimal = Decimal(0)
     symbol_exposures: tuple[SymbolExposure, ...] = ()
     currency_exposures: tuple[CurrencyExposure, ...] = ()
     position_count: int = 0
@@ -81,7 +80,7 @@ class ExposureManager:
         self._lock = asyncio.Lock()
         self._symbol_exposures: dict[str, SymbolExposure] = {}
         self._currency_exposures: dict[str, CurrencyExposure] = {}
-        self._max_exposure: Decimal = Decimal("0")
+        self._max_exposure: Decimal = Decimal(0)
 
     # ─── Exposure Registration ───────────────────────────────
 
@@ -157,7 +156,7 @@ class ExposureManager:
             Net exposure value.
         """
         async with self._lock:
-            return sum(s.long_exposure - s.short_exposure for s in self._symbol_exposures.values())
+            return sum((s.long_exposure - s.short_exposure for s in self._symbol_exposures.values()), Decimal(0))
 
     async def get_gross_exposure(self) -> Decimal:
         """Get gross exposure (long + short).
@@ -166,7 +165,7 @@ class ExposureManager:
             Gross exposure value.
         """
         async with self._lock:
-            return sum(s.long_exposure + s.short_exposure for s in self._symbol_exposures.values())
+            return sum((s.long_exposure + s.short_exposure for s in self._symbol_exposures.values()), Decimal(0))
 
     async def get_long_exposure(self) -> Decimal:
         """Get total long exposure.
@@ -175,7 +174,7 @@ class ExposureManager:
             Total long exposure.
         """
         async with self._lock:
-            return sum(s.long_exposure for s in self._symbol_exposures.values())
+            return sum((s.long_exposure for s in self._symbol_exposures.values()), Decimal(0))
 
     async def get_short_exposure(self) -> Decimal:
         """Get total short exposure.
@@ -184,7 +183,7 @@ class ExposureManager:
             Total short exposure.
         """
         async with self._lock:
-            return sum(s.short_exposure for s in self._symbol_exposures.values())
+            return sum((s.short_exposure for s in self._symbol_exposures.values()), Decimal(0))
 
     async def get_symbol_exposure(self, symbol: str) -> SymbolExposure | None:
         """Get exposure for a specific symbol.
@@ -247,11 +246,11 @@ class ExposureManager:
             symbols = list(self._symbol_exposures.values())
             currencies = list(self._currency_exposures.values())
 
-            long_exp = sum(s.long_exposure for s in symbols)
-            short_exp = sum(s.short_exposure for s in symbols)
+            long_exp = sum((s.long_exposure for s in symbols), Decimal(0))
+            short_exp = sum((s.short_exposure for s in symbols), Decimal(0))
             gross = long_exp + short_exp
             net = long_exp - short_exp
-            pos_count = sum(s.position_count for s in symbols)
+            pos_count = sum((s.position_count for s in symbols), 0)
 
             return ExposureSnapshot(
                 net_exposure=net,
@@ -284,7 +283,7 @@ class ExposureManager:
                 new_long = current.long_exposure + delta
                 new_short = current.short_exposure
             else:
-                new_long = max(Decimal("0"), current.long_exposure + delta)
+                new_long = max(Decimal(0), current.long_exposure + delta)
                 new_short = current.short_exposure
         else:  # SHORT
             if delta > 0:
@@ -292,7 +291,7 @@ class ExposureManager:
                 new_short = current.short_exposure + delta
             else:
                 new_long = current.long_exposure
-                new_short = max(Decimal("0"), current.short_exposure + delta)
+                new_short = max(Decimal(0), current.short_exposure + delta)
 
         net = new_long - new_short
         gross = new_long + new_short
@@ -321,11 +320,11 @@ class ExposureManager:
         current = self._currency_exposures[currency]
 
         if side == PositionSide.LONG:
-            long_exp = max(Decimal("0"), current.long_exposure + delta)
+            long_exp = max(Decimal(0), current.long_exposure + delta)
             short_exp = current.short_exposure
         else:
             long_exp = current.long_exposure
-            short_exp = max(Decimal("0"), current.short_exposure + delta)
+            short_exp = max(Decimal(0), current.short_exposure + delta)
 
         net = long_exp - short_exp
         gross = long_exp + short_exp
@@ -344,8 +343,7 @@ class ExposureManager:
         """Update the maximum exposure seen."""
         for symbol_exp in self._symbol_exposures.values():
             max_sym = max(symbol_exp.long_exposure, symbol_exp.short_exposure)
-            if max_sym > self._max_exposure:
-                self._max_exposure = max_sym
+            self._max_exposure = max(self._max_exposure, max_sym)
 
     # ─── Maintenance ─────────────────────────────────────────
 
@@ -364,9 +362,9 @@ class ExposureManager:
         async with self._lock:
             self._symbol_exposures.clear()
             self._currency_exposures.clear()
-            self._max_exposure = Decimal("0")
+            self._max_exposure = Decimal(0)
 
     def _recalculate_max(self) -> None:
         """Recalculate maximum exposure."""
-        self._max_exposure = Decimal("0")
+        self._max_exposure = Decimal(0)
         self._update_max_exposure()

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import random
-import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -99,7 +99,7 @@ class RetryHandler:
 
     async def execute(
         self,
-        coro_factory,  # Callable[[], Awaitable[Any]]
+        coro_factory: Callable[[], Awaitable[Any]],
         context: str = "",
     ) -> Any:
         """Execute a callable with retry logic.

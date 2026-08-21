@@ -8,9 +8,7 @@ Extensible for future smart routing strategies.
 from __future__ import annotations
 
 import asyncio
-import math
-from dataclasses import dataclass, field
-from typing import Any, Protocol
+from dataclasses import dataclass
 
 from libraries.domain.execution.exceptions import RoutingError
 from libraries.domain.execution.models import Order, OrderType
@@ -262,7 +260,6 @@ class OrderRouter:
 
         Extensible: override this method for custom smart routing.
         """
-        min_health = 0.0 if relaxed else self._config.min_health_score
         max_lat = float("inf") if relaxed else self._config.max_latency_ms
 
         # Health score component (0-40)

@@ -15,8 +15,7 @@ Supports:
 from __future__ import annotations
 
 import asyncio
-import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -98,11 +97,11 @@ class PositionManager:
         strategy: str = "",
         currency: str = "USD",
         broker: str = "",
-        leverage: Decimal = Decimal("1"),
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
-        margin_used: Decimal = Decimal("0"),
+        leverage: Decimal = Decimal(1),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
+        margin_used: Decimal = Decimal(0),
         tags: tuple[str, ...] = (),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
@@ -153,8 +152,8 @@ class PositionManager:
             current_price=entry_price,
             stop_loss=stop_loss,
             take_profit=take_profit,
-            realized_pnl=Decimal("0"),
-            unrealized_pnl=Decimal("0"),
+            realized_pnl=Decimal(0),
+            unrealized_pnl=Decimal(0),
             commission=commission,
             swap=swap,
             fees=fees,
@@ -189,9 +188,9 @@ class PositionManager:
         close_price: Decimal,
         close_reason: str = "",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Close a position completely.
@@ -227,10 +226,10 @@ class PositionManager:
             now = datetime.now(timezone.utc)
             updated = position.with_update(
                 status=PositionStatus.CLOSED,
-                quantity=Decimal("0"),
+                quantity=Decimal(0),
                 current_price=close_price,
                 realized_pnl=realized,
-                unrealized_pnl=Decimal("0"),
+                unrealized_pnl=Decimal(0),
                 commission=total_commission,
                 swap=total_swap,
                 fees=total_fees,
@@ -252,9 +251,9 @@ class PositionManager:
         close_price: Decimal,
         close_reason: str = "",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Partially close a position.
@@ -304,7 +303,7 @@ class PositionManager:
             total_fees = position.fees + fees
 
             # Unrealized P&L for remaining portion
-            unrealized = Decimal("0")
+            unrealized = Decimal(0)
             if remaining > 0 and position.current_price:
                 if position.is_long:
                     unrealized = (position.current_price - position.entry_price) * remaining
@@ -338,9 +337,9 @@ class PositionManager:
         additional_quantity: Decimal,
         entry_price: Decimal,
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Increase the size of an existing position (add to position).
@@ -402,9 +401,9 @@ class PositionManager:
         reduce_quantity: Decimal,
         close_price: Decimal,
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Reduce the size of an existing position (same as partial close).
@@ -481,18 +480,18 @@ class PositionManager:
                     )
 
             # Calculate merged values
-            total_quantity = sum(p.quantity for p in positions)
-            total_initial = sum(p.initial_quantity for p in positions)
-            total_cost_basis = sum(p.entry_price * p.quantity for p in positions)
+            total_quantity = sum((p.quantity for p in positions), Decimal(0))
+            total_initial = sum((p.initial_quantity for p in positions), Decimal(0))
+            total_cost_basis = sum((p.entry_price * p.quantity for p in positions), Decimal(0))
             avg_price = (
                 total_cost_basis / total_quantity if total_quantity > 0 else base.entry_price
             )
 
-            total_realized = sum(p.realized_pnl for p in positions)
-            total_commission = sum(p.commission for p in positions)
-            total_swap = sum(p.swap for p in positions)
-            total_fees = sum(p.fees for p in positions)
-            total_margin = sum(p.margin_used for p in positions)
+            total_realized = sum((p.realized_pnl for p in positions), Decimal(0))
+            total_commission = sum((p.commission for p in positions), Decimal(0))
+            total_swap = sum((p.swap for p in positions), Decimal(0))
+            total_fees = sum((p.fees for p in positions), Decimal(0))
+            total_margin = sum((p.margin_used for p in positions), Decimal(0))
 
             now = datetime.now(timezone.utc)
 
@@ -515,7 +514,7 @@ class PositionManager:
             for p in positions[1:]:
                 closed = p.with_update(
                     status=PositionStatus.CLOSED,
-                    quantity=Decimal("0"),
+                    quantity=Decimal(0),
                     close_time=now,
                     updated_at=now,
                     close_reason="merged",
@@ -593,11 +592,11 @@ class PositionManager:
                     current_price=position.current_price,
                     stop_loss=position.stop_loss,
                     take_profit=position.take_profit,
-                    realized_pnl=Decimal("0"),
-                    unrealized_pnl=Decimal("0"),
-                    commission=Decimal("0"),
-                    swap=Decimal("0"),
-                    fees=Decimal("0"),
+                    realized_pnl=Decimal(0),
+                    unrealized_pnl=Decimal(0),
+                    commission=Decimal(0),
+                    swap=Decimal(0),
+                    fees=Decimal(0),
                     margin_used=position.margin_used / len(split_ratios),
                     leverage=position.leverage,
                     decision_id=position.decision_id,
@@ -626,9 +625,9 @@ class PositionManager:
         close_price: Decimal,
         reason: str = "liquidated",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Force-liquidate a position (e.g., due to margin call).
@@ -658,10 +657,10 @@ class PositionManager:
             now = datetime.now(timezone.utc)
             updated = position.with_update(
                 status=PositionStatus.LIQUIDATED,
-                quantity=Decimal("0"),
+                quantity=Decimal(0),
                 current_price=close_price,
                 realized_pnl=realized,
-                unrealized_pnl=Decimal("0"),
+                unrealized_pnl=Decimal(0),
                 commission=total_commission,
                 swap=total_swap,
                 fees=total_fees,
@@ -682,9 +681,9 @@ class PositionManager:
         close_price: Decimal,
         reason: str = "forced_close",
         *,
-        commission: Decimal = Decimal("0"),
-        swap: Decimal = Decimal("0"),
-        fees: Decimal = Decimal("0"),
+        commission: Decimal = Decimal(0),
+        swap: Decimal = Decimal(0),
+        fees: Decimal = Decimal(0),
         metadata: dict[str, Any] | None = None,
     ) -> Position:
         """Force-close a position (e.g., due to risk policy violation).
@@ -714,10 +713,10 @@ class PositionManager:
             now = datetime.now(timezone.utc)
             updated = position.with_update(
                 status=PositionStatus.FORCED_CLOSE,
-                quantity=Decimal("0"),
+                quantity=Decimal(0),
                 current_price=close_price,
                 realized_pnl=realized,
-                unrealized_pnl=Decimal("0"),
+                unrealized_pnl=Decimal(0),
                 commission=total_commission,
                 swap=total_swap,
                 fees=total_fees,
@@ -818,21 +817,21 @@ class PositionManager:
             ]
             active = [p for p in positions if p.is_active]
 
-            total_long_qty = sum(p.quantity for p in active if p.is_long)
-            total_short_qty = sum(p.quantity for p in active if p.is_short)
+            total_long_qty = sum((p.quantity for p in active if p.is_long), Decimal(0))
+            total_short_qty = sum((p.quantity for p in active if p.is_short), Decimal(0))
 
             long_positions = [p for p in active if p.is_long]
             short_positions = [p for p in active if p.is_short]
 
             avg_long = (
-                sum(p.entry_price * p.quantity for p in long_positions) / total_long_qty
+                sum((p.entry_price * p.quantity for p in long_positions), Decimal(0)) / total_long_qty
                 if total_long_qty > 0
-                else Decimal("0")
+                else Decimal(0)
             )
             avg_short = (
-                sum(p.entry_price * p.quantity for p in short_positions) / total_short_qty
+                sum((p.entry_price * p.quantity for p in short_positions), Decimal(0)) / total_short_qty
                 if total_short_qty > 0
-                else Decimal("0")
+                else Decimal(0)
             )
 
             return PositionSummary(
@@ -842,8 +841,8 @@ class PositionManager:
                 net_quantity=total_long_qty - total_short_qty,
                 avg_long_price=avg_long,
                 avg_short_price=avg_short,
-                unrealized_pnl=sum(p.unrealized_pnl for p in active),
-                realized_pnl=sum(p.realized_pnl for p in positions),
+                unrealized_pnl=sum((p.unrealized_pnl for p in active), Decimal(0)),
+                realized_pnl=sum((p.realized_pnl for p in positions), Decimal(0)),
                 position_count=len(positions),
                 active_count=len(active),
             )

@@ -7,18 +7,13 @@ position sizing methods.
 from __future__ import annotations
 
 import asyncio
-import math
-from dataclasses import dataclass, field
 from decimal import Decimal
-from typing import Any
 
 from libraries.domain.trading.models import (
     PositionSizingMethod,
     SizingResult,
-    StrategyType,
     TradingSignal,
 )
-from libraries.domain.trading.signals import SignalDirection
 
 
 class PositionSizer:
@@ -49,9 +44,9 @@ class PositionSizer:
 class FixedPositionSizer(PositionSizer):
     """Fixed position sizing - always trades a fixed notional amount."""
 
-    def __init__(self, fixed_notional: Decimal = Decimal("1000")) -> None:
+    def __init__(self, fixed_notional: Decimal = Decimal(1000)) -> None:
         super().__init__(PositionSizingMethod.FIXED)
-        if fixed_notional <= Decimal("0"):
+        if fixed_notional <= Decimal(0):
             raise ValueError("fixed_notional must be positive")
         self._fixed_notional = fixed_notional
 
@@ -72,7 +67,7 @@ class FixedPositionSizer(PositionSizer):
         async with self._lock:
             confidence_adjustment = max(0.5, confidence / 100.0)
             adjusted_notional = self._fixed_notional * Decimal(str(confidence_adjustment))
-            units = adjusted_notional / (entry_price or Decimal("1"))
+            units = adjusted_notional / (entry_price or Decimal(1))
             risk_amount = adjusted_notional * Decimal("0.02")  # 2% risk
             account_risk_pct = (
                 float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
@@ -119,11 +114,11 @@ class RiskPercentPositionSizer(PositionSizer):
                 risk_per_unit = abs(entry_price - stop_loss)
                 units = risk_amount / risk_per_unit
             elif atr is not None and atr > 0:
-                units = risk_amount / (atr * Decimal("2"))
+                units = risk_amount / (atr * Decimal(2))
             else:
-                units = risk_amount / (entry_price or Decimal("1")) * Decimal("0.1")
+                units = risk_amount / (entry_price or Decimal(1)) * Decimal("0.1")
 
-            notional = units * (entry_price or Decimal("1"))
+            notional = units * (entry_price or Decimal(1))
             account_risk_pct = (
                 float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
             )
@@ -177,11 +172,11 @@ class ATRPositionSizer(PositionSizer):
                 units = risk_amount / stop_distance
             elif entry_price is not None:
                 stop_distance = entry_price * Decimal(str(volatility * self._atr_multiplier))
-                units = risk_amount / stop_distance if stop_distance > 0 else Decimal("0")
+                units = risk_amount / stop_distance if stop_distance > 0 else Decimal(0)
             else:
-                units = Decimal("0")
+                units = Decimal(0)
 
-            notional = units * (entry_price or Decimal("1"))
+            notional = units * (entry_price or Decimal(1))
             account_risk_pct = (
                 float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0
             )
@@ -244,9 +239,9 @@ class KellyPositionSizer(PositionSizer):
                 risk_per_unit = abs(entry_price - stop_loss)
                 units = risk_amount / risk_per_unit
             else:
-                units = risk_amount / (entry_price or Decimal("1"))
+                units = risk_amount / (entry_price or Decimal(1))
 
-            notional = units * (entry_price or Decimal("1"))
+            notional = units * (entry_price or Decimal(1))
             account_risk_pct = float(kelly_pct * 100)
 
             return SizingResult(
@@ -263,11 +258,11 @@ class VolatilityBasedPositionSizer(PositionSizer):
 
     def __init__(
         self,
-        base_notional: Decimal = Decimal("1000"),
+        base_notional: Decimal = Decimal(1000),
         max_volatility: float = 1.0,
     ) -> None:
         super().__init__(PositionSizingMethod.VOLATILITY_BASED)
-        if base_notional <= Decimal("0"):
+        if base_notional <= Decimal(0):
             raise ValueError("base_notional must be positive")
         if max_volatility <= 0:
             raise ValueError("max_volatility must be positive")
@@ -297,7 +292,7 @@ class VolatilityBasedPositionSizer(PositionSizer):
             vol_factor = max(0.1, 1.0 - (volatility / self._max_volatility))
 
             adjusted_notional = self._base_notional * Decimal(str(confidence_factor * vol_factor))
-            units = adjusted_notional / (entry_price or Decimal("1"))
+            units = adjusted_notional / (entry_price or Decimal(1))
             risk_amount = adjusted_notional * Decimal("0.02")
             account_risk_pct = (
                 float(risk_amount / account_balance * 100) if account_balance > 0 else 0.0

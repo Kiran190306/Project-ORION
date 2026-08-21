@@ -7,9 +7,6 @@ based on market state, technical indicators, and strategy configuration.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from decimal import Decimal
 from typing import Any
 
 from libraries.domain.trading.market_state import MarketState, MarketStateType
@@ -215,9 +212,7 @@ class SignalGenerator:
         adjustments += market_state.confidence * 15.0
         adjustments += trend_strength * 10.0
 
-        if direction == SignalDirection.BUY and rsi < 30:
-            adjustments += 10.0
-        elif direction == SignalDirection.SELL and rsi > 70:
+        if direction == SignalDirection.BUY and rsi < 30 or direction == SignalDirection.SELL and rsi > 70:
             adjustments += 10.0
 
         return max(0.0, min(100.0, base + adjustments))

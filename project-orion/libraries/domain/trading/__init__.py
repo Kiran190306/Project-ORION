@@ -101,6 +101,7 @@ __all__ = [
     "RiskFilter",
     "RiskFilterPort",
     "RiskFilterResult",
+    "RiskPercentPositionSizer",
     "SignalDirection",
     "SignalGenerator",
     "SignalGeneratorPort",
@@ -121,5 +122,4 @@ __all__ = [
     "TradingDecisionSink",
     "TradingSignal",
     "VolatilityBasedPositionSizer",
-    "RiskPercentPositionSizer",
 ]

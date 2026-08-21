@@ -43,7 +43,7 @@ class OrderLifecycleTracker:
     """
 
     def __init__(self, order: Order) -> None:
-        self._order_id = order.order_id
+        self._order_id = str(order.order_id)
         self._order = order
         self._state_machine = OrderStateMachine()
         self._current_status: OrderStatus = OrderStatus.NEW

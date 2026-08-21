@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any
 
 from libraries.domain.trading.market_state import MarketState, MarketStateType
 from libraries.domain.trading.models import TradingSignal

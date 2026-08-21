@@ -6,7 +6,7 @@ Supports precision, tick size, lot size, rounding, and broker capabilities.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
@@ -104,12 +104,11 @@ class OrderBuilder:
         final_price: Decimal | None = None
         if price is not None:
             final_price = self._round_price(price)
-        elif decision.entry_price is not None:
-            if ot != OrderType.MARKET:
-                final_price = self._round_price(decision.entry_price)
+        elif decision.entry_price is not None and ot != OrderType.MARKET:
+            final_price = self._round_price(decision.entry_price)
 
         # Determine volume with rounding
-        volume = self._round_volume(decision.position_size or Decimal("0"))
+        volume = self._round_volume(decision.position_size or Decimal(0))
 
         # Time in force
         tif = time_in_force or self._config.default_time_in_force
@@ -143,18 +142,18 @@ class OrderBuilder:
 
     def _round_price(self, price: Decimal) -> Decimal:
         """Round price to configured tick size precision."""
-        if price <= Decimal("0"):
+        if price <= Decimal(0):
             raise OrderBuildError(f"Invalid price: {price}")
-        quantize = Decimal("1").scaleb(-self._config.price_precision)
+        quantize = Decimal(1).scaleb(-self._config.price_precision)
         return price.quantize(quantize, rounding=ROUND_HALF_UP)
 
     def _round_volume(self, volume: Decimal) -> Decimal:
         """Round volume to configured lot size precision."""
-        if volume < Decimal("0"):
+        if volume < Decimal(0):
             raise OrderBuildError(f"Invalid volume: {volume}")
-        if volume == Decimal("0"):
-            return Decimal("0")
-        quantize = Decimal("1").scaleb(-self._config.volume_precision)
+        if volume == Decimal(0):
+            return Decimal(0)
+        quantize = Decimal(1).scaleb(-self._config.volume_precision)
         return volume.quantize(quantize, rounding=ROUND_HALF_UP)
 
     def _next_order_id(self) -> str:

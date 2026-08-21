@@ -11,7 +11,6 @@ import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 from libraries.domain.execution.exceptions import OrderValidationError
 from libraries.domain.execution.models import Order, OrderStatus, OrderType
@@ -41,13 +40,13 @@ class OrderValidatorConfig:
     """Configuration for the OrderValidator."""
 
     min_volume: Decimal = Decimal("0.001")
-    max_volume: Decimal = Decimal("1000000")
-    max_price: Decimal = Decimal("1000000")
+    max_volume: Decimal = Decimal(1000000)
+    max_price: Decimal = Decimal(1000000)
     min_price: Decimal = Decimal("0.00001")
     max_slippage_pips: float = 10.0
     require_stop_loss: bool = False
     require_take_profit: bool = False
-    max_position_size: Decimal = Decimal("10000")
+    max_position_size: Decimal = Decimal(10000)
     precision_check_enabled: bool = True
     market_status_check_enabled: bool = True
     broker_availability_check_enabled: bool = True
@@ -101,25 +100,25 @@ class OrderValidator:
                 errors.append(f"Cannot validate order in status {order.status.value}")
 
             # 2. Volume checks
-            if order.volume is not None:
-                if order.volume <= Decimal("0"):
-                    errors.append("Volume must be positive")
-                if order.volume < self._config.min_volume:
-                    errors.append(f"Volume {order.volume} below minimum {self._config.min_volume}")
-                if order.volume > self._config.max_volume:
+            if order.quantity is not None:
+                if order.quantity <= Decimal("0"):
+                    errors.append("Quantity must be positive")
+                if order.quantity < self._config.min_volume:
+                    errors.append(f"Quantity {order.quantity} below minimum {self._config.min_volume}")
+                if order.quantity > self._config.max_volume:
                     errors.append(
-                        f"Volume {order.volume} exceeds maximum {self._config.max_volume}"
+                        f"Quantity {order.quantity} exceeds maximum {self._config.max_volume}"
                     )
-                if lot_size is not None and self._config.precision_check_enabled:
-                    remainder = order.volume % lot_size
+                if lot_size is not None:
+                    remainder = order.quantity % lot_size
                     if remainder != Decimal("0"):
                         errors.append(
-                            f"Volume {order.volume} not a multiple of lot size {lot_size}"
+                            f"Quantity {order.quantity} not a multiple of lot size {lot_size}"
                         )
 
             # 3. Price checks
             if order.price is not None:
-                if order.price <= Decimal("0"):
+                if order.price <= Decimal(0):
                     errors.append("Price must be positive")
                 if order.price < self._config.min_price:
                     errors.append(f"Price {order.price} below minimum {self._config.min_price}")
@@ -127,17 +126,17 @@ class OrderValidator:
                     errors.append(f"Price {order.price} exceeds maximum {self._config.max_price}")
                 if tick_size is not None and self._config.precision_check_enabled:
                     remainder = order.price % tick_size
-                    if remainder != Decimal("0"):
+                    if remainder != Decimal(0):
                         errors.append(
                             f"Price {order.price} not a multiple of tick size {tick_size}"
                         )
 
             # 4. Stop loss checks
-            if self._config.require_stop_loss and order.stop_loss is None:
+            if self._config.require_stop_loss and order.stop_price is None:
                 errors.append("Stop loss is required but not set")
 
             # 5. Take profit checks
-            if self._config.require_take_profit and order.take_profit is None:
+            if self._config.require_take_profit and order.price is None:
                 errors.append("Take profit is required but not set")
 
             # 6. Market status
@@ -165,7 +164,7 @@ class OrderValidator:
                 order.order_type in (OrderType.IOC, OrderType.FOK)
                 and order.time_in_force is not None
             ):
-                warnings.append(f"IOC/FOK orders ignore time_in_force setting")
+                warnings.append("IOC/FOK orders ignore time_in_force setting")
 
             return ValidationResult(
                 is_valid=len(errors) == 0,

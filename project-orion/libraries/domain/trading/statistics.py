@@ -144,11 +144,9 @@ class TradeStatistics:
             cumulative = 0.0
             for pnl in self._pnl_history:
                 cumulative += pnl
-                if cumulative > peak:
-                    peak = cumulative
+                peak = max(peak, cumulative)
                 dd = peak - cumulative
-                if dd > max_dd:
-                    max_dd = dd
+                max_dd = max(max_dd, dd)
 
             # Streaks
             current_streak = 0

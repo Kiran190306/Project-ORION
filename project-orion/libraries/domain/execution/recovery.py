@@ -8,10 +8,9 @@ detection, query-by-broker, and reconnect recovery.
 from __future__ import annotations
 
 import asyncio
-import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable, Callable
+from datetime import datetime, timezone
 
 from libraries.domain.execution.exceptions import RecoveryError
 from libraries.domain.execution.models import Order, OrderStatus
@@ -87,15 +86,16 @@ class OrderRecoveryHandler:
             Current recovery state.
         """
         async with self._lock:
+            order_id = str(order.order_id)
             state = RecoveryState(
-                order_id=order.order_id,
+                order_id=order_id,
                 is_recovering=True,
                 attempts=0,
                 max_attempts=self._config.max_recovery_attempts,
                 recovery_started_at=datetime.now(timezone.utc),
             )
-            self._recovering[order.order_id] = state
-            self._attempts[order.order_id] = []
+            self._recovering[order_id] = state
+            self._attempts[order_id] = []
             return state
 
     async def attempt_recovery(
@@ -116,13 +116,14 @@ class OrderRecoveryHandler:
             RecoveryError: If recovery fails after max attempts.
         """
         async with self._lock:
-            state = self._recovering.get(order.order_id)
+            order_id = str(order.order_id)
+            state = self._recovering.get(order_id)
             if state is None:
-                raise RecoveryError(f"Order {order.order_id} is not marked for recovery")
+                raise RecoveryError(f"Order {order_id} is not marked for recovery")
 
             if state.attempts >= state.max_attempts:
                 raise RecoveryError(
-                    f"Recovery exhausted for order {order.order_id} "
+                    f"Recovery exhausted for order {order_id} "
                     f"after {state.max_attempts} attempts"
                 )
 
@@ -136,7 +137,7 @@ class OrderRecoveryHandler:
         if query_broker is not None and self._config.query_broker_on_recovery:
             try:
                 broker_found, broker_status, error = await query_broker(
-                    order.order_id, order.symbol
+                    str(order.order_id), order.symbol
                 )
             except Exception as e:
                 error = str(e)
@@ -151,7 +152,7 @@ class OrderRecoveryHandler:
 
             attempt = RecoveryAttempt(
                 attempt_number=attempt_number,
-                order_id=order.order_id,
+                order_id=order_id,
                 broker_queried=query_broker is not None,
                 broker_found=broker_found,
                 broker_status=broker_status,
@@ -159,11 +160,11 @@ class OrderRecoveryHandler:
                 error=error,
             )
 
-            self._attempts[order.order_id].append(attempt)
+            self._attempts[order_id].append(attempt)
 
             # Update state
             new_state = RecoveryState(
-                order_id=order.order_id,
+                order_id=order_id,
                 is_recovering=not recovered and attempt_number < state.max_attempts,
                 attempts=attempt_number,
                 max_attempts=state.max_attempts,
@@ -172,9 +173,9 @@ class OrderRecoveryHandler:
             )
 
             if recovered:
-                self._recovering.pop(order.order_id, None)
+                self._recovering.pop(order_id, None)
             else:
-                self._recovering[order.order_id] = new_state
+                self._recovering[order_id] = new_state
 
             return attempt
 
@@ -192,7 +193,7 @@ class OrderRecoveryHandler:
         """
         async with self._lock:
             # Already being recovered
-            if order.order_id in self._recovering:
+            if str(order.order_id) in self._recovering:
                 return True
 
             # Check if order is in a state that needs recovery

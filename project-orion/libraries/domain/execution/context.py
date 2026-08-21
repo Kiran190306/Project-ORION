@@ -32,10 +32,23 @@ class ExecutionContext:
 
     mode: ExecutionMode = ExecutionMode.LIVE
     symbol: str = ""
-    volume: Decimal = Decimal("0")
+    volume: Decimal = Decimal(0)
     max_slippage_bps: float = 10.0
     allow_partial_fills: bool = True
     execution_timeout_seconds: float = 30.0
     use_circuit_breaker: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    # Order overrides
+    order_type_override: str | None = None
+    time_in_force_override: str | None = None
+    price_override: Decimal | None = None
+    broker_symbol_override: str | None = None
+
+    # Market / broker state
+    market_open: bool = True
+    broker_available: bool = True
+    tick_size: Decimal | None = None
+    lot_size: Decimal | None = None
+    current_spread: float | None = None

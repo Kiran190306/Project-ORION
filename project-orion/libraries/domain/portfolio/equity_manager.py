@@ -7,25 +7,24 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
 class EquitySnapshot:
     """Immutable snapshot of equity state."""
 
-    equity: Decimal = Decimal("0")
-    balance: Decimal = Decimal("0")
-    unrealized_pnl: Decimal = Decimal("0")
-    daily_change: Decimal = Decimal("0")
-    weekly_change: Decimal = Decimal("0")
-    monthly_change: Decimal = Decimal("0")
+    equity: Decimal = Decimal(0)
+    balance: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
+    daily_change: Decimal = Decimal(0)
+    weekly_change: Decimal = Decimal(0)
+    monthly_change: Decimal = Decimal(0)
     daily_change_pct: float = 0.0
     weekly_change_pct: float = 0.0
     monthly_change_pct: float = 0.0
-    peak_equity: Decimal = Decimal("0")
+    peak_equity: Decimal = Decimal(0)
     currency: str = "USD"
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -39,7 +38,7 @@ class EquityManager:
 
     def __init__(
         self,
-        initial_equity: Decimal = Decimal("0"),
+        initial_equity: Decimal = Decimal(0),
         currency: str = "USD",
     ) -> None:
         self._lock = asyncio.Lock()
@@ -52,7 +51,7 @@ class EquityManager:
         self._day_start_equity = initial_equity
         self._week_start_equity = initial_equity
         self._month_start_equity = initial_equity
-        self._last_reset_date = date.today()
+        self._last_reset_date = datetime.now(timezone.utc).date()
 
     async def get_equity(self) -> Decimal:
         """Return current equity."""
@@ -67,7 +66,7 @@ class EquityManager:
     async def update(
         self,
         balance: Decimal,
-        unrealized_pnl: Decimal = Decimal("0"),
+        unrealized_pnl: Decimal = Decimal(0),
     ) -> EquitySnapshot:
         """Update equity based on balance and unrealized P&L.
 
@@ -87,8 +86,7 @@ class EquityManager:
             self._balance = balance
             self._equity = new_equity
 
-            if new_equity > self._peak_equity:
-                self._peak_equity = new_equity
+            self._peak_equity = max(self._peak_equity, new_equity)
 
             daily_change = new_equity - self._day_start_equity
             weekly_change = new_equity - self._week_start_equity
@@ -126,7 +124,7 @@ class EquityManager:
 
     async def get_snapshot(
         self,
-        unrealized_pnl: Decimal = Decimal("0"),
+        unrealized_pnl: Decimal = Decimal(0),
     ) -> EquitySnapshot:
         """Get current equity snapshot.
 
@@ -176,7 +174,7 @@ class EquityManager:
 
     def _check_periodic_reset(self) -> None:
         """Reset periodic tracking if a new period has started."""
-        today = date.today()
+        today = datetime.now(timezone.utc).date()
         if today > self._last_reset_date:
             # New day
             if today.weekday() == 0:  # Monday
@@ -187,7 +185,7 @@ class EquityManager:
             self._day_start_equity = self._equity
             self._last_reset_date = today
 
-    async def reset(self, equity: Decimal = Decimal("0")) -> None:
+    async def reset(self, equity: Decimal = Decimal(0)) -> None:
         """Reset equity manager (for testing)."""
         async with self._lock:
             self._equity = equity
@@ -196,4 +194,4 @@ class EquityManager:
             self._day_start_equity = equity
             self._week_start_equity = equity
             self._month_start_equity = equity
-            self._last_reset_date = date.today()
+            self._last_reset_date = datetime.now(timezone.utc).date()

@@ -10,9 +10,6 @@ from typing import Any, Protocol, runtime_checkable
 
 from libraries.domain.portfolio.models import (
     AccountSnapshot,
-    DrawdownSnapshot,
-    PnLBreakdown,
-    PortfolioSnapshot,
     Position,
 )
 

@@ -40,9 +40,9 @@ class FillUpdate:
     side: str
     quantity: Decimal
     price: Decimal
-    commission: Decimal = Decimal("0")
-    swap: Decimal = Decimal("0")
-    fees: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
+    swap: Decimal = Decimal(0)
+    fees: Decimal = Decimal(0)
     strategy: str = ""
     broker: str = ""
     currency: str = "USD"

@@ -154,10 +154,10 @@ class Order:
     status: OrderStatus = OrderStatus.NEW
     broker_order_id: BrokerOrderId | None = None
     broker_name: str = ""
-    filled_quantity: Decimal = Decimal("0")
+    filled_quantity: Decimal = Decimal(0)
     average_fill_price: Decimal | None = None
-    commission: Decimal = Decimal("0")
-    slippage: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
+    slippage: Decimal = Decimal(0)
     rejection_reason: str = ""
     fills: tuple[Fill, ...] = ()
     parent_order_id: OrderId | None = None
@@ -244,7 +244,7 @@ class Fill:
     side: OrderSide
     quantity: Decimal
     price: Decimal
-    commission: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
     broker_fill_id: str = ""
     liquidity: str = ""  # maker / taker
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -260,7 +260,7 @@ class PartialFillTracker:
 
     order_id: OrderId
     total_quantity: Decimal
-    filled_quantity: Decimal = Decimal("0")
+    filled_quantity: Decimal = Decimal(0)
     fills: tuple[Fill, ...] = ()
     average_price: Decimal | None = None
     last_fill_at: datetime | None = None
@@ -306,10 +306,10 @@ class ExecutionResult:
     side: OrderSide
     quantity: Decimal
     status: ExecutionResultStatus
-    filled_quantity: Decimal = Decimal("0")
+    filled_quantity: Decimal = Decimal(0)
     average_price: Decimal | None = None
-    commission: Decimal = Decimal("0")
-    slippage: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
+    slippage: Decimal = Decimal(0)
     slippage_bps: float = 0.0
     fills: tuple[Fill, ...] = ()
     broker_order_id: BrokerOrderId | None = None
@@ -403,8 +403,8 @@ class SlippageReport:
     """Aggregated slippage report across executions."""
 
     total_executions: int = 0
-    total_adverse_slippage: Decimal = Decimal("0")
-    total_favorable_slippage: Decimal = Decimal("0")
+    total_adverse_slippage: Decimal = Decimal(0)
+    total_favorable_slippage: Decimal = Decimal(0)
     average_slippage_bps: float = 0.0
     max_adverse_bps: float = 0.0
     max_favorable_bps: float = 0.0
@@ -431,7 +431,7 @@ class ExecutionEvent:
     side: OrderSide
     quantity: Decimal
     status: OrderStatus
-    filled_quantity: Decimal = Decimal("0")
+    filled_quantity: Decimal = Decimal(0)
     price: Decimal | None = None
     broker_order_id: BrokerOrderId | None = None
     broker_name: str = ""

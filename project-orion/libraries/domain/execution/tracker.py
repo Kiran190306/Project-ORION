@@ -7,8 +7,6 @@ Provides lookup by order ID, decision ID, symbol, and status.
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
-from typing import Any
 
 from libraries.domain.execution.exceptions import OrderNotFoundError
 from libraries.domain.execution.lifecycle import OrderLifecycleTracker
@@ -37,13 +35,14 @@ class OrderTracker:
             lifecycle: The lifecycle tracker for the order.
         """
         async with self._lock:
-            self._orders[order.order_id] = order
-            self._lifecycles[order.order_id] = lifecycle
-            self._decision_map[order.decision_id] = order.order_id
+            order_id = str(order.order_id)
+            self._orders[order_id] = order
+            self._lifecycles[order_id] = lifecycle
+            self._decision_map[order.decision_id] = order_id
 
             if order.symbol not in self._symbol_map:
                 self._symbol_map[order.symbol] = set()
-            self._symbol_map[order.symbol].add(order.order_id)
+            self._symbol_map[order.symbol].add(order_id)
 
     async def get_order(self, order_id: str) -> Order:
         """Get an order by ID.
@@ -157,9 +156,10 @@ class OrderTracker:
             OrderNotFoundError: If not found.
         """
         async with self._lock:
-            if order.order_id not in self._orders:
-                raise OrderNotFoundError(f"Order {order.order_id} not found")
-            self._orders[order.order_id] = order
+            order_id = str(order.order_id)
+            if order_id not in self._orders:
+                raise OrderNotFoundError(f"Order {order_id} not found")
+            self._orders[order_id] = order
 
     async def remove(self, order_id: str) -> None:
         """Remove an order from tracking.

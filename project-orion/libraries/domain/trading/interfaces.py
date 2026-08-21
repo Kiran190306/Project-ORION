@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from decimal import Decimal
+from typing import Protocol, runtime_checkable
 
 from libraries.domain.trading.decision_result import TradeDecision
-from libraries.domain.trading.market_state import MarketState, MarketStateType
+from libraries.domain.trading.market_state import MarketState
 from libraries.domain.trading.models import (
     SizingResult,
     StrategyType,
     TradingSignal,
 )
-from libraries.domain.trading.signals import SignalDirection
 
 
 @runtime_checkable

@@ -30,8 +30,8 @@ class DecisionContext:
     volatility_score: float = 0.0
     consensus_quality: float = 0.0
     provider_health: float = 0.0
-    account_balance: Decimal = Decimal("0")
-    current_position: Decimal = Decimal("0")
+    account_balance: Decimal = Decimal(0)
+    current_position: Decimal = Decimal(0)
     strategy: StrategyType = StrategyType.SWING
     risk_allowed: bool = True
     risk_reason: str = ""

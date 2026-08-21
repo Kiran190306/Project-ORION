@@ -77,19 +77,19 @@ class Position:
     symbol: str
     side: PositionSide
     status: PositionStatus = PositionStatus.OPEN
-    quantity: Decimal = Decimal("0")  # Current open quantity
-    initial_quantity: Decimal = Decimal("0")  # Original open quantity
-    entry_price: Decimal = Decimal("0")
+    quantity: Decimal = Decimal(0)  # Current open quantity
+    initial_quantity: Decimal = Decimal(0)  # Original open quantity
+    entry_price: Decimal = Decimal(0)
     current_price: Decimal | None = None
     stop_loss: Decimal | None = None
     take_profit: Decimal | None = None
-    realized_pnl: Decimal = Decimal("0")
-    unrealized_pnl: Decimal = Decimal("0")
-    commission: Decimal = Decimal("0")
-    swap: Decimal = Decimal("0")
-    fees: Decimal = Decimal("0")
-    margin_used: Decimal = Decimal("0")
-    leverage: Decimal = Decimal("1")
+    realized_pnl: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
+    commission: Decimal = Decimal(0)
+    swap: Decimal = Decimal(0)
+    fees: Decimal = Decimal(0)
+    margin_used: Decimal = Decimal(0)
+    leverage: Decimal = Decimal(1)
     decision_id: str = ""
     execution_id: str = ""
     strategy: str = ""
@@ -188,13 +188,13 @@ class PositionSummary:
     """Aggregated position summary for a symbol."""
 
     symbol: str
-    total_long_quantity: Decimal = Decimal("0")
-    total_short_quantity: Decimal = Decimal("0")
-    net_quantity: Decimal = Decimal("0")
-    avg_long_price: Decimal = Decimal("0")
-    avg_short_price: Decimal = Decimal("0")
-    unrealized_pnl: Decimal = Decimal("0")
-    realized_pnl: Decimal = Decimal("0")
+    total_long_quantity: Decimal = Decimal(0)
+    total_short_quantity: Decimal = Decimal(0)
+    net_quantity: Decimal = Decimal(0)
+    avg_long_price: Decimal = Decimal(0)
+    avg_short_price: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
+    realized_pnl: Decimal = Decimal(0)
     position_count: int = 0
     active_count: int = 0
 
@@ -207,9 +207,9 @@ class CurrencyPosition:
     """Exposure summary for a single currency."""
 
     currency: str
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
-    net_exposure: Decimal = Decimal("0")
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
+    net_exposure: Decimal = Decimal(0)
     position_count: int = 0
 
 
@@ -224,13 +224,13 @@ class AccountSnapshot:
     """
 
     account_id: str = "default"
-    balance: Decimal = Decimal("0")
-    equity: Decimal = Decimal("0")
-    free_margin: Decimal = Decimal("0")
-    used_margin: Decimal = Decimal("0")
+    balance: Decimal = Decimal(0)
+    equity: Decimal = Decimal(0)
+    free_margin: Decimal = Decimal(0)
+    used_margin: Decimal = Decimal(0)
     margin_level: float = 0.0  # equity / used_margin * 100
-    available_funds: Decimal = Decimal("0")
-    buying_power: Decimal = Decimal("0")
+    available_funds: Decimal = Decimal(0)
+    buying_power: Decimal = Decimal(0)
     leverage: float = 0.0  # current effective leverage
     currency: str = "USD"
     base_currency: str = "USD"
@@ -265,15 +265,15 @@ class PortfolioSnapshot:
     positions: tuple[Position, ...] = ()
     open_positions: tuple[Position, ...] = ()
     closed_positions: tuple[Position, ...] = ()
-    total_realized_pnl: Decimal = Decimal("0")
-    total_unrealized_pnl: Decimal = Decimal("0")
-    total_commission: Decimal = Decimal("0")
-    total_swap: Decimal = Decimal("0")
-    total_fees: Decimal = Decimal("0")
-    net_exposure: Decimal = Decimal("0")
-    gross_exposure: Decimal = Decimal("0")
-    long_exposure: Decimal = Decimal("0")
-    short_exposure: Decimal = Decimal("0")
+    total_realized_pnl: Decimal = Decimal(0)
+    total_unrealized_pnl: Decimal = Decimal(0)
+    total_commission: Decimal = Decimal(0)
+    total_swap: Decimal = Decimal(0)
+    total_fees: Decimal = Decimal(0)
+    net_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
+    long_exposure: Decimal = Decimal(0)
+    short_exposure: Decimal = Decimal(0)
     position_count: int = 0
     open_position_count: int = 0
     currency_exposures: tuple[CurrencyPosition, ...] = ()
@@ -300,16 +300,16 @@ class PnLBreakdown:
     - total_cost = commission + swap + fees
     """
 
-    realized_pnl: Decimal = Decimal("0")
-    unrealized_pnl: Decimal = Decimal("0")
-    floating_pnl: Decimal = Decimal("0")
-    gross_profit: Decimal = Decimal("0")
-    gross_loss: Decimal = Decimal("0")
+    realized_pnl: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
+    floating_pnl: Decimal = Decimal(0)
+    gross_profit: Decimal = Decimal(0)
+    gross_loss: Decimal = Decimal(0)
     # net_profit intentionally omitted from fields — computed below
-    commission: Decimal = Decimal("0")
-    swap: Decimal = Decimal("0")
-    fees: Decimal = Decimal("0")
-    total_charges: Decimal = Decimal("0")
+    commission: Decimal = Decimal(0)
+    swap: Decimal = Decimal(0)
+    fees: Decimal = Decimal(0)
+    total_charges: Decimal = Decimal(0)
     currency: str = "USD"
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
@@ -349,6 +349,6 @@ class DrawdownSnapshot:
 
     current_drawdown: float = 0.0  # % from peak
     max_drawdown: float = 0.0
-    peak_equity: Decimal = Decimal("0")
-    current_equity: Decimal = Decimal("0")
+    peak_equity: Decimal = Decimal(0)
+    current_equity: Decimal = Decimal(0)
     recovery_factor: float = 0.0
