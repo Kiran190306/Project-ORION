@@ -23,6 +23,7 @@ from libraries.domain.execution.models import (
     OrderSide,
 )
 from libraries.domain.portfolio.interfaces import PortfolioSyncPort
+from libraries.domain.portfolio.journal import JournalEntryType
 from libraries.domain.portfolio.models import (
     AccountSnapshot,
     PnLBreakdown,
@@ -455,11 +456,7 @@ class TestCrossComponentConsistency:
 
         analytics = await portfolio.get_portfolio_analytics()
         closed_entries = await portfolio.journal.query(
-            entry_type=type(
-                await portfolio.journal.record(
-                    entry_type=type("temp", (), {"value": "position_closed"})(),
-                )
-            ).TRADE_PROFIT,
+            entry_type=JournalEntryType.TRADE_PROFIT,
         )
 
         # Just verify analytics tracked the trades

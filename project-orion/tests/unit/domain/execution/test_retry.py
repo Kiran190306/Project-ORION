@@ -11,7 +11,11 @@ from libraries.domain.execution.retry import RetryConfig, RetryHandler
 class TestRetryHandler:
     async def test_successful_execution(self) -> None:
         handler = RetryHandler()
-        result = await handler.execute(lambda: "success", "test")
+
+        async def _success() -> str:
+            return "success"
+
+        result = await handler.execute(_success, "test")
         assert result == "success"
 
     async def test_retry_on_failure(self) -> None:

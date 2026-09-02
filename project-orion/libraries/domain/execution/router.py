@@ -8,7 +8,7 @@ Extensible for future smart routing strategies.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from libraries.domain.execution.exceptions import RoutingError
 from libraries.domain.execution.models import Order, OrderType
@@ -150,9 +150,7 @@ class OrderRouter:
         async with self._lock:
             if broker_id in self._brokers:
                 existing = self._brokers[broker_id]
-                self._brokers[broker_id] = BrokerCapabilities(
-                    **{**existing.__dict__, "health_score": health_score}
-                )
+                self._brokers[broker_id] = replace(existing, health_score=health_score)
 
     async def route(
         self,

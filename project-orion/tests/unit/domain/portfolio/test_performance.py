@@ -211,12 +211,6 @@ class TestPerformance:
         account_time = time.perf_counter() - t0
         self.BENCHMARK_RESULTS["account_10000"] = round(account_time, 4)
 
-        # P&L breakdown
-        t0 = time.perf_counter()
-        pnl = await portfolio.get_pnl_breakdown()
-        pnl_time = time.perf_counter() - t0
-        self.BENCHMARK_RESULTS["pnl_10000"] = round(pnl_time, 4)
-
         # Analytics
         t0 = time.perf_counter()
         analytics = await portfolio.get_portfolio_analytics()
@@ -228,6 +222,12 @@ class TestPerformance:
         updated = await portfolio.update_price("EURUSD", Decimal("1.1050"))
         update_time = time.perf_counter() - t0
         self.BENCHMARK_RESULTS["update_10000"] = round(update_time, 4)
+
+        # P&L breakdown after price update
+        t0 = time.perf_counter()
+        pnl = await portfolio.get_pnl_breakdown()
+        pnl_time = time.perf_counter() - t0
+        self.BENCHMARK_RESULTS["pnl_10000"] = round(pnl_time, 4)
 
         assert snap.position_count == 10000
         assert snap.open_position_count == 10000
@@ -316,6 +316,8 @@ class TestPerformance:
 
 class TestStressPortfolioManager:
     """Stress tests through PortfolioManager facade with full validation."""
+
+    BENCHMARK_RESULTS: dict[str, float] = {}
 
     @pytest.mark.slow
     async def test_stress_open_close_10000_through_portfolio(self, portfolio: PortfolioManager):

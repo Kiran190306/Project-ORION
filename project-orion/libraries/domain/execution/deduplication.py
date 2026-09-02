@@ -148,19 +148,16 @@ class OrderDeduplicator:
         async with self._lock:
             self._cleanup_expired()
 
-            if self._config.check_decision_id:
-                if f"decision:{decision_id}" in self._entries:
-                    return True
+            if self._config.check_decision_id and f"decision:{decision_id}" in self._entries:
+                return True
 
-            if self._config.check_order_id:
-                if f"order:{order_id}" in self._entries:
-                    return True
+            if self._config.check_order_id and f"order:{order_id}" in self._entries:
+                return True
 
-            if self._config.check_symbol_side:
-                if f"symbol_side:{symbol}:{side}" in self._entries:
-                    return True
-
-            return False
+            return (
+                self._config.check_symbol_side
+                and f"symbol_side:{symbol}:{side}" in self._entries
+            )
 
     async def remove(self, order_id: str) -> None:
         """Remove entries for a given order ID.

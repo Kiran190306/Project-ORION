@@ -32,6 +32,7 @@ from libraries.domain.execution.exceptions import (
     DuplicateOrderError,
     FillValidationError,
     OrderBuildError,
+    OrderNotFoundError,
     OrderValidationError,
     RetryExhaustedError,
     RoutingError,
@@ -228,17 +229,17 @@ class ExecutionEngine:
         start_time = time.monotonic()
         ctx = context or ExecutionContext()
 
-        if not self._is_ready:
-            return EngineExecutionResult(
-                success=False,
-                error="Engine not initialized",
-                execution_time_ms=0.0,
-            )
-
         if self._is_shutdown:
             return EngineExecutionResult(
                 success=False,
                 error="Engine is shut down",
+                execution_time_ms=0.0,
+            )
+
+        if not self._is_ready:
+            return EngineExecutionResult(
+                success=False,
+                error="Engine not initialized",
                 execution_time_ms=0.0,
             )
 
@@ -276,6 +277,10 @@ class ExecutionEngine:
             # 6. Transition to VALIDATED -> BUILT -> ROUTED
             await lifecycle.transition(Trigger.VALIDATE, "Order validated")
             await lifecycle.transition(Trigger.BUILD, "Order built from decision")
+            await lifecycle.transition(
+                Trigger.ROUTE,
+                f"Routed to broker {routing.selected_broker}",
+            )
             await self._tracker.update_order(order)
 
             # 7. Submit Order with retry
@@ -305,9 +310,11 @@ class ExecutionEngine:
                 )
 
             # 10. Check if recovery is needed
-            if self._config.enable_recovery:
-                if await self._recovery_handler.needs_recovery(order):
-                    await self._recovery_handler.mark_for_recovery(order)
+            if (
+                self._config.enable_recovery
+                and await self._recovery_handler.needs_recovery(order)
+            ):
+                await self._recovery_handler.mark_for_recovery(order)
 
             self._execution_count += 1
 
@@ -449,8 +456,8 @@ class ExecutionEngine:
         """
         try:
             order = await self._tracker.get_order(fill.order_id)
-        except Exception:
-            raise FillValidationError(f"No tracked order found for fill {fill.fill_id}")
+        except OrderNotFoundError:
+            raise FillValidationError(f"No tracked order found for fill {fill.fill_id}") from None
 
         # Validate fill against order
         await self._fill_validator.validate_fill(order, fill)

@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from libraries.domain.execution.exceptions import RetryExhaustedError
+from libraries.domain.execution.exceptions import ExecutionError, RetryExhaustedError
 
 
 @dataclass(frozen=True, slots=True)
@@ -133,7 +133,7 @@ class RetryHandler:
                         )
                     )
                 return result
-            except Exception as e:
+            except (TimeoutError, OSError, ConnectionError, ValueError, RuntimeError, ExecutionError) as e:
                 last_error = e
                 async with self._lock:
                     self._attempts.append(

@@ -12,12 +12,7 @@ from libraries.domain.execution.confirmation import (
     FillValidatorConfig,
 )
 from libraries.domain.execution.exceptions import FillValidationError
-from libraries.domain.execution.models import (
-    ExecutionReport,
-    Order,
-    OrderSide,
-    OrderType,
-)
+from tests.unit.domain.execution.conftest import make_execution_report, make_order
 
 
 @pytest.fixture
@@ -26,19 +21,12 @@ def validator() -> FillValidator:
 
 
 @pytest.fixture
-def order() -> Order:
-    return Order(
-        order_id="ORD-001",
-        decision_id="DEC-001",
-        symbol="EURUSD",
-        side=OrderSide.BUY,
-        order_type=OrderType.MARKET,
-        volume=Decimal("1000"),
-    )
+def order() -> object:
+    return make_order()
 
 
 class TestFillValidator:
-    async def test_valid_full_fill(self, validator: FillValidator, order: Order) -> None:
+    async def test_valid_full_fill(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-001",
             order_id="ORD-001",
@@ -50,9 +38,9 @@ class TestFillValidator:
             total_cost=Decimal("1105.00"),
             broker_fill_id="BROKER-FL-001",
         )
-        await validator.validate_fill(order, fill)  # should not raise
+        await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_valid_partial_fill(self, validator: FillValidator, order: Order) -> None:
+    async def test_valid_partial_fill(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-002",
             order_id="ORD-001",
@@ -64,9 +52,9 @@ class TestFillValidator:
             total_cost=Decimal("552.50"),
             broker_fill_id="BROKER-FL-002",
         )
-        await validator.validate_fill(order, fill)  # should not raise
+        await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_wrong_order_id_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_wrong_order_id_raises(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-003",
             order_id="WRONG-ORD",
@@ -78,9 +66,9 @@ class TestFillValidator:
             total_cost=Decimal("1105.00"),
         )
         with pytest.raises(FillValidationError):
-            await validator.validate_fill(order, fill)
+            await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_wrong_symbol_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_wrong_symbol_raises(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-004",
             order_id="ORD-001",
@@ -92,9 +80,9 @@ class TestFillValidator:
             total_cost=Decimal("1105.00"),
         )
         with pytest.raises(FillValidationError):
-            await validator.validate_fill(order, fill)
+            await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_wrong_side_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_wrong_side_raises(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-005",
             order_id="ORD-001",
@@ -106,9 +94,9 @@ class TestFillValidator:
             total_cost=Decimal("1105.00"),
         )
         with pytest.raises(FillValidationError):
-            await validator.validate_fill(order, fill)
+            await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_negative_volume_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_negative_volume_raises(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-006",
             order_id="ORD-001",
@@ -120,9 +108,9 @@ class TestFillValidator:
             total_cost=Decimal("1105.00"),
         )
         with pytest.raises(FillValidationError):
-            await validator.validate_fill(order, fill)
+            await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
-    async def test_excessive_volume_raises(self, validator: FillValidator, order: Order) -> None:
+    async def test_excessive_volume_raises(self, validator: FillValidator, order: object) -> None:
         fill = FillConfirmation(
             fill_id="FL-007",
             order_id="ORD-001",
@@ -134,7 +122,7 @@ class TestFillValidator:
             total_cost=Decimal("2210.00"),
         )
         with pytest.raises(FillValidationError):
-            await validator.validate_fill(order, fill)
+            await validator.validate_fill(order, fill)  # type: ignore[arg-type]
 
     async def test_fill_properties(self) -> None:
         full = FillConfirmation(
@@ -164,28 +152,23 @@ class TestFillValidator:
         assert partial.is_partial_fill
 
     async def test_build_confirmation_from_report(
-        self, validator: FillValidator, order: Order
+        self, validator: FillValidator, order: object
     ) -> None:
-        report = ExecutionReport(
-            report_id="RPT-001",
-            order_id="ORD-001",
-            broker_order_id="BROKER-001",
-            symbol="EURUSD",
-            side="buy",
-            filled_volume=Decimal("1000"),
-            price=Decimal("1.10500"),
-            cost=Decimal("1105.00"),
+        report = make_execution_report(
+            execution_id="RPT-001",
+            order=order,  # type: ignore[arg-type]
+            filled_quantity=Decimal("1000"),
+            average_price=Decimal("1.10500"),
             commission=Decimal("0.50"),
-            liquidity="taker",
         )
-        confirmation = await validator.build_confirmation(order, report)
+        confirmation = await validator.build_confirmation(order, report)  # type: ignore[arg-type]
         assert confirmation.fill_id == "RPT-001"
         assert confirmation.filled_volume == Decimal("1000")
         assert confirmation.fill_price == Decimal("1.10500")
         assert confirmation.is_full_fill
 
     async def test_missing_broker_fill_id_raises(
-        self, validator: FillValidator, order: Order
+        self, validator: FillValidator, order: object
     ) -> None:
         config = FillValidatorConfig(require_broker_fill_id=True)
         strict_validator = FillValidator(config=config)
@@ -201,4 +184,4 @@ class TestFillValidator:
             broker_fill_id="",
         )
         with pytest.raises(FillValidationError):
-            await strict_validator.validate_fill(order, fill)
+            await strict_validator.validate_fill(order, fill)  # type: ignore[arg-type]

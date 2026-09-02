@@ -26,10 +26,11 @@ def order() -> Order:
     return Order(
         order_id="ORD-001",
         decision_id="DEC-001",
-        symbol="EURUSD",
+        execution_id="EXEC-001",
+            symbol="EURUSD",
         side=OrderSide.BUY,
         order_type=OrderType.MARKET,
-        volume=Decimal("1000"),
+        quantity=Decimal("1000"),
     )
 
 
@@ -46,10 +47,11 @@ class TestOrderRecoveryHandler:
         order = Order(
             order_id="ORD-002",
             decision_id="DEC-002",
+            execution_id="EXEC-001",
             symbol="EURUSD",
             side=OrderSide.BUY,
             order_type=OrderType.MARKET,
-            volume=Decimal("1000"),
+            quantity=Decimal("1000"),
             status=OrderStatus.SUBMITTED,
             created_at=datetime.now(timezone.utc) - timedelta(seconds=60),
         )

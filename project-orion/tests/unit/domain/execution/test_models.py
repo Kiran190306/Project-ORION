@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from decimal import Decimal
 
 import pytest
 
 from libraries.domain.execution.models import (
+    BrokerOrderId,
     ExecutionReport,
+    ExecutionResult,
+    ExecutionResultStatus,
     Order,
     OrderId,
     OrderSide,
@@ -16,92 +18,58 @@ from libraries.domain.execution.models import (
     OrderTimeInForce,
     OrderType,
 )
+from tests.unit.domain.execution.conftest import make_execution_report, make_order
 
 
 class TestOrder:
     def test_order_creation(self) -> None:
-        order = Order(
-            order_id="ORD-001",
-            decision_id="DEC-001",
-            symbol="EURUSD",
-            side=OrderSide.BUY,
-            order_type=OrderType.MARKET,
-            volume=Decimal("1000"),
-            status=OrderStatus.NEW,
-        )
-        assert order.order_id == "ORD-001"
+        order = make_order()
+        assert str(order.order_id) == "ORD-001"
         assert order.decision_id == "DEC-001"
         assert order.symbol == "EURUSD"
         assert order.side == OrderSide.BUY
         assert order.order_type == OrderType.MARKET
-        assert order.volume == Decimal("1000")
+        assert order.quantity == Decimal("1000")
         assert order.status == OrderStatus.NEW
         assert order.created_at is not None
 
     def test_order_with_optional_fields(self) -> None:
-        order = Order(
+        order = make_order(
             order_id="ORD-002",
             decision_id="DEC-002",
             symbol="GBPUSD",
             side=OrderSide.SELL,
             order_type=OrderType.LIMIT,
-            volume=Decimal("500"),
+            quantity=Decimal("500"),
             price=Decimal("1.25000"),
-            stop_loss=Decimal("1.24000"),
-            take_profit=Decimal("1.27000"),
-            time_in_force=OrderTimeInForce.GTC,
-            status=OrderStatus.NEW,
+            stop_price=Decimal("1.24000"),
+            metadata={"take_profit": "1.27000"},
         )
         assert order.price == Decimal("1.25000")
-        assert order.stop_loss == Decimal("1.24000")
-        assert order.take_profit == Decimal("1.27000")
+        assert order.stop_price == Decimal("1.24000")
+        assert order.metadata["take_profit"] == "1.27000"
         assert order.time_in_force == OrderTimeInForce.GTC
 
     def test_order_immutable_by_default(self) -> None:
-        order = Order(
-            order_id="ORD-003",
-            decision_id="DEC-003",
-            symbol="USDJPY",
-            side=OrderSide.BUY,
-            order_type=OrderType.MARKET,
-            volume=Decimal("100"),
-        )
+        order = make_order(order_id="ORD-003", decision_id="DEC-003", symbol="USDJPY", quantity=Decimal("100"))
         with pytest.raises(AttributeError):
             order.status = OrderStatus.FILLED  # type: ignore
 
     def test_order_default_status(self) -> None:
-        order = Order(
-            order_id="ORD-004",
-            decision_id="DEC-004",
-            symbol="EURUSD",
-            side=OrderSide.BUY,
-            order_type=OrderType.MARKET,
-            volume=Decimal("1000"),
-        )
+        order = make_order(order_id="ORD-004", decision_id="DEC-004")
         assert order.status == OrderStatus.NEW
 
     def test_order_str_representation(self) -> None:
-        order = Order(
-            order_id="ORD-005",
-            decision_id="DEC-005",
-            symbol="EURUSD",
-            side=OrderSide.BUY,
-            order_type=OrderType.MARKET,
-            volume=Decimal("1000"),
-        )
+        order = make_order(order_id="ORD-005", decision_id="DEC-005")
         s = str(order)
         assert "ORD-005" in s
         assert "EURUSD" in s
         assert "BUY" in s
 
     def test_order_with_metadata(self) -> None:
-        order = Order(
+        order = make_order(
             order_id="ORD-006",
             decision_id="DEC-006",
-            symbol="EURUSD",
-            side=OrderSide.BUY,
-            order_type=OrderType.MARKET,
-            volume=Decimal("1000"),
             metadata={"strategy": "scalping", "confidence": 85.0},
         )
         assert order.metadata["strategy"] == "scalping"
@@ -148,63 +116,60 @@ class TestOrderEnums:
 
 class TestExecutionReport:
     def test_execution_report_creation(self) -> None:
-        report = ExecutionReport(
-            report_id="RPT-001",
-            order_id="ORD-001",
-            broker_order_id="BROKER-001",
-            symbol="EURUSD",
-            side="buy",
-        )
-        assert report.report_id == "RPT-001"
-        assert report.order_id == "ORD-001"
-        assert report.broker_order_id == "BROKER-001"
-        assert report.symbol == "EURUSD"
-        assert report.side == "buy"
+        order = make_order()
+        report = make_execution_report(execution_id="RPT-001", order=order)
+        assert report.execution_id == "RPT-001"
+        assert report.order.order_id == order.order_id
+        assert report.result.broker_order_id == BrokerOrderId(value="BROKER-001")
+        assert report.order.symbol == "EURUSD"
+        assert report.order.side == OrderSide.BUY
 
     def test_execution_report_with_fill_details(self) -> None:
-        report = ExecutionReport(
-            report_id="RPT-002",
+        order = make_order(
             order_id="ORD-002",
-            broker_order_id="BROKER-002",
             symbol="GBPUSD",
-            side="sell",
-            filled_volume=Decimal("500"),
-            price=Decimal("1.25500"),
-            cost=Decimal("627.50"),
-            commission=Decimal("0.50"),
-            liquidity="taker",
+            side=OrderSide.SELL,
+            quantity=Decimal("500"),
         )
-        assert report.filled_volume == Decimal("500")
-        assert report.price == Decimal("1.25500")
-        assert report.cost == Decimal("627.50")
-        assert report.commission == Decimal("0.50")
-        assert report.liquidity == "taker"
+        report = make_execution_report(
+            execution_id="RPT-002",
+            order=order,
+            filled_quantity=Decimal("500"),
+            average_price=Decimal("1.25500"),
+            commission=Decimal("0.50"),
+            broker_order_id="BROKER-002",
+        )
+        assert report.result.filled_quantity == Decimal("500")
+        assert report.result.average_price == Decimal("1.25500")
+        assert report.result.commission == Decimal("0.50")
 
     def test_execution_report_defaults(self) -> None:
-        report = ExecutionReport(
-            report_id="RPT-003",
-            order_id="ORD-003",
+        order = make_order(order_id="ORD-003", symbol="USDJPY")
+        report = make_execution_report(
+            execution_id="RPT-003",
+            order=order,
+            filled_quantity=Decimal("0"),
+            average_price=None,
+            commission=Decimal("0"),
             broker_order_id="BROKER-003",
-            symbol="USDJPY",
-            side="buy",
+            status=ExecutionResultStatus.PENDING,
         )
-        assert report.filled_volume is None
-        assert report.price is None
-        assert report.commission is None
-        assert report.liquidity == ""
+        assert report.result.filled_quantity == Decimal("0")
+        assert report.result.average_price is None
+        assert report.result.commission == Decimal("0")
 
 
 class TestOrderId:
     def test_order_id_generation(self) -> None:
-        oid = OrderId()
-        assert oid.id is not None
-        assert len(oid.id) > 0
+        oid = OrderId(value="ORD-GEN-001")
+        assert oid.value is not None
+        assert len(oid.value) > 0
 
     def test_order_id_str(self) -> None:
-        oid = OrderId()
-        assert str(oid) == oid.id
+        oid = OrderId(value="ORD-STR-001")
+        assert str(oid) == "ORD-STR-001"
 
     def test_order_id_unique(self) -> None:
-        oid1 = OrderId()
-        oid2 = OrderId()
-        assert oid1.id != oid2.id
+        oid1 = OrderId(value="ORD-A")
+        oid2 = OrderId(value="ORD-B")
+        assert oid1.value != oid2.value

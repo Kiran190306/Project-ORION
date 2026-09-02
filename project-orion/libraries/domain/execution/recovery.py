@@ -139,7 +139,7 @@ class OrderRecoveryHandler:
                 broker_found, broker_status, error = await query_broker(
                     str(order.order_id), order.symbol
                 )
-            except Exception as e:
+            except (TimeoutError, OSError, ConnectionError, ValueError, RuntimeError) as e:
                 error = str(e)
 
         async with self._lock:
@@ -197,14 +197,12 @@ class OrderRecoveryHandler:
                 return True
 
             # Check if order is in a state that needs recovery
-            if order.status in (
-                OrderStatus.SUBMITTED,
-                OrderStatus.ACKNOWLEDGED,
+            if (
+                order.status in (OrderStatus.SUBMITTED, OrderStatus.ACKNOWLEDGED)
+                and order.created_at is not None
             ):
-                # Check if stale
-                if order.created_at is not None:
-                    elapsed = (datetime.now(timezone.utc) - order.created_at).total_seconds()
-                    return elapsed > self._config.recovery_timeout_seconds
+                elapsed = (datetime.now(timezone.utc) - order.created_at).total_seconds()
+                return elapsed > self._config.recovery_timeout_seconds
 
             return False
 

@@ -20,7 +20,7 @@ from libraries.domain.execution.models import (
     OrderTimeInForce,
     OrderType,
 )
-from libraries.domain.trading.decision_result import TradeDecision
+from libraries.domain.trading.decision_result import DecisionOutcome, TradeDecision
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,11 +80,7 @@ class OrderBuilder:
         Raises:
             OrderBuildError: If the decision cannot be converted.
         """
-        if decision.entry_price is None and price is None and order_type != OrderType.MARKET:
-            raise OrderBuildError(
-                f"Order type {order_type or self._config.default_order_type} requires a price"
-            )
-        if decision.direction is None:
+        if decision.outcome == DecisionOutcome.EXECUTE and decision.direction is None:
             raise OrderBuildError("Decision has no direction")
 
         if not decision.is_executable:
@@ -92,13 +88,16 @@ class OrderBuilder:
                 f"Cannot build order from non-executable decision (outcome: {decision.outcome.value})"
             )
 
+        # Determine order type
+        ot = order_type or self._config.default_order_type
+
+        if decision.entry_price is None and price is None and ot != OrderType.MARKET:
+            raise OrderBuildError(f"Order type {ot} requires a price")
+
         # Determine order side
         from libraries.domain.trading.signals import SignalDirection
 
         side = OrderSide.BUY if decision.direction == SignalDirection.BUY else OrderSide.SELL
-
-        # Determine order type
-        ot = order_type or self._config.default_order_type
 
         # Determine price with rounding
         final_price: Decimal | None = None

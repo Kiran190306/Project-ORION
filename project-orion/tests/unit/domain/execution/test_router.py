@@ -27,10 +27,11 @@ def order() -> Order:
     return Order(
         order_id="ORD-001",
         decision_id="DEC-001",
-        symbol="EURUSD",
+        execution_id="EXEC-001",
+            symbol="EURUSD",
         side=OrderSide.BUY,
         order_type=OrderType.MARKET,
-        volume=Decimal("1000"),
+        quantity=Decimal("1000"),
     )
 
 

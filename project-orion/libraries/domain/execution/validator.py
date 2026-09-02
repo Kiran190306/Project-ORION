@@ -101,7 +101,7 @@ class OrderValidator:
 
             # 2. Volume checks
             if order.quantity is not None:
-                if order.quantity <= Decimal("0"):
+                if order.quantity <= Decimal(0):
                     errors.append("Quantity must be positive")
                 if order.quantity < self._config.min_volume:
                     errors.append(f"Quantity {order.quantity} below minimum {self._config.min_volume}")
@@ -111,7 +111,7 @@ class OrderValidator:
                     )
                 if lot_size is not None:
                     remainder = order.quantity % lot_size
-                    if remainder != Decimal("0"):
+                    if remainder != Decimal(0):
                         errors.append(
                             f"Quantity {order.quantity} not a multiple of lot size {lot_size}"
                         )

@@ -209,7 +209,7 @@ class TradeJournal:
             results = [e for e in results if e.timestamp <= to_time]
 
         # Sort by timestamp descending (newest first)
-        results.sort(key=lambda e: e.timestamp, reverse=True)
+        results.sort(key=lambda e: (e.timestamp, e.entry_id), reverse=True)
 
         return results[offset : offset + limit]
 

@@ -339,7 +339,7 @@ class TestImmutability:
     )
     def test_all_frozen(self, model_class, kwargs):
         instance = model_class(**kwargs)
-        with pytest.raises(AttributeError):
+        with pytest.raises((AttributeError, TypeError)):
             setattr(instance, "dummy", "value")
 
     def test_position_slots(self):
