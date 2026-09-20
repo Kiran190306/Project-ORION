@@ -4,6 +4,12 @@ from __future__ import annotations
 
 from libraries.infrastructure.persistence.models.account import AccountModel
 from libraries.infrastructure.persistence.models.audit import AuditLogModel
+from libraries.infrastructure.persistence.models.billing import (
+    BillingCustomerModel,
+    BillingEventModel,
+    BillingInvoiceModel,
+    BillingSubscriptionModel,
+)
 from libraries.infrastructure.persistence.models.invitation import (
     OrganizationInvitationModel,
 )
@@ -36,6 +42,10 @@ from libraries.infrastructure.persistence.models.user import UserModel
 __all__ = [
     "AccountModel",
     "AuditLogModel",
+    "BillingCustomerModel",
+    "BillingEventModel",
+    "BillingInvoiceModel",
+    "BillingSubscriptionModel",
     "ExecutionReportModel",
     "FillModel",
     "NotificationRecordModel",

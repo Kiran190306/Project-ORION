@@ -560,3 +560,14 @@ def require_permission(permission: Permission) -> Callable[..., Any]:
 
     return _permission_checker
 
+
+def get_billing_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    request: Request,
+) -> Any:
+    """Provide BillingService with injected database session and metrics registry."""
+    from .services.billing_service import BillingService
+
+    metrics = getattr(request.app.state, "metrics_registry", None)
+    return BillingService(session=session, metrics=metrics)
+

@@ -7,7 +7,11 @@ import type {
   AccountResponse,
   AccountStrategyConfigResponse,
   AccountSummary,
+  BillingInvoiceResponse,
+  BillingOverviewResponse,
+  BillingSubscriptionResponse,
   CancelOrderResponse,
+  CheckoutResponse,
   ClosePositionResponse,
   CreateOrderRequest,
   DashboardResponse,
@@ -229,3 +233,30 @@ export const dashboardApi = {
       method: 'GET',
     }),
 };
+
+// ─── Commercial Billing ──────────────────────────────────────────────────────
+
+export const billingApi = {
+  getOverview: (): Promise<BillingOverviewResponse> =>
+    apiClient<BillingOverviewResponse>('/api/v1/billing', {
+      method: 'GET',
+    }),
+
+  listInvoices: (): Promise<BillingInvoiceResponse[]> =>
+    apiClient<BillingInvoiceResponse[]>('/api/v1/billing/invoices', {
+      method: 'GET',
+    }),
+
+  createCheckout: (planCode: string): Promise<CheckoutResponse> =>
+    apiClient<CheckoutResponse>('/api/v1/billing/checkout', {
+      method: 'POST',
+      body: JSON.stringify({ plan_code: planCode }),
+    }),
+
+  cancelSubscription: (atPeriodEnd: boolean = true): Promise<BillingSubscriptionResponse> =>
+    apiClient<BillingSubscriptionResponse>('/api/v1/billing/subscription/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ at_period_end: atPeriodEnd }),
+    }),
+};
+

@@ -8,7 +8,7 @@ Deterministic, fast, isolated tests verifying:
 5. Distributed correlation ID propagation.
 6. Health readiness dependency failure handling (Postgres / Redis).
 7. Structured logging sensitive data redaction.
-8. Alembic linear migration chain integrity (0001 -> 0007).
+8. Alembic linear migration chain integrity (0001 -> 0008).
 """
 
 from __future__ import annotations
@@ -326,14 +326,14 @@ def test_logging_sensitive_redaction() -> None:
 
 
 def test_alembic_migrations_chain() -> None:
-    """Verifies that all 7 Alembic revisions form a contiguous, unbroken linear chain from 0001 to 0007."""
+    """Verifies that all 8 Alembic revisions form a contiguous, unbroken linear chain from 0001 to 0008."""
     versions_dir = Path(__file__).resolve().parents[2] / "database" / "migrations" / "versions"
     assert versions_dir.is_dir(), f"Alembic versions dir not found at {versions_dir}"
 
     migration_files = sorted(
         [f for f in versions_dir.glob("*.py") if not f.name.startswith("__")]
     )
-    assert len(migration_files) == 7, f"Expected 7 migration files, found {len(migration_files)}"
+    assert len(migration_files) == 8, f"Expected 8 migration files, found {len(migration_files)}"
 
     rev_map: dict[str, str | None] = {}
 
@@ -367,8 +367,8 @@ def test_alembic_migrations_chain() -> None:
         assert revision_id is not None, f"Could not find revision in {mf.name}"
         rev_map[revision_id] = down_revision_id
 
-    # Verify head is 0007_organization_invitations
-    head_rev = "0007_organization_invitations"
+    # Verify head is 0008_billing_foundation
+    head_rev = "0008_billing_foundation"
     assert head_rev in rev_map, f"Head migration {head_rev} not in migration map"
 
     # Walk backward from head to root
@@ -382,7 +382,7 @@ def test_alembic_migrations_chain() -> None:
         current = down
         visited.append(current)
 
-    # Must terminate at root with 7 revisions
-    assert len(visited) == 7, f"Expected 7 linear revisions, walked {len(visited)}: {visited}"
+    # Must terminate at root with 8 revisions
+    assert len(visited) == 8, f"Expected 8 linear revisions, walked {len(visited)}: {visited}"
     assert rev_map[current] is None, f"Root migration {current} must have down_revision=None"
     assert "0001_initial_schema" in current

@@ -9,6 +9,7 @@ import {
   Cpu,
   ShieldAlert,
   Sliders,
+  CreditCard,
   X,
 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ const navItems = [
   { path: '/strategies', label: 'Strategies', icon: Sliders },
   { path: '/risk', label: 'Risk Controls', icon: ShieldAlert },
   { path: '/worker', label: 'Worker Status', icon: Cpu },
+  { path: '/billing', label: 'Billing & Plans', icon: CreditCard },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {

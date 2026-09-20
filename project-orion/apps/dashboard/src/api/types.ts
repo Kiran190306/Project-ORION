@@ -434,3 +434,49 @@ export class ApiError extends Error {
     this.rawDetail = rawDetail;
   }
 }
+
+// ─── Commercial Billing ─────────────────────────────────────────────────────
+
+export interface BillingCustomerResponse {
+  id: string;
+  organization_id: string;
+  provider_customer_id: string;
+  email: string;
+  name: string;
+}
+
+export interface BillingSubscriptionResponse {
+  id: string;
+  organization_id: string;
+  provider_subscription_id: string;
+  plan_code: string;
+  status: string;
+  current_period_start: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
+export interface BillingInvoiceResponse {
+  id: string;
+  provider_invoice_id: string;
+  amount_due: number;
+  amount_paid: number;
+  currency: string;
+  status: string;
+  hosted_invoice_url: string | null;
+  invoice_pdf: string | null;
+  created_at: string;
+}
+
+export interface BillingOverviewResponse {
+  customer: BillingCustomerResponse | null;
+  subscription: BillingSubscriptionResponse | null;
+  recent_invoices: BillingInvoiceResponse[];
+}
+
+export interface CheckoutResponse {
+  session_id: string;
+  url: string;
+  plan_code: string;
+  customer_id: string;
+}

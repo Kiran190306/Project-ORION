@@ -30,6 +30,7 @@ from .errors import register_exception_handlers
 from .lifespan import create_lifespan
 from .routes.account import router as account_router
 from .routes.auth import router as auth_router
+from .routes.billing import router as billing_router
 from .routes.dashboard import router as dashboard_router
 from .routes.health import router as health_router
 from .routes.metrics import router as metrics_router
@@ -162,6 +163,7 @@ def create_app(
     app.include_router(portfolio_router)
     app.include_router(dashboard_router)
     app.include_router(subscription_router)
+    app.include_router(billing_router)
 
     return app
 
