@@ -26,7 +26,7 @@ class TestExecutionStatistics:
             outcome=ExecutionOutcome.FILLED,
             broker_id="broker-1",
             latency_ms=50.0,
-            volume=Decimal("1000"),
+            quantity=Decimal("1000"),
             commission=Decimal("0.50"),
         )
         snapshot = await stats.get_stats()

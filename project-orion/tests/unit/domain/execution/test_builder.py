@@ -26,7 +26,7 @@ def executable_decision() -> TradeDecision:
         direction=SignalDirection.BUY,
         confidence=85.0,
         entry_price=Decimal("1.10500"),
-        stop_loss=Decimal("1.10000"),
+        stop_price=Decimal("1.10000"),
         take_profit=Decimal("1.11500"),
         position_size=Decimal("10000"),
         risk_amount=Decimal("50"),

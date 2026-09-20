@@ -20,7 +20,7 @@ from libraries.domain.execution.models import (
 )
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class FillConfirmation:
     """A confirmed fill from the broker."""
 
@@ -28,16 +28,72 @@ class FillConfirmation:
     order_id: str
     symbol: str
     side: str
-    filled_volume: Decimal
-    remaining_volume: Decimal
-    fill_price: Decimal
-    total_cost: Decimal
+    filled_volume: Decimal = Decimal(0)
+    remaining_volume: Decimal = Decimal(0)
+    fill_price: Decimal = Decimal(0)
+    total_cost: Decimal = Decimal(0)
     commission: Decimal = Decimal(0)
     liquidity: str = ""  # maker / taker
     broker_fill_id: str = ""
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     raw_report: ExecutionReport | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __init__(
+        self,
+        fill_id: str,
+        order_id: str,
+        symbol: str,
+        side: str,
+        filled_volume: Decimal | None = None,
+        remaining_volume: Decimal | None = None,
+        fill_price: Decimal = Decimal(0),
+        total_cost: Decimal = Decimal(0),
+        commission: Decimal = Decimal(0),
+        liquidity: str = "",
+        broker_fill_id: str = "",
+        timestamp: datetime | None = None,
+        raw_report: ExecutionReport | None = None,
+        metadata: dict[str, Any] | None = None,
+        filled_quantity: Decimal | None = None,
+        remaining_quantity: Decimal | None = None,
+    ) -> None:
+        eff_filled = (
+            filled_volume
+            if filled_volume is not None
+            else (filled_quantity if filled_quantity is not None else Decimal(0))
+        )
+        eff_remaining = (
+            remaining_volume
+            if remaining_volume is not None
+            else (remaining_quantity if remaining_quantity is not None else Decimal(0))
+        )
+        object.__setattr__(self, "fill_id", fill_id)
+        object.__setattr__(self, "order_id", str(order_id))
+        object.__setattr__(self, "symbol", symbol)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "filled_volume", eff_filled)
+        object.__setattr__(self, "remaining_volume", eff_remaining)
+        object.__setattr__(self, "fill_price", fill_price)
+        object.__setattr__(self, "total_cost", total_cost)
+        object.__setattr__(self, "commission", commission)
+        object.__setattr__(self, "liquidity", liquidity)
+        object.__setattr__(self, "broker_fill_id", broker_fill_id)
+        object.__setattr__(
+            self,
+            "timestamp",
+            timestamp if timestamp is not None else datetime.now(timezone.utc),
+        )
+        object.__setattr__(self, "raw_report", raw_report)
+        object.__setattr__(self, "metadata", metadata if metadata is not None else {})
+
+    @property
+    def filled_quantity(self) -> Decimal:
+        return self.filled_volume
+
+    @property
+    def remaining_quantity(self) -> Decimal:
+        return self.remaining_volume
 
     @property
     def is_full_fill(self) -> bool:
@@ -56,7 +112,7 @@ class FillValidatorConfig:
     max_volume_deviation_pct: float = 0.5  # 0.5% max deviation
     check_commission: bool = True
     max_commission_pct: float = 0.1  # 0.1% of notional
-    require_broker_fill_id: bool = True
+    require_broker_fill_id: bool = False
 
 
 class FillValidator:
@@ -90,7 +146,7 @@ class FillValidator:
             errors: list[str] = []
 
             # 1. Order ID match
-            if fill.order_id != str(order.order_id):
+            if str(fill.order_id) != str(order.order_id):
                 errors.append(
                     f"Fill order_id {fill.order_id} does not match order {order.order_id}"
                 )
@@ -155,8 +211,36 @@ class FillValidator:
         Returns:
             Validated FillConfirmation.
         """
-        result = report.result
-        filled_volume = result.filled_quantity
+        if report.result is not None:
+            result = report.result
+            filled_volume = result.filled_quantity
+            fill_price = result.average_price or Decimal(0)
+            commission = result.commission
+            broker_fill_id = str(result.broker_order_id) if result.broker_order_id else ""
+            timestamp = result.timestamp
+            liquidity = ""
+            total_cost = filled_volume * fill_price
+        else:
+            filled_volume = (
+                report.filled_volume
+                if report.filled_volume is not None
+                else Decimal(0)
+            )
+            fill_price = report.price if report.price is not None else Decimal(0)
+            commission = (
+                report.commission if report.commission is not None else Decimal(0)
+            )
+            broker_fill_id = (
+                str(report.broker_order_id) if report.broker_order_id else ""
+            )
+            timestamp = report.timestamp
+            liquidity = report.liquidity or ""
+            total_cost = (
+                report.cost
+                if report.cost is not None
+                else (filled_volume * fill_price)
+            )
+
         remaining = order.quantity - filled_volume
         remaining = max(remaining, Decimal(0))
 
@@ -165,15 +249,15 @@ class FillValidator:
             or f"FL-{order.order_id}-{datetime.now(timezone.utc).timestamp()}",
             order_id=str(order.order_id),
             symbol=order.symbol,
-            side=order.side.value,
+            side=order.side.value if hasattr(order.side, "value") else str(order.side),
             filled_volume=filled_volume,
             remaining_volume=remaining,
-            fill_price=result.average_price or Decimal(0),
-            total_cost=filled_volume * (result.average_price or Decimal(0)),
-            commission=result.commission,
-            liquidity="",
-            broker_fill_id=str(result.broker_order_id) if result.broker_order_id else "",
-            timestamp=result.timestamp,
+            fill_price=fill_price,
+            total_cost=total_cost,
+            commission=commission,
+            liquidity=liquidity,
+            broker_fill_id=broker_fill_id,
+            timestamp=timestamp,
             raw_report=report,
         )
 

@@ -9,11 +9,47 @@ Defines:
 
 from __future__ import annotations
 
+import types
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any
+from typing import Any, TypeVar
+
+T = TypeVar("T", bound=type)
+
+
+def _patch_frozen_slots(cls: T) -> T:
+    """CPython 3.11 bug workaround for dataclasses with frozen=True and slots=True.
+
+    In Python 3.11, dataclass(_add_slots) generates a new type object for slotted
+    classes but leaves the pre-slots type in the __setattr__ and __delattr__ closures.
+    Re-binding the closure cell to the post-slots class restores standard
+    FrozenInstanceError / AttributeError behavior when setting unknown attributes.
+    """
+    for attr in ("__setattr__", "__delattr__"):
+        fn = getattr(cls, attr, None)
+        if fn and fn.__closure__:
+            cells = []
+            for cell in fn.__closure__:
+                if (
+                    cell.cell_contents is not None
+                    and isinstance(cell.cell_contents, type)
+                    and cell.cell_contents.__name__ == cls.__name__
+                ):
+                    cells.append(types.CellType(cls))
+                else:
+                    cells.append(cell)
+            new_fn = types.FunctionType(
+                fn.__code__,
+                fn.__globals__,
+                fn.__name__,
+                fn.__defaults__,
+                tuple(cells),
+            )
+            type.__setattr__(cls, attr, new_fn)
+    return cls
+
 
 # ─── Enums ────────────────────────────────────────────────────────────────
 
@@ -65,6 +101,7 @@ class PositionStatus(StrEnum):
 # ─── Core Position Model ──────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class Position:
     """A single trading position.
@@ -183,6 +220,7 @@ class Position:
 # ─── Position Summary ─────────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class PositionSummary:
     """Aggregated position summary for a symbol."""
@@ -202,6 +240,7 @@ class PositionSummary:
 # ─── Currency Position ────────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class CurrencyPosition:
     """Exposure summary for a single currency."""
@@ -216,6 +255,7 @@ class CurrencyPosition:
 # ─── Account Snapshot ─────────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class AccountSnapshot:
     """Immutable snapshot of account state.
@@ -257,6 +297,7 @@ class AccountSnapshot:
 # ─── Portfolio Snapshot ───────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class PortfolioSnapshot:
     """Immutable snapshot of the complete portfolio."""
@@ -291,6 +332,7 @@ class PortfolioSnapshot:
 # ─── P&L Breakdown ────────────────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class PnLBreakdown:
     """Detailed breakdown of P&L.
@@ -330,6 +372,7 @@ class PnLBreakdown:
 # ─── Margin Call Thresholds ───────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class MarginCallThresholds:
     """Thresholds for margin call and stop-out."""
@@ -343,6 +386,7 @@ class MarginCallThresholds:
 # ─── Margin Call Thresholds ───────────────────────────────────────────────
 
 
+@_patch_frozen_slots
 @dataclass(frozen=True, slots=True)
 class DrawdownSnapshot:
     """Drawdown snapshot for analytics."""

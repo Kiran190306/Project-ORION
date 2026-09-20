@@ -7,6 +7,7 @@ Provides lookup by order ID, decision ID, symbol, and status.
 from __future__ import annotations
 
 import asyncio
+from typing import Any
 
 from libraries.domain.execution.exceptions import OrderNotFoundError
 from libraries.domain.execution.lifecycle import OrderLifecycleTracker
@@ -44,7 +45,7 @@ class OrderTracker:
                 self._symbol_map[order.symbol] = set()
             self._symbol_map[order.symbol].add(order_id)
 
-    async def get_order(self, order_id: str) -> Order:
+    async def get_order(self, order_id: str | Any) -> Order:
         """Get an order by ID.
 
         Args:
@@ -57,12 +58,12 @@ class OrderTracker:
             OrderNotFoundError: If not found.
         """
         async with self._lock:
-            order = self._orders.get(order_id)
+            order = self._orders.get(str(order_id))
             if order is None:
                 raise OrderNotFoundError(f"Order {order_id} not found")
             return order
 
-    async def get_lifecycle(self, order_id: str) -> OrderLifecycleTracker:
+    async def get_lifecycle(self, order_id: str | Any) -> OrderLifecycleTracker:
         """Get lifecycle tracker for an order.
 
         Args:
@@ -75,7 +76,7 @@ class OrderTracker:
             OrderNotFoundError: If not found.
         """
         async with self._lock:
-            lifecycle = self._lifecycles.get(order_id)
+            lifecycle = self._lifecycles.get(str(order_id))
             if lifecycle is None:
                 raise OrderNotFoundError(f"Lifecycle for order {order_id} not found")
             return lifecycle
@@ -128,7 +129,7 @@ class OrderTracker:
         async with self._lock:
             active = []
             for order_id, lifecycle in self._lifecycles.items():
-                if await lifecycle.is_active():
+                if lifecycle.is_active():
                     order = self._orders.get(order_id)
                     if order is not None:
                         active.append(order)
@@ -161,19 +162,20 @@ class OrderTracker:
                 raise OrderNotFoundError(f"Order {order_id} not found")
             self._orders[order_id] = order
 
-    async def remove(self, order_id: str) -> None:
+    async def remove(self, order_id: str | Any) -> None:
         """Remove an order from tracking.
 
         Args:
             order_id: Order identifier.
         """
         async with self._lock:
-            order = self._orders.pop(order_id, None)
-            self._lifecycles.pop(order_id, None)
+            key = str(order_id)
+            order = self._orders.pop(key, None)
+            self._lifecycles.pop(key, None)
             if order is not None:
                 self._decision_map.pop(order.decision_id, None)
                 symbol_orders = self._symbol_map.get(order.symbol, set())
-                symbol_orders.discard(order_id)
+                symbol_orders.discard(key)
                 if not symbol_orders:
                     self._symbol_map.pop(order.symbol, None)
 
@@ -187,7 +189,7 @@ class OrderTracker:
         async with self._lock:
             active = 0
             for lifecycle in self._lifecycles.values():
-                if await lifecycle.is_active():
+                if lifecycle.is_active():
                     active += 1
             return active
 

@@ -17,13 +17,18 @@ from libraries.domain.execution.exceptions import (
     OrderValidationError,
     RoutingError,
 )
-from libraries.domain.execution.models import ExecutionResultStatus, OrderSide, OrderStatus, OrderType
+from libraries.domain.execution.models import (
+    ExecutionReport,
+    Order,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+)
 from libraries.domain.execution.state_machine import OrderStateMachine, Trigger
 from libraries.domain.execution.tracker import OrderTracker
 from libraries.domain.execution.validator import OrderValidator
 from libraries.domain.trading.decision_result import DecisionOutcome, TradeDecision
 from libraries.domain.trading.signals import SignalDirection
-from tests.unit.domain.execution.conftest import make_execution_report, make_order
 
 
 class TestEdgeCases:
@@ -31,14 +36,30 @@ class TestEdgeCases:
 
     async def test_order_with_zero_volume(self) -> None:
         """Zero volume should be rejected by validator."""
-        order = make_order(order_id="ORD-000", decision_id="DEC-000", quantity=Decimal("0"))
+        order = Order(
+            order_id="ORD-000",
+            decision_id="DEC-000",
+            execution_id="EXEC-001",
+            symbol="EURUSD",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("0"),
+        )
         validator = OrderValidator()
         result = await validator.validate(order)
         assert result.is_invalid
 
     async def test_order_with_very_large_volume(self) -> None:
         """Very large volume should be rejected."""
-        order = make_order(order_id="ORD-BIG", decision_id="DEC-BIG", quantity=Decimal("999999999"))
+        order = Order(
+            order_id="ORD-BIG",
+            decision_id="DEC-BIG",
+            execution_id="EXEC-001",
+            symbol="EURUSD",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("999999999"),
+        )
         validator = OrderValidator()
         result = await validator.validate(order)
         assert result.is_invalid
@@ -83,11 +104,19 @@ class TestEdgeCases:
 
     async def test_order_with_minimal_fields(self) -> None:
         """Order with only required fields should be creatable."""
-        order = make_order(order_id="ORD-MIN", decision_id="DEC-MIN")
+        order = Order(
+            order_id="ORD-MIN",
+            decision_id="DEC-MIN",
+            execution_id="EXEC-001",
+            symbol="EURUSD",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("1000"),
+        )
         assert order.price is None
-        assert order.stop_price is None
-        assert "take_profit" not in order.metadata
-        assert order.time_in_force is not None
+        assert order.stop_loss is None
+        assert order.take_profit is None
+        assert order.time_in_force is None
 
     async def test_negative_price_build_error(self) -> None:
         """Building with negative price should raise."""
@@ -107,15 +136,15 @@ class TestEdgeCases:
 
     async def test_execution_report_minimal(self) -> None:
         """ExecutionReport with minimal fields."""
-        report = make_execution_report(
+        report = ExecutionReport(
             execution_id="RPT-MIN",
-            order=make_order(order_id="ORD-MIN", decision_id="DEC-MIN"),
-            filled_quantity=Decimal("0"),
-            average_price=None,
-            status=ExecutionResultStatus.PENDING,
+            order_id="ORD-MIN",
+            broker_order_id="BROKER-MIN",
+            symbol="EURUSD",
+            side="buy",
         )
-        assert report.result.filled_quantity == Decimal("0")
-        assert report.result.average_price is None
+        assert report.filled_volume is None
+        assert report.price is None
 
     async def test_order_status_transition_chain(self) -> None:
         """Verify the complete happy path transition chain."""

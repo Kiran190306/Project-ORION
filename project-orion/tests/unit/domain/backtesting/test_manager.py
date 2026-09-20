@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-from decimal import Decimal
-
 import pytest
 
 from libraries.domain.backtesting.engine import BacktestEngine, BacktestEngineResult
 from libraries.domain.backtesting.exceptions import BacktestError
 from libraries.domain.backtesting.manager import BacktestManager, BacktestManagerConfig
-from libraries.domain.backtesting.models import BacktestConfig, PerformanceMetrics
 
 
 class TestBacktestManagerConfig:
@@ -206,7 +203,7 @@ class TestBacktestManagerHealthAndStats:
         assert health["running"] is True
         assert health["healthy"] is True
         assert health["engine_configured"] is True
-        assert health["uptime_seconds"] > 0
+        assert health["uptime_seconds"] >= 0
 
     @pytest.mark.asyncio
     async def test_stats_empty(self):

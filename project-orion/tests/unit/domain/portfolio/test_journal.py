@@ -15,7 +15,11 @@ from decimal import Decimal
 
 import pytest
 
-from libraries.domain.portfolio.journal import JournalEntryType, TradeJournal
+from libraries.domain.portfolio.journal import (
+    JournalEntry,
+    JournalEntryType,
+    TradeJournal,
+)
 
 
 @pytest.fixture
@@ -292,3 +296,68 @@ class TestClear:
         await journal.record(entry_type=JournalEntryType.POSITION_OPENED)
         await journal.clear()
         assert await journal.total_entries == 0
+
+
+class TestJournalOrderingRegression:
+    """Comprehensive regression tests for journal ordering and tie-breaking."""
+
+    async def test_ordering_with_different_timestamps(self, journal: TradeJournal):
+        now = datetime.now(timezone.utc)
+        # Manually create entries with distinct timestamps
+        e1 = await journal.record(entry_type=JournalEntryType.POSITION_OPENED)
+        e2 = await journal.record(entry_type=JournalEntryType.POSITION_CLOSED)
+        # Directly modify timestamps in entries list to simulate time progression
+        async with journal._lock:
+            journal._entries[0] = JournalEntry(
+                entry_id=e1.entry_id,
+                entry_type=e1.entry_type,
+                timestamp=now - timedelta(seconds=10),
+            )
+            journal._entries[1] = JournalEntry(
+                entry_id=e2.entry_id,
+                entry_type=e2.entry_type,
+                timestamp=now,
+            )
+        results = await journal.get_recent(limit=2)
+        assert results[0].entry_id == e2.entry_id
+        assert results[1].entry_id == e1.entry_id
+
+    async def test_ordering_with_identical_timestamps(self, journal: TradeJournal):
+        fixed_ts = datetime.now(timezone.utc)
+        e1 = await journal.record(entry_type=JournalEntryType.POSITION_OPENED)
+        e2 = await journal.record(entry_type=JournalEntryType.POSITION_CLOSED)
+        async with journal._lock:
+            journal._entries[0] = JournalEntry(
+                entry_id=e1.entry_id,
+                entry_type=e1.entry_type,
+                timestamp=fixed_ts,
+            )
+            journal._entries[1] = JournalEntry(
+                entry_id=e2.entry_id,
+                entry_type=e2.entry_type,
+                timestamp=fixed_ts,
+            )
+        results = await journal.get_recent(limit=2)
+        assert results[0].entry_id == e2.entry_id  # JRN-000002 before JRN-000001
+        assert results[1].entry_id == e1.entry_id
+
+    async def test_ordering_with_multiple_entries_identical_timestamp(self, journal: TradeJournal):
+        fixed_ts = datetime.now(timezone.utc)
+        created_ids = []
+        for _ in range(5):
+            entry = await journal.record(entry_type=JournalEntryType.NOTE)
+            created_ids.append(entry.entry_id)
+
+        async with journal._lock:
+            for idx in range(len(journal._entries)):
+                old = journal._entries[idx]
+                journal._entries[idx] = JournalEntry(
+                    entry_id=old.entry_id,
+                    entry_type=old.entry_type,
+                    timestamp=fixed_ts,
+                )
+
+        results = await journal.get_recent(limit=5)
+        # Expected: strictly reverse created_ids order
+        assert [r.entry_id for r in results] == list(reversed(created_ids))
+

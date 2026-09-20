@@ -10,6 +10,7 @@ Defines:
 
 from __future__ import annotations
 
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -23,7 +24,11 @@ from typing import Any
 class OrderId:
     """Globally unique order identifier within the system."""
 
-    value: str
+    value: str = field(default_factory=lambda: str(uuid.uuid4()))
+
+    @property
+    def id(self) -> str:
+        return self.value
 
     def __str__(self) -> str:
         return self.value
@@ -132,14 +137,14 @@ class ExecutionEventType(StrEnum):
 # ─── Core Order Model ────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class Order:
     """Broker-neutral order representation.
 
     Immutable - state transitions produce new Order instances.
     """
 
-    order_id: OrderId
+    order_id: OrderId | str
     decision_id: str
     execution_id: str
     symbol: str
@@ -149,7 +154,7 @@ class Order:
     price: Decimal | None = None
     stop_price: Decimal | None = None
     trailing_distance: Decimal | None = None
-    time_in_force: OrderTimeInForce = OrderTimeInForce.GTC
+    time_in_force: OrderTimeInForce | None = None
     expiry: datetime | None = None
     status: OrderStatus = OrderStatus.NEW
     broker_order_id: BrokerOrderId | None = None
@@ -170,6 +175,90 @@ class Order:
     settled_at: datetime | None = None
     completed_at: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    take_profit: Decimal | None = None
+
+    def __init__(
+        self,
+        order_id: OrderId | str,
+        decision_id: str,
+        execution_id: str,
+        symbol: str,
+        side: OrderSide,
+        order_type: OrderType,
+        quantity: Decimal,
+        price: Decimal | None = None,
+        stop_price: Decimal | None = None,
+        trailing_distance: Decimal | None = None,
+        time_in_force: OrderTimeInForce | None = None,
+        expiry: datetime | None = None,
+        status: OrderStatus = OrderStatus.NEW,
+        broker_order_id: BrokerOrderId | None = None,
+        broker_name: str = "",
+        filled_quantity: Decimal = Decimal(0),
+        average_fill_price: Decimal | None = None,
+        commission: Decimal = Decimal(0),
+        slippage: Decimal = Decimal(0),
+        rejection_reason: str = "",
+        fills: tuple[Fill, ...] = (),
+        parent_order_id: OrderId | None = None,
+        child_order_ids: tuple[OrderId, ...] = (),
+        oco_order_id: OrderId | None = None,
+        created_at: datetime | None = None,
+        updated_at: datetime | None = None,
+        submitted_at: datetime | None = None,
+        filled_at: datetime | None = None,
+        settled_at: datetime | None = None,
+        completed_at: datetime | None = None,
+        metadata: dict[str, Any] | None = None,
+        take_profit: Decimal | None = None,
+        stop_loss: Decimal | None = None,
+    ) -> None:
+        eff_stop = stop_price if stop_price is not None else stop_loss
+        object.__setattr__(self, "order_id", order_id)
+        object.__setattr__(self, "decision_id", decision_id)
+        object.__setattr__(self, "execution_id", execution_id)
+        object.__setattr__(self, "symbol", symbol)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "order_type", order_type)
+        object.__setattr__(self, "quantity", quantity)
+        object.__setattr__(self, "price", price)
+        object.__setattr__(self, "stop_price", eff_stop)
+        object.__setattr__(self, "trailing_distance", trailing_distance)
+        object.__setattr__(self, "time_in_force", time_in_force)
+        object.__setattr__(self, "expiry", expiry)
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "broker_order_id", broker_order_id)
+        object.__setattr__(self, "broker_name", broker_name)
+        object.__setattr__(self, "filled_quantity", filled_quantity)
+        object.__setattr__(self, "average_fill_price", average_fill_price)
+        object.__setattr__(self, "commission", commission)
+        object.__setattr__(self, "slippage", slippage)
+        object.__setattr__(self, "rejection_reason", rejection_reason)
+        object.__setattr__(self, "fills", fills)
+        object.__setattr__(self, "parent_order_id", parent_order_id)
+        object.__setattr__(self, "child_order_ids", child_order_ids)
+        object.__setattr__(self, "oco_order_id", oco_order_id)
+        object.__setattr__(
+            self,
+            "created_at",
+            created_at if created_at is not None else datetime.now(timezone.utc),
+        )
+        object.__setattr__(
+            self,
+            "updated_at",
+            updated_at if updated_at is not None else datetime.now(timezone.utc),
+        )
+        object.__setattr__(self, "submitted_at", submitted_at)
+        object.__setattr__(self, "filled_at", filled_at)
+        object.__setattr__(self, "settled_at", settled_at)
+        object.__setattr__(self, "completed_at", completed_at)
+        object.__setattr__(self, "metadata", metadata if metadata is not None else {})
+        object.__setattr__(self, "take_profit", take_profit)
+
+    @property
+    def stop_loss(self) -> Decimal | None:
+        """Alias for stop_price."""
+        return self.stop_price
 
     @property
     def remaining_quantity(self) -> Decimal:
@@ -228,6 +317,7 @@ class Order:
             settled_at=self.settled_at,
             completed_at=self.completed_at,
             metadata=self.metadata,
+            take_profit=self.take_profit,
         )
 
 
@@ -337,14 +427,24 @@ class ExecutionResult:
 # ─── Execution Report ────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(frozen=True)
 class ExecutionReport:
-    """Detailed execution report for a single order execution attempt."""
+    """Detailed execution report from a broker or execution attempt."""
 
     execution_id: str
-    decision_id: str
-    order: Order
-    result: ExecutionResult
+    order_id: str | OrderId = ""
+    broker_order_id: str | BrokerOrderId = ""
+    symbol: str = ""
+    side: str | OrderSide = ""
+    filled_volume: Decimal | None = None
+    price: Decimal | None = None
+    cost: Decimal | None = None
+    commission: Decimal | None = None
+    liquidity: str = ""
+    status: str = ""
+    decision_id: str = ""
+    order: Order | None = None
+    result: ExecutionResult | None = None
     validation_passed: bool = True
     validation_errors: tuple[str, ...] = ()
     route_selected: str = ""
@@ -353,6 +453,70 @@ class ExecutionReport:
     total_latency_ms: float = 0.0
     broker_latency_ms: float = 0.0
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def __init__(
+        self,
+        execution_id: str,
+        order_id: str | OrderId = "",
+        broker_order_id: str | BrokerOrderId = "",
+        symbol: str = "",
+        side: str | OrderSide = "",
+        filled_volume: Decimal | None = None,
+        price: Decimal | None = None,
+        cost: Decimal | None = None,
+        commission: Decimal | None = None,
+        liquidity: str = "",
+        status: str = "",
+        decision_id: str = "",
+        order: Order | None = None,
+        result: ExecutionResult | None = None,
+        validation_passed: bool = True,
+        validation_errors: tuple[str, ...] = (),
+        route_selected: str = "",
+        route_score: float = 0.0,
+        retry_attempts: int = 0,
+        total_latency_ms: float = 0.0,
+        broker_latency_ms: float = 0.0,
+        timestamp: datetime | None = None,
+        filled_quantity: Decimal | None = None,
+    ) -> None:
+        eff_volume = filled_volume if filled_volume is not None else filled_quantity
+        object.__setattr__(self, "execution_id", execution_id)
+        object.__setattr__(self, "order_id", order_id)
+        object.__setattr__(self, "broker_order_id", broker_order_id)
+        object.__setattr__(self, "symbol", symbol)
+        object.__setattr__(self, "side", side)
+        object.__setattr__(self, "filled_volume", eff_volume)
+        object.__setattr__(self, "price", price)
+        object.__setattr__(self, "cost", cost)
+        object.__setattr__(self, "commission", commission)
+        object.__setattr__(self, "liquidity", liquidity)
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "decision_id", decision_id)
+        object.__setattr__(self, "order", order)
+        object.__setattr__(self, "result", result)
+        object.__setattr__(self, "validation_passed", validation_passed)
+        object.__setattr__(self, "validation_errors", validation_errors)
+        object.__setattr__(self, "route_selected", route_selected)
+        object.__setattr__(self, "route_score", route_score)
+        object.__setattr__(self, "retry_attempts", retry_attempts)
+        object.__setattr__(self, "total_latency_ms", total_latency_ms)
+        object.__setattr__(self, "broker_latency_ms", broker_latency_ms)
+        object.__setattr__(
+            self,
+            "timestamp",
+            timestamp if timestamp is not None else datetime.now(timezone.utc),
+        )
+
+    @property
+    def report_id(self) -> str:
+        """Alias for execution_id."""
+        return self.execution_id
+
+    @property
+    def filled_quantity(self) -> Decimal | None:
+        """Alias for filled_volume."""
+        return self.filled_volume
 
 
 # ─── Execution Quality Score ─────────────────────────────────────────────

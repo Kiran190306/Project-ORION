@@ -1,0 +1,248 @@
+"""Entitlement application service enforcing plan quotas and instrument access."""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from libraries.domain.subscription.exceptions import (
+    AccountQuotaExceededError,
+    AssetNotEntitledError,
+    DailyOrderQuotaExceededError,
+    SubscriptionInactiveError,
+    WorkerQuotaExceededError,
+)
+from libraries.domain.subscription.models import (
+    Entitlement,
+    Plan,
+    PlanCode,
+    PlanLimits,
+)
+from libraries.infrastructure.persistence.models import AccountModel, OrderModel
+
+from .subscription_service import SubscriptionService
+
+logger = logging.getLogger("trading_engine.services.entitlement")
+
+# Canonical default Free sandbox limits for fallback / personal accounts
+DEFAULT_FREE_LIMITS = PlanLimits(
+    max_accounts=1,
+    max_daily_orders=100,
+    max_workers=0,
+    allowed_assets=("EUR/USD", "GBP/USD", "USD/JPY", "USD/CHF"),
+    retention_days=30,
+)
+
+DEFAULT_FREE_PLAN = Plan(
+    id="plan-free",
+    code=PlanCode.FREE,
+    name="Free Sandbox",
+    description="Default Free Sandbox tier",
+    limits=DEFAULT_FREE_LIMITS,
+)
+
+
+class EntitlementService:
+    """Service providing fail-closed tenant quota validation and entitlement checks."""
+
+    def __init__(
+        self,
+        session: AsyncSession,
+        subscription_service: SubscriptionService | None = None,
+    ) -> None:
+        self.session = session
+        self.subscription_service = subscription_service or SubscriptionService(session)
+
+    async def get_effective_entitlement(self, organization_id: str | None) -> Entitlement:
+        """Resolve effective entitlements for an organization or fallback to sandbox limits."""
+        if organization_id is None:
+            return Entitlement(
+                organization_id="",
+                plan=DEFAULT_FREE_PLAN,
+                subscription=None,
+                limits=DEFAULT_FREE_LIMITS,
+            )
+
+        sub, plan = await self.subscription_service.get_subscription_and_plan(organization_id)
+        if sub is None or plan is None:
+            # Auto-provision default Free subscription for new organization
+            sub = await self.subscription_service.assign_default_subscription(organization_id)
+            plan = await self.subscription_service.get_plan(sub.plan_id)
+            if plan is None:
+                plan = DEFAULT_FREE_PLAN
+
+        return Entitlement(
+            organization_id=organization_id,
+            plan=plan,
+            subscription=sub,
+            limits=plan.limits,
+        )
+
+    async def check_account_quota(
+        self,
+        organization_id: str | None,
+        current_count: int | None = None,
+    ) -> None:
+        """Verify organization does not exceed maximum permitted accounts."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        if entitlement.limits.max_accounts < 0:
+            return  # Unlimited
+
+        if current_count is None:
+            if organization_id is not None:
+                stmt = select(func.count(AccountModel.id)).where(
+                    AccountModel.organization_id == organization_id
+                )
+            else:
+                stmt = select(func.count(AccountModel.id)).where(
+                    AccountModel.organization_id.is_(None)
+                )
+            result = await self.session.execute(stmt)
+            count = int(result.scalar() or 0)
+        else:
+            count = current_count
+
+        if not entitlement.limits.is_account_allowed(count):
+            raise AccountQuotaExceededError(
+                current=count,
+                limit=entitlement.limits.max_accounts,
+            )
+
+    async def check_daily_order_quota(
+        self,
+        organization_id: str | None,
+        current_daily_orders: int | None = None,
+    ) -> None:
+        """Verify organization has not exceeded maximum permitted orders for today (UTC)."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        if entitlement.limits.max_daily_orders < 0:
+            return  # Unlimited
+
+        if current_daily_orders is None:
+            now = datetime.now(timezone.utc)
+            start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+            if organization_id is not None:
+                stmt = select(func.count(OrderModel.id)).where(
+                    OrderModel.organization_id == organization_id,
+                    OrderModel.created_at >= start_of_day,
+                )
+            else:
+                stmt = select(func.count(OrderModel.id)).where(
+                    OrderModel.organization_id.is_(None),
+                    OrderModel.created_at >= start_of_day,
+                )
+            result = await self.session.execute(stmt)
+            orders_today = int(result.scalar() or 0)
+        else:
+            orders_today = current_daily_orders
+
+        if not entitlement.limits.is_daily_order_allowed(orders_today):
+            raise DailyOrderQuotaExceededError(
+                current=orders_today,
+                limit=entitlement.limits.max_daily_orders,
+            )
+
+    async def check_worker_quota(
+        self,
+        organization_id: str | None,
+        active_worker_count: int = 0,
+    ) -> None:
+        """Verify organization is entitled to run autonomous trading workers."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        if not entitlement.limits.is_worker_allowed(active_worker_count):
+            raise WorkerQuotaExceededError(
+                plan_name=entitlement.plan.name,
+                limit=entitlement.limits.max_workers,
+            )
+
+    async def check_asset_access(
+        self,
+        organization_id: str | None,
+        symbol: str,
+    ) -> None:
+        """Verify instrument is permitted under organization's subscription plan."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        if not entitlement.limits.is_asset_allowed(symbol):
+            raise AssetNotEntitledError(
+                symbol=symbol,
+                plan_name=entitlement.plan.name,
+            )
+
+    async def get_usage_summary(self, organization_id: str | None) -> dict[str, Any]:
+        """Aggregate current resource utilization against plan quota thresholds."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        # Accounts count
+        if organization_id is not None:
+            acc_stmt = select(func.count(AccountModel.id)).where(
+                AccountModel.organization_id == organization_id
+            )
+        else:
+            acc_stmt = select(func.count(AccountModel.id)).where(
+                AccountModel.organization_id.is_(None)
+            )
+        acc_result = await self.session.execute(acc_stmt)
+        accounts_count = int(acc_result.scalar() or 0)
+
+        # Orders today (UTC)
+        now = datetime.now(timezone.utc)
+        start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+        if organization_id is not None:
+            ord_stmt = select(func.count(OrderModel.id)).where(
+                OrderModel.organization_id == organization_id,
+                OrderModel.created_at >= start_of_day,
+            )
+        else:
+            ord_stmt = select(func.count(OrderModel.id)).where(
+                OrderModel.organization_id.is_(None),
+                OrderModel.created_at >= start_of_day,
+            )
+        ord_result = await self.session.execute(ord_stmt)
+        orders_today = int(ord_result.scalar() or 0)
+
+        return {
+            "organization_id": organization_id,
+            "plan_code": entitlement.plan.code.value,
+            "plan_name": entitlement.plan.name,
+            "subscription_status": entitlement.subscription.status.value if entitlement.subscription else "SANDBOX",
+            "quotas": {
+                "accounts": {
+                    "used": accounts_count,
+                    "limit": entitlement.limits.max_accounts,
+                    "is_unlimited": entitlement.limits.max_accounts < 0,
+                },
+                "daily_orders": {
+                    "used": orders_today,
+                    "limit": entitlement.limits.max_daily_orders,
+                    "is_unlimited": entitlement.limits.max_daily_orders < 0,
+                },
+                "workers": {
+                    "used": 0,
+                    "limit": entitlement.limits.max_workers,
+                    "is_unlimited": entitlement.limits.max_workers < 0,
+                },
+                "allowed_assets": list(entitlement.limits.allowed_assets),
+                "retention_days": entitlement.limits.retention_days,
+            },
+        }

@@ -20,7 +20,7 @@ from libraries.domain.execution.models import (
     OrderTimeInForce,
     OrderType,
 )
-from libraries.domain.trading.decision_result import DecisionOutcome, TradeDecision
+from libraries.domain.trading.decision_result import TradeDecision
 
 
 @dataclass(frozen=True, slots=True)
@@ -80,19 +80,25 @@ class OrderBuilder:
         Raises:
             OrderBuildError: If the decision cannot be converted.
         """
-        if decision.outcome == DecisionOutcome.EXECUTE and decision.direction is None:
-            raise OrderBuildError("Decision has no direction")
+        ot = order_type or self._config.default_order_type
 
+        from libraries.domain.trading.decision_result import DecisionOutcome
+
+        if decision.outcome != DecisionOutcome.EXECUTE:
+            raise OrderBuildError(
+                f"Cannot build order from non-executable decision (outcome: {decision.outcome.value})"
+            )
+        if decision.direction is None:
+            raise OrderBuildError("Decision has no direction")
         if not decision.is_executable:
             raise OrderBuildError(
                 f"Cannot build order from non-executable decision (outcome: {decision.outcome.value})"
             )
 
-        # Determine order type
-        ot = order_type or self._config.default_order_type
-
         if decision.entry_price is None and price is None and ot != OrderType.MARKET:
-            raise OrderBuildError(f"Order type {ot} requires a price")
+            raise OrderBuildError(
+                f"Order type {ot} requires a price"
+            )
 
         # Determine order side
         from libraries.domain.trading.signals import SignalDirection
@@ -105,6 +111,17 @@ class OrderBuilder:
             final_price = self._round_price(price)
         elif decision.entry_price is not None and ot != OrderType.MARKET:
             final_price = self._round_price(decision.entry_price)
+
+        # Stop price and take profit
+        stop_price: Decimal | None = None
+        if decision.stop_loss is not None:
+            stop_price = self._round_price(decision.stop_loss)
+        elif decision.stop_price is not None:
+            stop_price = self._round_price(decision.stop_price)
+
+        take_profit: Decimal | None = None
+        if decision.take_profit is not None:
+            take_profit = self._round_price(decision.take_profit)
 
         # Determine volume with rounding
         volume = self._round_volume(decision.position_size or Decimal(0))
@@ -123,6 +140,10 @@ class OrderBuilder:
         meta["risk_amount"] = str(decision.risk_amount) if decision.risk_amount else ""
         meta["account_risk_pct"] = decision.account_risk_pct
         meta["original_entry_price"] = str(decision.entry_price) if decision.entry_price else ""
+        if decision.stop_loss is not None or decision.stop_price is not None:
+            meta["stop_loss"] = str(decision.stop_loss or decision.stop_price)
+        if decision.take_profit is not None:
+            meta["take_profit"] = str(decision.take_profit)
 
         return Order(
             order_id=OrderId(value=order_id),
@@ -133,6 +154,8 @@ class OrderBuilder:
             order_type=ot,
             quantity=volume,
             price=final_price,
+            stop_price=stop_price,
+            take_profit=take_profit,
             time_in_force=tif,
             status=OrderStatus.NEW,
             created_at=datetime.now(timezone.utc),

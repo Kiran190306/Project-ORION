@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 
 from libraries.domain.indicators.models import Bar, IndicatorResult
@@ -42,8 +42,10 @@ class CachedEntry:
     @property
     def is_expired(self) -> bool:
         """Check if this cache entry has expired."""
+        if self.ttl_seconds <= 0:
+            return True
         elapsed = (datetime.now(timezone.utc) - self.cached_at).total_seconds()
-        return elapsed > self.ttl_seconds
+        return elapsed >= self.ttl_seconds
 
 
 class IndicatorCache:
@@ -156,7 +158,7 @@ class IndicatorCache:
 
         entry = CachedEntry(
             result=result,
-            ttl_seconds=ttl_seconds or self._config.default_ttl_seconds,
+            ttl_seconds=ttl_seconds if ttl_seconds is not None else self._config.default_ttl_seconds,
         )
 
         async with self._lock:

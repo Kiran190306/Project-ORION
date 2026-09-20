@@ -6,6 +6,7 @@ Every transition creates a new Order instance (immutable pattern).
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import StrEnum
@@ -51,6 +52,12 @@ class StateTransition:
         """Return time since epoch for this transition."""
         return self.timestamp.timestamp() * 1000
 
+    def __await__(self) -> Generator[Any, None, StateTransition]:
+        async def _coro() -> StateTransition:
+            return self
+
+        return _coro().__await__()
+
 
 # ─── Transition Map ─────────────────────────────────────────────────────
 # Defines valid transitions: current_status -> {trigger: next_status}
@@ -68,6 +75,7 @@ _TRANSITION_MAP: dict[OrderStatus, dict[Trigger, OrderStatus]] = {
     },
     OrderStatus.BUILT: {
         Trigger.ROUTE: OrderStatus.ROUTED,
+        Trigger.SUBMIT: OrderStatus.SUBMITTED,
         Trigger.REJECT: OrderStatus.REJECTED,
         Trigger.CANCEL: OrderStatus.CANCELLED,
     },

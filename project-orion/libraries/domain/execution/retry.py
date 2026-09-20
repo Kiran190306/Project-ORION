@@ -8,13 +8,14 @@ calculation, and jitter.
 from __future__ import annotations
 
 import asyncio
+import inspect
 import random
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
-from libraries.domain.execution.exceptions import ExecutionError, RetryExhaustedError
+from libraries.domain.execution.exceptions import RetryExhaustedError
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,13 +100,13 @@ class RetryHandler:
 
     async def execute(
         self,
-        coro_factory: Callable[[], Awaitable[Any]],
+        coro_factory: Callable[[], Any],
         context: str = "",
     ) -> Any:
         """Execute a callable with retry logic.
 
         Args:
-            coro_factory: Async callable that returns the result.
+            coro_factory: Async or sync callable that returns the result.
             context: Human-readable context for error messages.
 
         Returns:
@@ -123,7 +124,8 @@ class RetryHandler:
                 await asyncio.sleep(delay / 1000.0)
 
             try:
-                result = await coro_factory()
+                call_res = coro_factory()
+                result = await call_res if inspect.isawaitable(call_res) else call_res
                 async with self._lock:
                     self._attempts.append(
                         RetryAttempt(
@@ -133,7 +135,7 @@ class RetryHandler:
                         )
                     )
                 return result
-            except (TimeoutError, OSError, ConnectionError, ValueError, RuntimeError, ExecutionError) as e:
+            except Exception as e:  # noqa: BLE001
                 last_error = e
                 async with self._lock:
                     self._attempts.append(

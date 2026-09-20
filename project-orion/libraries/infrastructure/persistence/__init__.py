@@ -1,36 +1,38 @@
-"""
-Persistence Infrastructure Library
+"""Persistence Infrastructure Library for Project ORION."""
 
-Module Description:
-This library provides persistence infrastructure for databases.
-It includes database connections, repository patterns, transaction management, and query builders.
+from __future__ import annotations
 
-Implementation Checklist:
-- [ ] Database connections
-- [ ] Repository patterns
-- [ ] Transaction management
-- [ ] Query builders
+from libraries.infrastructure.persistence.base import Base, TimestampMixin
+from libraries.infrastructure.persistence.config import (
+    DatabaseConfig,
+    DatabaseManager,
+)
+from libraries.infrastructure.persistence.models import (
+    AccountModel,
+    AuditLogModel,
+    ExecutionReportModel,
+    FillModel,
+    NotificationRecordModel,
+    OrderModel,
+    PositionModel,
+    RiskBreachModel,
+    RiskLimitModel,
+    StrategyConfigModel,
+)
 
-TODO:
-- Implement database connection pool
-- Implement repository base class
-- Add transaction manager
-- Add query builder
-
-Dependency Notes:
-- Depends on: shared/
-- Used by: All services with database access
-"""
-
-
-# TODO: Implement persistence infrastructure
-class DatabaseConnection:
-    """Database connection placeholder."""
-
-    pass
-
-
-class Repository:
-    """Repository base class placeholder."""
-
-    pass
+__all__ = [
+    "AccountModel",
+    "AuditLogModel",
+    "Base",
+    "DatabaseConfig",
+    "DatabaseManager",
+    "ExecutionReportModel",
+    "FillModel",
+    "NotificationRecordModel",
+    "OrderModel",
+    "PositionModel",
+    "RiskBreachModel",
+    "RiskLimitModel",
+    "StrategyConfigModel",
+    "TimestampMixin",
+]

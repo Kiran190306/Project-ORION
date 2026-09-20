@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -26,13 +26,13 @@ from libraries.domain.execution.confirmation import (
 )
 from libraries.domain.execution.context import ExecutionContext, ExecutionMode
 from libraries.domain.execution.deduplication import (
+    DeduplicationConfig,
     OrderDeduplicator,
 )
 from libraries.domain.execution.exceptions import (
     DuplicateOrderError,
     FillValidationError,
     OrderBuildError,
-    OrderNotFoundError,
     OrderValidationError,
     RetryExhaustedError,
     RoutingError,
@@ -82,6 +82,9 @@ class ExecutionEngineConfig:
     max_order_latency_ms: float = 5000.0
     track_statistics: bool = True
     enable_recovery: bool = True
+    deduplication_config: DeduplicationConfig = field(
+        default_factory=lambda: DeduplicationConfig(check_symbol_side=False)
+    )
 
 
 class ExecutionEngine:
@@ -120,7 +123,9 @@ class ExecutionEngine:
         self._validator = validator or OrderValidator()
         self._router = router or OrderRouter()
         self._retry_handler = retry_handler or RetryHandler()
-        self._deduplicator = deduplicator or OrderDeduplicator()
+        self._deduplicator = deduplicator or OrderDeduplicator(
+            config=self._config.deduplication_config
+        )
         self._fill_validator = fill_validator or FillValidator()
         self._recovery_handler = recovery_handler or OrderRecoveryHandler()
         self._statistics = statistics or ExecutionStatistics()
@@ -278,8 +283,7 @@ class ExecutionEngine:
             await lifecycle.transition(Trigger.VALIDATE, "Order validated")
             await lifecycle.transition(Trigger.BUILD, "Order built from decision")
             await lifecycle.transition(
-                Trigger.ROUTE,
-                f"Routed to broker {routing.selected_broker}",
+                Trigger.ROUTE, f"Order routed to {routing.selected_broker}"
             )
             await self._tracker.update_order(order)
 
@@ -310,10 +314,7 @@ class ExecutionEngine:
                 )
 
             # 10. Check if recovery is needed
-            if (
-                self._config.enable_recovery
-                and await self._recovery_handler.needs_recovery(order)
-            ):
+            if self._config.enable_recovery and await self._recovery_handler.needs_recovery(order):
                 await self._recovery_handler.mark_for_recovery(order)
 
             self._execution_count += 1
@@ -381,7 +382,7 @@ class ExecutionEngine:
         context: ExecutionContext,
     ) -> ValidationResult:
         """Validate an order."""
-        return await self._validator.validate(
+        res = self._validator.validate(
             order=order,
             market_open=context.market_open,
             broker_available=context.broker_available,
@@ -389,6 +390,11 @@ class ExecutionEngine:
             lot_size=context.lot_size,
             current_spread=context.current_spread,
         )
+        if isinstance(res, ValidationResult):
+            return res
+        awaited = await res
+        assert isinstance(awaited, ValidationResult)
+        return awaited
 
     async def _check_deduplication(self, order: Order) -> None:
         """Check for duplicate order submission."""
@@ -456,8 +462,8 @@ class ExecutionEngine:
         """
         try:
             order = await self._tracker.get_order(fill.order_id)
-        except OrderNotFoundError:
-            raise FillValidationError(f"No tracked order found for fill {fill.fill_id}") from None
+        except Exception:  # noqa: BLE001
+            raise FillValidationError(f"No tracked order found for fill {fill.fill_id}")
 
         # Validate fill against order
         await self._fill_validator.validate_fill(order, fill)

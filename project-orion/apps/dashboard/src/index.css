@@ -1,0 +1,91 @@
+/* Institutional Dark Theme for Project ORION */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  --bg-primary: #090d16;
+  --bg-secondary: #0f172a;
+  --bg-card: #141e33;
+  --bg-card-hover: #1a2742;
+  --border-color: #1e293b;
+  --border-subtle: #334155;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --color-brand: #0284c7;
+  --color-brand-light: #38bdf8;
+  --color-profit: #10b981;
+  --color-loss: #f43f5e;
+  --color-warning: #f59e0b;
+  --color-paper: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Custom modern scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Base utility classes without heavy external CSS dependency */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Status colors */
+.text-profit {
+  color: var(--color-profit) !important;
+}
+.text-loss {
+  color: var(--color-loss) !important;
+}
+.text-warning {
+  color: var(--color-warning) !important;
+}
+.text-paper {
+  color: var(--color-paper) !important;
+}
+.text-brand {
+  color: var(--color-brand-light) !important;
+}
+
+/* High contrast outline for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid var(--color-brand-light);
+  outline-offset: 2px;
+}
+
+/* Grid layout helpers */
+.grid-dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}

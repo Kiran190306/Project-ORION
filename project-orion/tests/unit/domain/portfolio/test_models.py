@@ -352,3 +352,83 @@ class TestImmutability:
         )
         with pytest.raises(AttributeError):
             pos.__dict__  # slots means no __dict__
+
+
+class TestFrozenSlotsRegression:
+    """Detailed regression coverage for CPython 3.11 frozen+slots semantics."""
+
+    def test_existing_field_mutation_raises(self):
+        pos = Position(
+            position_id="POS-01",
+            symbol="EURUSD",
+            side=PositionSide.LONG,
+            quantity=Decimal("10000"),
+            entry_price=Decimal("1.0850"),
+        )
+        with pytest.raises(AttributeError):
+            pos.quantity = Decimal("20000")
+
+    def test_new_attribute_assignment_raises(self):
+        pos = Position(
+            position_id="POS-01",
+            symbol="EURUSD",
+            side=PositionSide.LONG,
+            quantity=Decimal("10000"),
+            entry_price=Decimal("1.0850"),
+        )
+        with pytest.raises(AttributeError):
+            setattr(pos, "arbitrary_new_field", "value")
+
+    def test_attribute_deletion_raises(self):
+        pos = Position(
+            position_id="POS-01",
+            symbol="EURUSD",
+            side=PositionSide.LONG,
+            quantity=Decimal("10000"),
+            entry_price=Decimal("1.0850"),
+        )
+        with pytest.raises(AttributeError):
+            del pos.quantity
+
+        with pytest.raises(AttributeError):
+            delattr(pos, "non_existent_attribute")
+
+    def test_normal_construction_and_equality(self):
+        pos1 = Position(
+            position_id="POS-01",
+            symbol="EURUSD",
+            side=PositionSide.LONG,
+            quantity=Decimal("10000"),
+            entry_price=Decimal("1.0850"),
+        )
+        pos2 = Position(
+            position_id="POS-01",
+            symbol="EURUSD",
+            side=PositionSide.LONG,
+            quantity=Decimal("10000"),
+            entry_price=Decimal("1.0850"),
+        )
+        assert pos1 == pos2
+        assert pos1.symbol == "EURUSD"
+        assert pos1.quantity == Decimal("10000")
+
+    def test_slots_layout_across_portfolio_models(self):
+        models = [
+            Position(
+                position_id="POS-01",
+                symbol="EURUSD",
+                side=PositionSide.LONG,
+                quantity=Decimal("10000"),
+                entry_price=Decimal("1.0850"),
+            ),
+            AccountSnapshot(),
+            PortfolioSnapshot(),
+            PnLBreakdown(),
+            PositionSummary(symbol="EURUSD"),
+            CurrencyPosition(currency="USD"),
+            MarginCallThresholds(),
+            DrawdownSnapshot(),
+        ]
+        for m in models:
+            assert not hasattr(m, "__dict__"), f"{type(m).__name__} must not have __dict__"
+

@@ -4,9 +4,14 @@
   "description": "Institutional-grade automated Forex trading platform",
   "private": true,
   "workspaces": [
-    "sdk/javascript"
+    "sdk/javascript",
+    "apps/dashboard"
   ],
   "scripts": {
+    "dashboard:dev": "npm run dev --workspace=@orion/dashboard",
+    "dashboard:build": "npm run build --workspace=@orion/dashboard",
+    "dashboard:test": "npm run test --workspace=@orion/dashboard",
+    "dashboard:lint": "npm run lint --workspace=@orion/dashboard",
     "lint": "npm run lint --workspace=@orion/sdk-javascript",
     "format": "npm run format --workspace=@orion/sdk-javascript",
     "build": "npm run build --workspace=@orion/sdk-javascript",

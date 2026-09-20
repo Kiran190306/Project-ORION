@@ -154,7 +154,7 @@ class OrderDeduplicator:
             if self._config.check_order_id and f"order:{order_id}" in self._entries:
                 return True
 
-            return (
+            return bool(
                 self._config.check_symbol_side
                 and f"symbol_side:{symbol}:{side}" in self._entries
             )

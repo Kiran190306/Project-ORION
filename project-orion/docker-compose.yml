@@ -1,0 +1,88 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: orion-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-orion}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orion}
+      POSTGRES_DB: ${POSTGRES_DB:-orion_prod}
+    ports:
+      - "${ORION_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - orion_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orion -d orion_prod"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: orion-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - orion_redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  trading-engine:
+    build:
+      context: .
+      dockerfile: docker/apps/trading-engine/Dockerfile
+    container_name: orion-trading-engine
+    restart: unless-stopped
+    environment:
+      ORION_ENVIRONMENT: production
+      ORION_LOG_LEVEL: INFO
+      ORION_DATABASE_URL: postgresql+asyncpg://orion:orion@postgres:5432/orion_prod
+      ORION_REDIS_URL: redis://redis:6379/0
+      ORION_RUN_MIGRATIONS: "true"
+      ORION_JWT_SECRET_KEY: ${ORION_JWT_SECRET_KEY:-institutional-orion-prod-secret-2026}
+      ORION_CORS_ORIGINS: http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173
+      ORION_WORKER_ENABLED: "false"
+      PORT: 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  dashboard:
+    build:
+      context: apps/dashboard
+      dockerfile: Dockerfile
+    container_name: orion-dashboard
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      trading-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  orion_pgdata:
+  orion_redisdata:

@@ -15,13 +15,18 @@ from libraries.domain.execution.confirmation import FillConfirmation, FillValida
 from libraries.domain.execution.deduplication import OrderDeduplicator
 from libraries.domain.execution.engine import ExecutionEngine, ExecutionEngineConfig
 from libraries.domain.execution.lifecycle import OrderLifecycleTracker
-from libraries.domain.execution.models import OrderSide, OrderStatus
-from tests.unit.domain.execution.conftest import make_order
+from libraries.domain.execution.models import (
+    ExecutionReport,
+    Order,
+    OrderSide,
+    OrderStatus,
+    OrderType,
+)
 from libraries.domain.execution.recovery import OrderRecoveryHandler
 from libraries.domain.execution.retry import RetryHandler
 from libraries.domain.execution.router import BrokerCapabilities, OrderRouter
 from libraries.domain.execution.state_machine import Trigger
-from libraries.domain.execution.statistics import ExecutionOutcome, ExecutionStatistics
+from libraries.domain.execution.statistics import ExecutionStatistics
 from libraries.domain.execution.tracker import OrderTracker
 from libraries.domain.execution.validator import OrderValidator
 from libraries.domain.trading.decision_result import DecisionOutcome, TradeDecision
@@ -36,7 +41,7 @@ def decision() -> TradeDecision:
         direction=SignalDirection.BUY,
         confidence=85.0,
         entry_price=Decimal("1.10500"),
-        stop_loss=Decimal("1.10000"),
+        stop_price=Decimal("1.10000"),
         take_profit=Decimal("1.11500"),
         position_size=Decimal("10000"),
         risk_amount=Decimal("50"),
@@ -126,7 +131,7 @@ class TestIntegration:
         assert snap.transition_count == 6
 
         # Verify tracker
-        tracked = await tracker.get_order(str(order.order_id))
+        tracked = await tracker.get_order(order.order_id)
         assert tracked is not None
 
     async def test_deduplication_in_pipeline(self, decision: TradeDecision) -> None:
@@ -138,7 +143,7 @@ class TestIntegration:
 
         # First submission should pass
         await dedup.check_and_register(
-            order_id=str(order.order_id),
+            order_id=order.order_id,
             decision_id=order.decision_id,
             symbol=order.symbol,
             side=order.side.value,
@@ -149,7 +154,7 @@ class TestIntegration:
 
         with pytest.raises(DuplicateOrderError):
             await dedup.check_and_register(
-                order_id=str(order.order_id),
+                order_id=order.order_id,
                 decision_id=order.decision_id,
                 symbol=order.symbol,
                 side=order.side.value,
@@ -175,11 +180,11 @@ class TestIntegration:
         # Create fill confirmation
         fill = FillConfirmation(
             fill_id="FL-INT-001",
-            order_id=str(order.order_id),
+            order_id=order.order_id,
             symbol=order.symbol,
             side=order.side.value,
             filled_volume=order.quantity or Decimal("0"),
-            remaining_volume=Decimal("0"),
+            remaining_quantity=Decimal("0"),
             fill_price=Decimal("1.10500"),
             total_cost=Decimal("11050.00"),
             broker_fill_id="BROKER-FL-001",
@@ -200,10 +205,10 @@ class TestIntegration:
 
         for i in range(5):
             await stats.record_execution(
-                outcome=ExecutionOutcome.FILLED,
+                outcome="filled",
                 broker_id="broker-1",
                 latency_ms=10.0 + i * 5,
-                volume=Decimal("1000"),
+                quantity=Decimal("1000"),
                 commission=Decimal("0.50"),
             )
 
@@ -234,9 +239,14 @@ class TestIntegration:
         from datetime import datetime, timedelta, timezone
 
         # Create a stale order
-        stale_order = make_order(
+        stale_order = Order(
             order_id="ORD-STALE",
             decision_id="DEC-STALE",
+            execution_id="EXEC-001",
+            symbol="EURUSD",
+            side=OrderSide.BUY,
+            order_type=OrderType.MARKET,
+            quantity=Decimal("1000"),
             status=OrderStatus.SUBMITTED,
             created_at=datetime.now(timezone.utc) - timedelta(seconds=60),
         )
@@ -267,10 +277,9 @@ class TestIntegration:
         )
         await engine.register_broker(broker)
 
-        symbols = ["EURUSD", "GBPUSD", "USDJPY"]
         decisions = [
             TradeDecision(
-                symbol=symbols[i],
+                symbol="EURUSD",
                 outcome=DecisionOutcome.EXECUTE,
                 direction=SignalDirection.BUY,
                 position_size=Decimal("1000"),

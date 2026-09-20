@@ -68,6 +68,7 @@ class ExecutionStatistics:
         slippage_pips: float = 0.0,
         volume: Decimal = Decimal(0),
         commission: Decimal = Decimal(0),
+        quantity: Decimal | None = None,
     ) -> None:
         """Record an execution outcome.
 
@@ -78,13 +79,15 @@ class ExecutionStatistics:
             slippage_pips: Slippage in pips.
             volume: Executed volume.
             commission: Commission charged.
+            quantity: Alias for volume.
         """
+        eff_volume = quantity if quantity is not None else volume
         async with self._lock:
             self._total_orders += 1
             self._outcomes[outcome] = self._outcomes.get(outcome, 0) + 1
             self._latencies.append(latency_ms)
             self._slippages.append(slippage_pips)
-            self._total_volume += volume
+            self._total_volume += eff_volume
             self._total_commission += commission
 
             if broker_id:

@@ -1,0 +1,1 @@
+# tests/integration/apps package
