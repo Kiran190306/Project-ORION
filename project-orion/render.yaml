@@ -16,6 +16,7 @@ services:
   # ─── Trading Engine ASGI API ───────────────────────────────────────────────
   - type: web
     name: orion-api
+    rootDir: project-orion
     env: docker
     dockerfilePath: docker/apps/trading-engine/Dockerfile
     dockerContext: .
@@ -47,6 +48,7 @@ services:
   # ─── Production Trading Dashboard (SPA) ────────────────────────────────────
   - type: web
     name: orion-dashboard
+    rootDir: project-orion
     env: docker
     dockerfilePath: apps/dashboard/Dockerfile
     dockerContext: apps/dashboard
