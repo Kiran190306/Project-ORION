@@ -13,6 +13,8 @@ from libraries.domain.subscription.exceptions import (
     AccountQuotaExceededError,
     AssetNotEntitledError,
     DailyOrderQuotaExceededError,
+    DailyResearchQuotaExceededError,
+    ResearchHistoryLimitExceededError,
     SubscriptionInactiveError,
     WorkerQuotaExceededError,
 )
@@ -189,6 +191,64 @@ class EntitlementService:
                 plan_name=entitlement.plan.name,
             )
 
+    async def check_daily_research_quota(
+        self,
+        organization_id: str | None,
+        requested_days: int = 1,
+    ) -> None:
+        """Verify organization has not exceeded daily research experiment quotas or history limits."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        # Plan-based research limits
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_daily_experiments = 10
+            max_history_days = 30
+        elif plan_code == PlanCode.PRO:
+            max_daily_experiments = 50
+            max_history_days = 180
+        elif plan_code == PlanCode.BUSINESS:
+            max_daily_experiments = 200
+            max_history_days = 365
+        else:  # ENTERPRISE
+            max_daily_experiments = -1
+            max_history_days = 3650
+
+        if max_history_days > 0 and requested_days > max_history_days:
+            raise ResearchHistoryLimitExceededError(
+                requested_days=requested_days,
+                limit_days=max_history_days,
+            )
+
+        if max_daily_experiments < 0:
+            return  # Unlimited
+
+        now = datetime.now(timezone.utc)
+        start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+        from libraries.infrastructure.persistence.models import ResearchExperimentModel
+
+        if organization_id is not None:
+            stmt = select(func.count(ResearchExperimentModel.id)).where(
+                ResearchExperimentModel.organization_id == organization_id,
+                ResearchExperimentModel.created_at >= start_of_day,
+            )
+        else:
+            stmt = select(func.count(ResearchExperimentModel.id)).where(
+                ResearchExperimentModel.created_at >= start_of_day,
+            )
+        result = await self.session.execute(stmt)
+        experiments_today = int(result.scalar() or 0)
+
+        if experiments_today >= max_daily_experiments:
+            raise DailyResearchQuotaExceededError(
+                current=experiments_today,
+                limit=max_daily_experiments,
+            )
+
     async def get_usage_summary(self, organization_id: str | None) -> dict[str, Any]:
         """Aggregate current resource utilization against plan quota thresholds."""
         entitlement = await self.get_effective_entitlement(organization_id)
@@ -221,6 +281,35 @@ class EntitlementService:
         ord_result = await self.session.execute(ord_stmt)
         orders_today = int(ord_result.scalar() or 0)
 
+        # Research experiments today (UTC)
+        from libraries.infrastructure.persistence.models import ResearchExperimentModel
+
+        if organization_id is not None:
+            res_stmt = select(func.count(ResearchExperimentModel.id)).where(
+                ResearchExperimentModel.organization_id == organization_id,
+                ResearchExperimentModel.created_at >= start_of_day,
+            )
+        else:
+            res_stmt = select(func.count(ResearchExperimentModel.id)).where(
+                ResearchExperimentModel.created_at >= start_of_day,
+            )
+        res_result = await self.session.execute(res_stmt)
+        research_today = int(res_result.scalar() or 0)
+
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_daily_experiments = 10
+            max_history_days = 30
+        elif plan_code == PlanCode.PRO:
+            max_daily_experiments = 50
+            max_history_days = 180
+        elif plan_code == PlanCode.BUSINESS:
+            max_daily_experiments = 200
+            max_history_days = 365
+        else:
+            max_daily_experiments = -1
+            max_history_days = 3650
+
         return {
             "organization_id": organization_id,
             "plan_code": entitlement.plan.code.value,
@@ -236,6 +325,12 @@ class EntitlementService:
                     "used": orders_today,
                     "limit": entitlement.limits.max_daily_orders,
                     "is_unlimited": entitlement.limits.max_daily_orders < 0,
+                },
+                "research_experiments": {
+                    "used": research_today,
+                    "limit": max_daily_experiments,
+                    "is_unlimited": max_daily_experiments < 0,
+                    "max_history_days": max_history_days,
                 },
                 "workers": {
                     "used": 0,

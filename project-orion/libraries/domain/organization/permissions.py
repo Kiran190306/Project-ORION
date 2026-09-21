@@ -57,6 +57,12 @@ class Permission(StrEnum):
     # Compliance Audit
     AUDIT_READ = "AUDIT_READ"
 
+    # Research Lab & Strategy Backtesting
+    RESEARCH_READ = "RESEARCH_READ"
+    RESEARCH_EXECUTE = "RESEARCH_EXECUTE"
+    RESEARCH_CANCEL = "RESEARCH_CANCEL"
+    RESEARCH_EXPORT = "RESEARCH_EXPORT"
+
 
 # Canonical Role -> Permission Matrix
 ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
@@ -86,6 +92,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.SUBSCRIPTION_READ,
         Permission.SUBSCRIPTION_MANAGE,
         Permission.AUDIT_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXECUTE,
+        Permission.RESEARCH_CANCEL,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.ADMINISTRATOR: {
         Permission.ORGANIZATION_READ,
@@ -109,6 +119,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.SUBSCRIPTION_READ,
         Permission.SUBSCRIPTION_MANAGE,
         Permission.AUDIT_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXECUTE,
+        Permission.RESEARCH_CANCEL,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.PORTFOLIO_MANAGER: {
         Permission.ORGANIZATION_READ,
@@ -130,6 +144,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.WORKER_STOP,
         Permission.SUBSCRIPTION_READ,
         Permission.AUDIT_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXECUTE,
+        Permission.RESEARCH_CANCEL,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.RISK_OFFICER: {
         Permission.ORGANIZATION_READ,
@@ -144,6 +162,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.WORKER_READ,
         Permission.SUBSCRIPTION_READ,
         Permission.AUDIT_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.TRADER: {
         Permission.ORGANIZATION_READ,
@@ -160,6 +180,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RISK_READ,
         Permission.WORKER_READ,
         Permission.SUBSCRIPTION_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXECUTE,
+        Permission.RESEARCH_CANCEL,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.AUDITOR: {
         Permission.ORGANIZATION_READ,
@@ -173,6 +197,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.WORKER_READ,
         Permission.SUBSCRIPTION_READ,
         Permission.AUDIT_READ,
+        Permission.RESEARCH_READ,
+        Permission.RESEARCH_EXPORT,
     },
     OrganizationRole.VIEWER: {
         Permission.ORGANIZATION_READ,
@@ -185,6 +211,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RISK_READ,
         Permission.WORKER_READ,
         Permission.SUBSCRIPTION_READ,
+        Permission.RESEARCH_READ,
     },
 }
 

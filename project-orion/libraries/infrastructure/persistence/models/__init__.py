@@ -26,6 +26,9 @@ from libraries.infrastructure.persistence.models.organization import (
     OrganizationModel,
 )
 from libraries.infrastructure.persistence.models.position import PositionModel
+from libraries.infrastructure.persistence.models.research import (
+    ResearchExperimentModel,
+)
 from libraries.infrastructure.persistence.models.risk import (
     RiskBreachModel,
     RiskLimitModel,
@@ -55,6 +58,7 @@ __all__ = [
     "OrganizationModel",
     "PlanModel",
     "PositionModel",
+    "ResearchExperimentModel",
     "RiskBreachModel",
     "RiskLimitModel",
     "StrategyConfigModel",

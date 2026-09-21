@@ -30,6 +30,7 @@ class ReplayEngineConfig:
     end_date: datetime | None = None
     symbols: tuple[str, ...] = ()
     metadata: dict[str, Any] = field(default_factory=dict)
+    instant_replay: bool = False
 
 
 class ReplayEventHandler:
@@ -201,7 +202,7 @@ class ReplayEngine:
                 self._position += 1
 
             # Speed control
-            if self._speed > 0:
+            if not self._config.instant_replay and 0 < self._speed < 1000:
                 await asyncio.sleep(0.001 / self._speed)
 
     async def pause(self) -> None:

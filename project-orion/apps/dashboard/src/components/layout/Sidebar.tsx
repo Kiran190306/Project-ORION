@@ -9,6 +9,7 @@ import {
   Cpu,
   ShieldAlert,
   Sliders,
+  FlaskConical,
   CreditCard,
   Users,
   FileText,
@@ -48,6 +49,7 @@ const navGroups: NavGroup[] = [
     title: 'ALGORITHMIC ENGINE',
     items: [
       { path: '/strategies', label: 'Strategies', icon: Sliders },
+      { path: '/research', label: 'Strategy Lab', icon: FlaskConical, permission: Permission.RESEARCH_READ },
       { path: '/risk', label: 'Risk Controls', icon: ShieldAlert },
       { path: '/worker', label: 'Worker Status', icon: Cpu },
     ],

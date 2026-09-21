@@ -41,6 +41,7 @@ from .routes.organization import router as organization_router
 from .routes.paper import router as paper_router
 from .routes.portfolio import router as portfolio_router
 from .routes.positions import router as positions_router
+from .routes.research import router as research_router
 from .routes.risk import router as risk_router
 from .routes.strategies import router as strategies_router
 from .routes.subscription import router as subscription_router
@@ -170,6 +171,7 @@ def create_app(
     app.include_router(market_data_router)
     app.include_router(subscription_router)
     app.include_router(billing_router)
+    app.include_router(research_router)
 
     return app
 

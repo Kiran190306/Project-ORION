@@ -637,5 +637,137 @@ export interface UpdatePaperConfigRequest {
   fill_probability?: number;
 }
 
+// ─── Research & Strategy Lab (EPIC-023) ──────────────────────────────────────
 
+export interface ParameterSchema {
+  name: string;
+  type: string;
+  default: any;
+  min?: number;
+  max?: number;
+  options?: string[];
+  description?: string;
+}
 
+export interface StrategyCatalogueItem {
+  strategy_id: string;
+  name: string;
+  description: string;
+  category: string;
+  version: string;
+  is_deterministic: boolean;
+  supported_instruments: string[];
+  supported_timeframes: string[];
+  parameters: ParameterSchema[];
+}
+
+export interface CreateExperimentRequest {
+  strategy_id: string;
+  symbol: string;
+  timeframe: string;
+  start_date: string;
+  end_date: string;
+  initial_capital?: number;
+  parameters?: Record<string, any>;
+  spread_pips?: number;
+  adverse_slippage_pips?: number;
+  commission_per_lot?: number;
+}
+
+export interface ResearchWarning {
+  code: string;
+  title: string;
+  description: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+}
+
+export interface ResearchMetrics {
+  initial_capital: number;
+  final_balance: number;
+  net_profit: number;
+  total_return_pct: number;
+  gross_profit: number;
+  gross_loss: number;
+  profit_factor: number;
+  win_rate_pct: number;
+  loss_rate_pct: number;
+  total_trades: number;
+  winning_trades: number;
+  losing_trades: number;
+  avg_trade_pnl: number;
+  largest_win: number;
+  largest_loss: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  max_drawdown_pct: number;
+  recovery_factor: number;
+  expectancy: number;
+}
+
+export interface ExperimentSummary {
+  id: string;
+  organization_id: string;
+  strategy_id: string;
+  strategy_version: string;
+  symbol: string;
+  timeframe: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  execution_time_seconds: number;
+  created_at: string;
+  completed_at?: string | null;
+  metrics?: ResearchMetrics | null;
+  warnings?: ResearchWarning[] | null;
+  error_message?: string | null;
+}
+
+export interface ExperimentDetail extends ExperimentSummary {
+  parameters: Record<string, any>;
+  simulation_config: Record<string, any>;
+}
+
+export interface EquityPoint {
+  timestamp: string;
+  balance: number;
+  equity: number;
+  drawdown_pct: number;
+}
+
+export interface ExperimentEquityResponse {
+  experiment_id: string;
+  initial_capital: number;
+  points: EquityPoint[];
+}
+
+export interface ResearchTradeRecord {
+  trade_id: string;
+  symbol: string;
+  side: string;
+  entry_time: string;
+  exit_time: string;
+  entry_price: number;
+  exit_price: number;
+  quantity: number;
+  gross_pnl: number;
+  fees: number;
+  net_pnl: number;
+  duration_seconds: number;
+  exit_reason: string;
+}
+
+export interface ExperimentTradesResponse {
+  experiment_id: string;
+  total_trades: number;
+  trades: ResearchTradeRecord[];
+}
+
+export interface CompareExperimentsRequest {
+  experiment_ids: string[];
+}
+
+export interface ExperimentComparisonResponse {
+  comparison: Record<string, any>[];
+  normalized_curves: Record<string, { timestamp: string; return_pct: number }[]>;
+}

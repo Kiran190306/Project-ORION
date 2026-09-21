@@ -549,6 +549,10 @@ def require_permission(permission: Permission) -> Callable[..., Any]:
                 Permission.WORKER_START,
                 Permission.WORKER_STOP,
                 Permission.SUBSCRIPTION_READ,
+                Permission.RESEARCH_READ,
+                Permission.RESEARCH_EXECUTE,
+                Permission.RESEARCH_CANCEL,
+                Permission.RESEARCH_EXPORT,
             }
             if permission in SANDBOX_ALLOWED_PERMISSIONS:
                 return tenant_context
@@ -583,4 +587,22 @@ def get_billing_service(
 
     metrics = getattr(request.app.state, "metrics_registry", None)
     return BillingService(session=session, metrics=metrics)
+
+
+def get_research_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    request: Request,
+) -> Any:
+    """Provide ResearchService with injected database session, entitlement service, and market data service."""
+    from .services.entitlement_service import EntitlementService
+    from .services.research_service import ResearchService
+
+    market_data = getattr(request.app.state, "market_data_service", None)
+    entitlements = EntitlementService(session=session)
+    return ResearchService(
+        session=session,
+        entitlement_service=entitlements,
+        market_data_service=market_data,
+    )
+
 

@@ -1036,5 +1036,5 @@ class UpdatePaperConfigRequest(BaseModel):
     leverage: int | None = None
 
 
-
-
+# Re-export research schemas for unified schema access
+from .schemas_research import *  # noqa: F401, F403

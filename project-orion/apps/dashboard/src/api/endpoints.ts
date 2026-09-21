@@ -49,6 +49,14 @@ import type {
   UserResponse,
   WorkerMetricsResponse,
   WorkerStatusResponse,
+  StrategyCatalogueItem,
+  CreateExperimentRequest,
+  ExperimentSummary,
+  ExperimentDetail,
+  ExperimentEquityResponse,
+  ExperimentTradesResponse,
+  CompareExperimentsRequest,
+  ExperimentComparisonResponse,
 } from './types';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
@@ -391,6 +399,66 @@ export const paperApi = {
       method: 'PATCH',
       body: JSON.stringify(req),
     }),
+};
+
+// ─── Research & Strategy Lab (EPIC-023) ──────────────────────────────────────
+
+export const researchApi = {
+  listStrategies: (): Promise<StrategyCatalogueItem[]> =>
+    apiClient<StrategyCatalogueItem[]>('/api/v1/research/strategies', {
+      method: 'GET',
+    }),
+
+  getStrategy: (strategyId: string): Promise<StrategyCatalogueItem> =>
+    apiClient<StrategyCatalogueItem>(`/api/v1/research/strategies/${encodeURIComponent(strategyId)}`, {
+      method: 'GET',
+    }),
+
+  createExperiment: (req: CreateExperimentRequest): Promise<ExperimentSummary> =>
+    apiClient<ExperimentSummary>('/api/v1/research/experiments', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listExperiments: (params?: { status?: string; limit?: number; offset?: number }): Promise<ExperimentSummary[]> =>
+    apiClient<ExperimentSummary[]>('/api/v1/research/experiments', {
+      method: 'GET',
+      params: params as Record<string, string | number | boolean | undefined>,
+    }),
+
+  getExperiment: (experimentId: string): Promise<ExperimentDetail> =>
+    apiClient<ExperimentDetail>(`/api/v1/research/experiments/${encodeURIComponent(experimentId)}`, {
+      method: 'GET',
+    }),
+
+  cancelExperiment: (experimentId: string): Promise<ExperimentSummary> =>
+    apiClient<ExperimentSummary>(`/api/v1/research/experiments/${encodeURIComponent(experimentId)}/cancel`, {
+      method: 'POST',
+    }),
+
+  getResults: (experimentId: string): Promise<any> =>
+    apiClient<any>(`/api/v1/research/experiments/${encodeURIComponent(experimentId)}/results`, {
+      method: 'GET',
+    }),
+
+  getEquityCurve: (experimentId: string): Promise<ExperimentEquityResponse> =>
+    apiClient<ExperimentEquityResponse>(`/api/v1/research/experiments/${encodeURIComponent(experimentId)}/equity-curve`, {
+      method: 'GET',
+    }),
+
+  getTrades: (experimentId: string): Promise<ExperimentTradesResponse> =>
+    apiClient<ExperimentTradesResponse>(`/api/v1/research/experiments/${encodeURIComponent(experimentId)}/trades`, {
+      method: 'GET',
+    }),
+
+  compare: (req: CompareExperimentsRequest): Promise<ExperimentComparisonResponse> =>
+    apiClient<ExperimentComparisonResponse>('/api/v1/research/experiments/compare', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  getExportUrl: (experimentId: string, format: 'csv' | 'json' = 'csv'): string =>
+    `/api/v1/research/experiments/${encodeURIComponent(experimentId)}/export?format=${format}`,
 };
 
 

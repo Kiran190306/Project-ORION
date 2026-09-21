@@ -86,3 +86,27 @@ class SubscriptionRequiredError(EntitlementError):
             "An active subscription is required to perform this operation.",
             code="SUBSCRIPTION_REQUIRED",
         )
+
+
+class DailyResearchQuotaExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum allowed daily research backtests."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Daily research quota exceeded: Organization has executed {current} backtests today (plan limit: {limit}).",
+            code="DAILY_RESEARCH_QUOTA_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+
+
+class ResearchHistoryLimitExceededError(EntitlementError):
+    """Raised when requested historical date range exceeds plan limits."""
+
+    def __init__(self, requested_days: int, limit_days: int) -> None:
+        super().__init__(
+            f"Historical date range ({requested_days} days) exceeds plan limit of {limit_days} days.",
+            code="RESEARCH_HISTORY_LIMIT_EXCEEDED",
+        )
+        self.requested_days = requested_days
+        self.limit_days = limit_days
