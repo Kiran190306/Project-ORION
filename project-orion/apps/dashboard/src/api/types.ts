@@ -1107,3 +1107,116 @@ export interface PromoteFromExperimentRequest {
   enforce_separation_of_duties?: boolean;
 }
 
+// ─── Broker Sandbox Types (EPIC-026) ───────────────────────────────────────
+
+export interface BrokerProviderInfo {
+  provider: string;
+  name: string;
+  environment: string;
+  description: string;
+  status: string;
+  supported_order_types: string[];
+  supported_symbols: string[];
+  requires_credentials: boolean;
+}
+
+export interface BrokerSandboxAccount {
+  id: string;
+  name: string;
+  provider: string;
+  environment: string;
+  account_id_external: string;
+  status: 'CONNECTED' | 'DISCONNECTED' | 'ERROR';
+  credentials_masked: Record<string, string>;
+  config: Record<string, any>;
+  last_connected_at?: string | null;
+  last_reconciled_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BrokerSandboxAccountCreateRequest {
+  name: string;
+  provider: string;
+  environment: 'SANDBOX' | 'LOCAL';
+  account_id_external: string;
+  credentials?: Record<string, string>;
+  config?: Record<string, any>;
+}
+
+export interface BrokerSandboxConnectResponse {
+  account_id: string;
+  status: string;
+  connected: boolean;
+  latency_ms: number;
+  balance?: number | null;
+  equity?: number | null;
+  margin?: number | null;
+  margin_free?: number | null;
+  currency: string;
+  message: string;
+}
+
+export interface BrokerSandboxOrderRequest {
+  symbol: string;
+  side: 'BUY' | 'SELL';
+  order_type: 'MARKET' | 'LIMIT' | 'STOP';
+  quantity: number;
+  price?: number | null;
+  stop_loss?: number | null;
+  take_profit?: number | null;
+  client_order_id?: string | null;
+}
+
+export interface BrokerSandboxOrderResponse {
+  order_id: string;
+  broker_order_id: string;
+  symbol: string;
+  side: string;
+  order_type: string;
+  quantity: number;
+  price?: number | null;
+  status: string;
+  filled_quantity: number;
+  average_fill_price?: number | null;
+  latency_ms: number;
+  timestamp: string;
+  rejection_reason?: string | null;
+}
+
+export interface BrokerSandboxPosition {
+  symbol: string;
+  quantity: number;
+  average_entry_price: number;
+  current_price: number;
+  unrealized_pnl: number;
+  realized_pnl: number;
+  margin_used: number;
+  side: string;
+  updated_at: string;
+}
+
+export interface BrokerSandboxReconciliationDiscrepancy {
+  entity: string;
+  id: string;
+  field: string;
+  internal_value: any;
+  broker_value: any;
+  severity: string;
+}
+
+export interface BrokerSandboxReconciliationResponse {
+  id: string;
+  broker_account_id: string;
+  timestamp: string;
+  status: 'MATCHED' | 'DISCREPANCY' | 'ERROR';
+  has_discrepancies: boolean;
+  order_discrepancies_count: number;
+  position_discrepancies_count: number;
+  account_discrepancies_count: number;
+  discrepancies: BrokerSandboxReconciliationDiscrepancy[];
+  resolution_policy: string;
+  manual_review_required: boolean;
+  internal_state_preserved: boolean;
+}
+

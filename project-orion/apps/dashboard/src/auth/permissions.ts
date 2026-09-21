@@ -53,6 +53,11 @@ export enum Permission {
   DEPLOYMENT_EXECUTE = 'DEPLOYMENT_EXECUTE',
   DEPLOYMENT_CANCEL = 'DEPLOYMENT_CANCEL',
   DEPLOYMENT_PROMOTE = 'DEPLOYMENT_PROMOTE',
+
+  BROKER_READ = 'BROKER_READ',
+  BROKER_SANDBOX_CONNECT = 'BROKER_SANDBOX_CONNECT',
+  BROKER_SANDBOX_EXECUTE = 'BROKER_SANDBOX_EXECUTE',
+  BROKER_SANDBOX_RECONCILE = 'BROKER_SANDBOX_RECONCILE',
 }
 
 export enum OrganizationRole {
@@ -104,6 +109,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.DEPLOYMENT_EXECUTE,
     Permission.DEPLOYMENT_CANCEL,
     Permission.DEPLOYMENT_PROMOTE,
+    Permission.BROKER_READ,
+    Permission.BROKER_SANDBOX_CONNECT,
+    Permission.BROKER_SANDBOX_EXECUTE,
+    Permission.BROKER_SANDBOX_RECONCILE,
   ]),
   [OrganizationRole.ADMINISTRATOR]: new Set([
     Permission.ORGANIZATION_READ,
@@ -139,6 +148,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.DEPLOYMENT_EXECUTE,
     Permission.DEPLOYMENT_CANCEL,
     Permission.DEPLOYMENT_PROMOTE,
+    Permission.BROKER_READ,
+    Permission.BROKER_SANDBOX_CONNECT,
+    Permission.BROKER_SANDBOX_EXECUTE,
+    Permission.BROKER_SANDBOX_RECONCILE,
   ]),
   [OrganizationRole.PORTFOLIO_MANAGER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -172,6 +185,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.DEPLOYMENT_EXECUTE,
     Permission.DEPLOYMENT_CANCEL,
     Permission.DEPLOYMENT_PROMOTE,
+    Permission.BROKER_READ,
+    Permission.BROKER_SANDBOX_CONNECT,
+    Permission.BROKER_SANDBOX_EXECUTE,
+    Permission.BROKER_SANDBOX_RECONCILE,
   ]),
   [OrganizationRole.RISK_OFFICER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -191,6 +208,8 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.OPTIMIZATION_READ,
     Permission.OPTIMIZATION_EXPORT,
     Permission.DEPLOYMENT_READ,
+    Permission.BROKER_READ,
+    Permission.BROKER_SANDBOX_RECONCILE,
   ]),
   [OrganizationRole.TRADER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -218,6 +237,8 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.DEPLOYMENT_READ,
     Permission.DEPLOYMENT_EXECUTE,
     Permission.DEPLOYMENT_CANCEL,
+    Permission.BROKER_READ,
+    Permission.BROKER_SANDBOX_EXECUTE,
   ]),
   [OrganizationRole.AUDITOR]: new Set([
     Permission.ORGANIZATION_READ,
@@ -236,6 +257,7 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.OPTIMIZATION_READ,
     Permission.OPTIMIZATION_EXPORT,
     Permission.DEPLOYMENT_READ,
+    Permission.BROKER_READ,
   ]),
   [OrganizationRole.VIEWER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -251,6 +273,7 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.RESEARCH_READ,
     Permission.OPTIMIZATION_READ,
     Permission.DEPLOYMENT_READ,
+    Permission.BROKER_READ,
   ]),
 };
 

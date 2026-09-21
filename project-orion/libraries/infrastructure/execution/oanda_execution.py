@@ -40,6 +40,7 @@ from libraries.infrastructure.execution.broker_adapter import (
     OrderExecutionInfo,
     PositionInfo,
 )
+from libraries.infrastructure.security.endpoint_validator import BrokerEndpointValidator
 
 # Try to import httpx or aiohttp for async HTTP
 try:
@@ -71,7 +72,23 @@ class OANDAExecutionAdapter(BrokerAdapter):
     """
 
     def __init__(self, config: OANDAExecutionConfig | None = None) -> None:
-        super().__init__(config or OANDAExecutionConfig())
+        cfg = config or OANDAExecutionConfig()
+        # Enforce sandbox endpoint allowlist and reject production endpoints
+        validated_endpoint = BrokerEndpointValidator.validate_endpoint(
+            cfg.api_endpoint, provider="oanda", resolve_dns=False
+        )
+        if validated_endpoint != cfg.api_endpoint:
+            cfg = OANDAExecutionConfig(
+                broker_name=cfg.broker_name,
+                api_endpoint=validated_endpoint,
+                account_id=cfg.account_id,
+                api_key=cfg.api_key,
+                api_secret=cfg.api_secret,
+                timeout_seconds=cfg.timeout_seconds,
+                max_retries=cfg.max_retries,
+                metadata=cfg.metadata,
+            )
+        super().__init__(cfg)
         self._oanda_config: OANDAExecutionConfig = self._config  # type: ignore[assignment]
         self._client: Any = None
 

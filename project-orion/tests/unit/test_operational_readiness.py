@@ -333,7 +333,7 @@ def test_alembic_migrations_chain() -> None:
     migration_files = sorted(
         [f for f in versions_dir.glob("*.py") if not f.name.startswith("__")]
     )
-    assert len(migration_files) == 8, f"Expected 8 migration files, found {len(migration_files)}"
+    assert len(migration_files) == 12, f"Expected 12 migration files, found {len(migration_files)}"
 
     rev_map: dict[str, str | None] = {}
 
@@ -367,8 +367,8 @@ def test_alembic_migrations_chain() -> None:
         assert revision_id is not None, f"Could not find revision in {mf.name}"
         rev_map[revision_id] = down_revision_id
 
-    # Verify head is 0008_billing_foundation
-    head_rev = "0008_billing_foundation"
+    # Verify head is 0012_broker_sandbox_integration
+    head_rev = "0012_broker_sandbox_integration"
     assert head_rev in rev_map, f"Head migration {head_rev} not in migration map"
 
     # Walk backward from head to root
@@ -382,7 +382,7 @@ def test_alembic_migrations_chain() -> None:
         current = down
         visited.append(current)
 
-    # Must terminate at root with 8 revisions
-    assert len(visited) == 8, f"Expected 8 linear revisions, walked {len(visited)}: {visited}"
+    # Must terminate at root with 12 revisions
+    assert len(visited) == 12, f"Expected 12 linear revisions, walked {len(visited)}: {visited}"
     assert rev_map[current] is None, f"Root migration {current} must have down_revision=None"
     assert "0001_initial_schema" in current

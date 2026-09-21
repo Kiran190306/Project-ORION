@@ -11,6 +11,7 @@ export interface ToastItem {
 
 interface ToastContextValue {
   showToast: (message: string, type?: ToastType) => void;
+  show: (message: string, type?: ToastType) => void;
   success: (message: string) => void;
   error: (message: string) => void;
   warning: (message: string) => void;
@@ -44,7 +45,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const info = useCallback((msg: string) => showToast(msg, 'info'), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, warning, info }}>
+    <ToastContext.Provider value={{ showToast, show: showToast, success, error, warning, info }}>
       {children}
       <div
         className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-md w-full px-4 pointer-events-none"
@@ -92,6 +93,7 @@ export function useToast(): ToastContextValue {
     // Fallback if rendered outside provider
     return {
       showToast: () => {},
+      show: () => {},
       success: () => {},
       error: () => {},
       warning: () => {},

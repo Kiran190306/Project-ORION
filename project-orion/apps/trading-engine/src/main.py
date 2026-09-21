@@ -31,6 +31,7 @@ from .lifespan import create_lifespan
 from .routes.account import router as account_router
 from .routes.auth import router as auth_router
 from .routes.billing import router as billing_router
+from .routes.broker_sandbox import router as broker_sandbox_router
 from .routes.dashboard import router as dashboard_router
 from .routes.deployments import router as deployments_router
 from .routes.health import router as health_router
@@ -176,6 +177,7 @@ def create_app(
     app.include_router(research_router)
     app.include_router(optimization_router)
     app.include_router(deployments_router)
+    app.include_router(broker_sandbox_router)
 
     return app
 

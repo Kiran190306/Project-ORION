@@ -159,3 +159,27 @@ class MonthlyDeploymentQuotaExceededError(QuotaExceededError):
         self.current = current
         self.limit = limit
 
+
+class BrokerSandboxAccountQuotaExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum permitted broker sandbox connections."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Broker sandbox account quota exceeded: Organization has {current} accounts (plan limit: {limit}).",
+            code="BROKER_SANDBOX_ACCOUNT_QUOTA_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+
+
+class BrokerSandboxOrderQuotaExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum daily broker sandbox orders."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Daily broker sandbox order quota exceeded: Organization has submitted {current} orders today (plan limit: {limit}).",
+            code="BROKER_SANDBOX_ORDER_QUOTA_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+

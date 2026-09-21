@@ -75,6 +75,12 @@ class Permission(StrEnum):
     DEPLOYMENT_CANCEL = "DEPLOYMENT_CANCEL"
     DEPLOYMENT_PROMOTE = "DEPLOYMENT_PROMOTE"
 
+    # Institutional Broker Sandbox Integration (EPIC-026)
+    BROKER_READ = "BROKER_READ"
+    BROKER_SANDBOX_CONNECT = "BROKER_SANDBOX_CONNECT"
+    BROKER_SANDBOX_EXECUTE = "BROKER_SANDBOX_EXECUTE"
+    BROKER_SANDBOX_RECONCILE = "BROKER_SANDBOX_RECONCILE"
+
 
 # Canonical Role -> Permission Matrix
 ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
@@ -116,6 +122,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.DEPLOYMENT_EXECUTE,
         Permission.DEPLOYMENT_CANCEL,
         Permission.DEPLOYMENT_PROMOTE,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_CONNECT,
+        Permission.BROKER_SANDBOX_EXECUTE,
+        Permission.BROKER_SANDBOX_RECONCILE,
     },
     OrganizationRole.ADMINISTRATOR: {
         Permission.ORGANIZATION_READ,
@@ -151,6 +161,9 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.DEPLOYMENT_EXECUTE,
         Permission.DEPLOYMENT_CANCEL,
         Permission.DEPLOYMENT_PROMOTE,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_CONNECT,
+        Permission.BROKER_SANDBOX_RECONCILE,
     },
     OrganizationRole.PORTFOLIO_MANAGER: {
         Permission.ORGANIZATION_READ,
@@ -184,6 +197,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.DEPLOYMENT_EXECUTE,
         Permission.DEPLOYMENT_CANCEL,
         Permission.DEPLOYMENT_PROMOTE,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_CONNECT,
+        Permission.BROKER_SANDBOX_EXECUTE,
+        Permission.BROKER_SANDBOX_RECONCILE,
     },
     OrganizationRole.RISK_OFFICER: {
         Permission.ORGANIZATION_READ,
@@ -203,6 +220,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_READ,
         Permission.OPTIMIZATION_EXPORT,
         Permission.DEPLOYMENT_READ,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_RECONCILE,
     },
     OrganizationRole.TRADER: {
         Permission.ORGANIZATION_READ,
@@ -230,6 +249,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.DEPLOYMENT_READ,
         Permission.DEPLOYMENT_EXECUTE,
         Permission.DEPLOYMENT_CANCEL,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_EXECUTE,
     },
     OrganizationRole.AUDITOR: {
         Permission.ORGANIZATION_READ,
@@ -248,6 +269,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_READ,
         Permission.OPTIMIZATION_EXPORT,
         Permission.DEPLOYMENT_READ,
+        Permission.BROKER_READ,
+        Permission.BROKER_SANDBOX_RECONCILE,
     },
     OrganizationRole.VIEWER: {
         Permission.ORGANIZATION_READ,
@@ -263,6 +286,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_READ,
         Permission.OPTIMIZATION_READ,
         Permission.DEPLOYMENT_READ,
+        Permission.BROKER_READ,
     },
 }
 

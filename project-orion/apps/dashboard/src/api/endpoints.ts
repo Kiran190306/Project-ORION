@@ -68,6 +68,14 @@ import type {
   PromoteFromOptimizationRequest,
   PromoteFromExperimentRequest,
   QualityGateReport,
+  BrokerProviderInfo,
+  BrokerSandboxAccount,
+  BrokerSandboxAccountCreateRequest,
+  BrokerSandboxConnectResponse,
+  BrokerSandboxOrderRequest,
+  BrokerSandboxOrderResponse,
+  BrokerSandboxPosition,
+  BrokerSandboxReconciliationResponse,
 } from './types';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
@@ -589,4 +597,64 @@ export const deploymentApi = {
       method: 'GET',
     }),
 };
+
+// ─── EPIC-026: Institutional Broker Sandbox API ─────────────────────────────
+
+export const brokerSandboxApi = {
+  listProviders: (): Promise<BrokerProviderInfo[]> =>
+    apiClient<BrokerProviderInfo[]>('/api/v1/broker-sandbox/providers', {
+      method: 'GET',
+    }),
+
+  listAccounts: (): Promise<BrokerSandboxAccount[]> =>
+    apiClient<BrokerSandboxAccount[]>('/api/v1/broker-sandbox/accounts', {
+      method: 'GET',
+    }),
+
+  createAccount: (req: BrokerSandboxAccountCreateRequest): Promise<BrokerSandboxAccount> =>
+    apiClient<BrokerSandboxAccount>('/api/v1/broker-sandbox/accounts', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  getAccount: (accountId: string): Promise<BrokerSandboxAccount> =>
+    apiClient<BrokerSandboxAccount>(`/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}`, {
+      method: 'GET',
+    }),
+
+  connectAccount: (accountId: string): Promise<BrokerSandboxConnectResponse> =>
+    apiClient<BrokerSandboxConnectResponse>(`/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/connect`, {
+      method: 'POST',
+    }),
+
+  disconnectAccount: (accountId: string): Promise<{ account_id: string; status: string; message: string }> =>
+    apiClient<{ account_id: string; status: string; message: string }>(
+      `/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/disconnect`,
+      { method: 'POST' }
+    ),
+
+  submitOrder: (accountId: string, req: BrokerSandboxOrderRequest): Promise<BrokerSandboxOrderResponse> =>
+    apiClient<BrokerSandboxOrderResponse>(`/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/orders`, {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listPositions: (accountId: string): Promise<BrokerSandboxPosition[]> =>
+    apiClient<BrokerSandboxPosition[]>(`/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/positions`, {
+      method: 'GET',
+    }),
+
+  reconcileAccount: (accountId: string): Promise<BrokerSandboxReconciliationResponse> =>
+    apiClient<BrokerSandboxReconciliationResponse>(
+      `/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/reconcile`,
+      { method: 'POST' }
+    ),
+
+  listReconciliations: (accountId: string): Promise<BrokerSandboxReconciliationResponse[]> =>
+    apiClient<BrokerSandboxReconciliationResponse[]>(
+      `/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/reconciliations`,
+      { method: 'GET' }
+    ),
+};
+
 

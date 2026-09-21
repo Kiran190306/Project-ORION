@@ -16,6 +16,7 @@ import {
   X,
   Zap,
   Rocket,
+  Server,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useOrganization } from '../../auth/OrganizationContext';
@@ -45,6 +46,7 @@ const navGroups: NavGroup[] = [
       { path: '/positions', label: 'Positions', icon: Layers },
       { path: '/trades', label: 'Trade History', icon: History },
       { path: '/portfolio', label: 'Portfolio', icon: PieChart },
+      { path: '/broker-sandbox', label: 'Broker Sandbox', icon: Server, permission: Permission.BROKER_READ },
     ],
   },
   {

@@ -13,6 +13,8 @@ from libraries.domain.subscription.exceptions import (
     AccountQuotaExceededError,
     ActiveDeploymentLimitExceededError,
     AssetNotEntitledError,
+    BrokerSandboxAccountQuotaExceededError,
+    BrokerSandboxOrderQuotaExceededError,
     DailyOptimizationQuotaExceededError,
     DailyOrderQuotaExceededError,
     DailyResearchQuotaExceededError,
@@ -380,6 +382,93 @@ class EntitlementService:
             raise MonthlyDeploymentQuotaExceededError(
                 current=monthly_count,
                 limit=max_monthly_deployments,
+            )
+
+    async def check_broker_sandbox_account_quota(
+        self,
+        organization_id: str | None,
+    ) -> None:
+        """Verify organization does not exceed maximum permitted broker sandbox connections."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_accounts = 1
+        elif plan_code == PlanCode.PRO:
+            max_accounts = 3
+        elif plan_code == PlanCode.BUSINESS:
+            max_accounts = 5
+        else:  # ENTERPRISE
+            max_accounts = 10
+
+        from libraries.infrastructure.persistence.models.broker_sandbox import (
+            BrokerSandboxAccountModel,
+        )
+
+        if organization_id is not None:
+            stmt = select(func.count(BrokerSandboxAccountModel.id)).where(
+                BrokerSandboxAccountModel.organization_id == organization_id,
+            )
+        else:
+            stmt = select(func.count(BrokerSandboxAccountModel.id)).where(
+                BrokerSandboxAccountModel.organization_id.is_(None),
+            )
+        res = await self.session.execute(stmt)
+        current_count = int(res.scalar() or 0)
+
+        if current_count >= max_accounts:
+            raise BrokerSandboxAccountQuotaExceededError(
+                current=current_count,
+                limit=max_accounts,
+            )
+
+    async def check_broker_sandbox_order_quota(
+        self,
+        organization_id: str | None,
+    ) -> None:
+        """Verify organization does not exceed maximum daily broker sandbox orders."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_daily_orders = 50
+        elif plan_code == PlanCode.PRO:
+            max_daily_orders = 500
+        elif plan_code == PlanCode.BUSINESS:
+            max_daily_orders = 2000
+        else:  # ENTERPRISE
+            max_daily_orders = -1
+
+        if max_daily_orders < 0:
+            return  # Unlimited
+
+        now = datetime.now(timezone.utc)
+        start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+        # Count sandbox orders submitted today
+        if organization_id is not None:
+            stmt = select(func.count(OrderModel.id)).where(
+                OrderModel.organization_id == organization_id,
+                OrderModel.created_at >= start_of_day,
+            )
+        else:
+            stmt = select(func.count(OrderModel.id)).where(
+                OrderModel.organization_id.is_(None),
+                OrderModel.created_at >= start_of_day,
+            )
+        res = await self.session.execute(stmt)
+        orders_today = int(res.scalar() or 0)
+
+        if orders_today >= max_daily_orders:
+            raise BrokerSandboxOrderQuotaExceededError(
+                current=orders_today,
+                limit=max_daily_orders,
             )
 
     async def get_usage_summary(self, organization_id: str | None) -> dict[str, Any]:

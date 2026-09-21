@@ -1039,4 +1039,5 @@ class UpdatePaperConfigRequest(BaseModel):
 # Re-export research and optimization schemas for unified schema access
 from .schemas_optimization import *
 from .schemas_research import *
+from .schemas_broker_sandbox import *
 

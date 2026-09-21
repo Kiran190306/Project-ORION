@@ -53,6 +53,14 @@ class AdapterNotConnectedError(ExecutionAdapterError):
     """Raised when an operation is attempted while disconnected."""
 
 
+class AdapterRateLimitError(ExecutionAdapterError):
+    """Raised when the broker returns HTTP 429 Too Many Requests."""
+
+
+class AdapterProviderUnavailableError(ExecutionAdapterError):
+    """Raised when the broker provider is unreachable or in maintenance."""
+
+
 @dataclass(frozen=True, slots=True)
 class AccountInfo:
     """Broker account information."""

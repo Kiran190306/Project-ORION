@@ -7,6 +7,7 @@ routing targets based on broker specifications.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from decimal import Decimal
 from typing import Any
 
 from libraries.domain.execution.models import OrderType
@@ -27,9 +28,17 @@ from libraries.infrastructure.execution.oanda_execution import (
     OANDAExecutionAdapter,
     OANDAExecutionConfig,
 )
+from libraries.infrastructure.execution.mock_broker import (
+    MockBrokerAdapter,
+    MockBrokerConfig,
+)
 from libraries.infrastructure.execution.paper_execution import (
     PaperExecutionAdapter,
     PaperExecutionConfig,
+)
+from libraries.infrastructure.security.endpoint_validator import (
+    BrokerEndpointValidator,
+    SecurityViolationError,
 )
 
 
@@ -44,6 +53,7 @@ class ExecutionAdapterSpec:
     api_endpoint: str = ""
     account_id: str = ""
     is_paper: bool = False
+    environment: str = "SANDBOX"
     priority: int = 100
     supported_symbols: frozenset[str] = frozenset()
     supported_order_types: frozenset[OrderType] = frozenset()
@@ -58,7 +68,9 @@ class ExecutionAdapterFactory:
     its associated routing target.
     """
 
-    SUPPORTED_PROVIDERS = frozenset({"paper", "mt5", "oanda", "binance"})
+    SUPPORTED_PROVIDERS = frozenset(
+        {"paper", "mt5", "oanda", "binance", "mock", "sandbox_mock", "sandbox_oanda"}
+    )
 
     @classmethod
     def create_adapter(cls, spec: ExecutionAdapterSpec) -> BrokerAdapter:
@@ -71,8 +83,19 @@ class ExecutionAdapterFactory:
             Configured BrokerAdapter instance.
 
         Raises:
-            ValueError: If the provider is not supported.
+            SecurityViolationError: If LIVE environment or forbidden production endpoints are supplied.
+            ValueError: If the provider is not supported or environment is invalid.
         """
+        env_upper = (spec.environment or "SANDBOX").upper()
+        if env_upper == "LIVE":
+            raise SecurityViolationError(
+                "LIVE execution environment is strictly prohibited in Project ORION ($0.00 Capital at Risk)."
+            )
+        if env_upper not in ("SANDBOX", "LOCAL", "TEST"):
+            raise ValueError(
+                f"Invalid broker environment: '{spec.environment}'. Supported: LOCAL, SANDBOX."
+            )
+
         provider = spec.provider.lower()
 
         if provider == "paper":
@@ -87,6 +110,37 @@ class ExecutionAdapterFactory:
             )
             return PaperExecutionAdapter(config)
 
+        elif provider in ("mock", "sandbox_mock"):
+            endpoint = spec.api_endpoint or "http://mock-broker.internal"
+            validated_endpoint = BrokerEndpointValidator.validate_endpoint(
+                endpoint, provider="mock", allow_internal_mock=True, resolve_dns=False
+            )
+            mock_config = MockBrokerConfig(
+                broker_name=spec.name or "mock_broker",
+                api_endpoint=validated_endpoint,
+                account_id=spec.account_id or "mock_acc_001",
+                seed=spec.metadata.get("seed", 42),
+                initial_balance=spec.metadata.get("initial_balance", Decimal("100000.00")),
+                mode=spec.metadata.get("mode", "IMMEDIATE_FILL"),
+                metadata=spec.metadata,
+            )
+            return MockBrokerAdapter(mock_config)
+
+        elif provider in ("oanda", "sandbox_oanda"):
+            endpoint = spec.api_endpoint or "https://api-fxpractice.oanda.com"
+            validated_endpoint = BrokerEndpointValidator.validate_endpoint(
+                endpoint, provider="oanda", resolve_dns=False
+            )
+            oanda_config = OANDAExecutionConfig(
+                broker_name=spec.name or "oanda",
+                api_key=spec.api_key,
+                api_secret=spec.api_secret,
+                api_endpoint=validated_endpoint,
+                account_id=spec.account_id or "",
+                metadata=spec.metadata,
+            )
+            return OANDAExecutionAdapter(oanda_config)
+
         elif provider == "mt5":
             config = MT5ExecutionConfig(
                 broker_name=spec.name or "mt5",
@@ -100,27 +154,20 @@ class ExecutionAdapterFactory:
             )
             return MT5ExecutionAdapter(config)
 
-        elif provider == "oanda":
-            config = OANDAExecutionConfig(
-                broker_name=spec.name or "oanda",
-                api_key=spec.api_key,
-                api_secret=spec.api_secret,
-                api_endpoint=spec.api_endpoint or "https://api-fxpractice.oanda.com",
-                account_id=spec.account_id or "",
-                metadata=spec.metadata,
-            )
-            return OANDAExecutionAdapter(config)
-
         elif provider == "binance":
-            config = BinanceExecutionConfig(
+            endpoint = spec.api_endpoint or "https://testnet.binance.vision"
+            validated_endpoint = BrokerEndpointValidator.validate_endpoint(
+                endpoint, provider="binance", resolve_dns=False
+            )
+            binance_config = BinanceExecutionConfig(
                 broker_name=spec.name or "binance",
                 api_key=spec.api_key,
                 api_secret=spec.api_secret,
-                api_endpoint=spec.api_endpoint or "https://api.binance.com",
+                api_endpoint=validated_endpoint,
                 account_id=spec.account_id or "",
                 metadata=spec.metadata,
             )
-            return BinanceExecutionAdapter(config)
+            return BinanceExecutionAdapter(binance_config)
 
         else:
             raise ValueError(
