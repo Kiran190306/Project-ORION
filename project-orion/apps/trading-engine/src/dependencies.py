@@ -606,3 +606,17 @@ def get_research_service(
     )
 
 
+def get_deployment_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Any:
+    """Provide DeploymentPipelineService with injected database session and entitlement service."""
+    from .services.deployment_service import DeploymentPipelineService
+    from .services.entitlement_service import EntitlementService
+
+    entitlements = EntitlementService(session=session)
+    return DeploymentPipelineService(
+        session=session,
+        entitlement_service=entitlements,
+    )
+
+

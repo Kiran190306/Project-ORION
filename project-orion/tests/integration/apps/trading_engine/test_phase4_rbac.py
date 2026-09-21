@@ -52,16 +52,16 @@ from libraries.infrastructure.persistence.models import (
 # ===========================================================================
 
 def test_canonical_permission_matrix_integrity():
-    """Verify the 33 granular permissions across the 7 canonical roles."""
-    assert len(Permission) == 33
+    """Verify the 37 granular permissions across the 7 canonical roles."""
+    assert len(Permission) == 37
 
-    # OWNER: exactly 33 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.OWNER]) == 33
+    # OWNER: exactly 37 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.OWNER]) == 37
     for perm in Permission:
         assert has_permission(OrganizationRole.OWNER, perm) is True
 
-    # ADMINISTRATOR: 29 permissions (all except ORDER_CREATE, ORDER_CANCEL, POSITION_CLOSE, RISK_CONFIGURE)
-    assert len(ROLE_PERMISSIONS[OrganizationRole.ADMINISTRATOR]) == 29
+    # ADMINISTRATOR: 33 permissions (all except ORDER_CREATE, ORDER_CANCEL, POSITION_CLOSE, RISK_CONFIGURE)
+    assert len(ROLE_PERMISSIONS[OrganizationRole.ADMINISTRATOR]) == 33
     assert has_permission(OrganizationRole.ADMINISTRATOR, Permission.ORDER_CREATE) is False
     assert has_permission(OrganizationRole.ADMINISTRATOR, Permission.ORDER_CANCEL) is False
     assert has_permission(OrganizationRole.ADMINISTRATOR, Permission.POSITION_CLOSE) is False
@@ -71,8 +71,8 @@ def test_canonical_permission_matrix_integrity():
     assert has_permission(OrganizationRole.ADMINISTRATOR, Permission.MEMBER_UPDATE) is True
     assert has_permission(OrganizationRole.ADMINISTRATOR, Permission.MEMBER_REMOVE) is True
 
-    # PORTFOLIO_MANAGER: 27 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.PORTFOLIO_MANAGER]) == 27
+    # PORTFOLIO_MANAGER: 31 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.PORTFOLIO_MANAGER]) == 31
     assert has_permission(OrganizationRole.PORTFOLIO_MANAGER, Permission.ORDER_CREATE) is True
     assert has_permission(OrganizationRole.PORTFOLIO_MANAGER, Permission.ORDER_CANCEL) is True
     assert has_permission(OrganizationRole.PORTFOLIO_MANAGER, Permission.POSITION_CLOSE) is True
@@ -81,8 +81,8 @@ def test_canonical_permission_matrix_integrity():
     assert has_permission(OrganizationRole.PORTFOLIO_MANAGER, Permission.MEMBER_INVITE) is False
     assert has_permission(OrganizationRole.PORTFOLIO_MANAGER, Permission.RISK_CONFIGURE) is False
 
-    # RISK_OFFICER: 16 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.RISK_OFFICER]) == 16
+    # RISK_OFFICER: 17 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.RISK_OFFICER]) == 17
     assert has_permission(OrganizationRole.RISK_OFFICER, Permission.RISK_CONFIGURE) is True
     assert has_permission(OrganizationRole.RISK_OFFICER, Permission.RISK_READ) is True
     assert has_permission(OrganizationRole.RISK_OFFICER, Permission.AUDIT_READ) is True
@@ -91,8 +91,8 @@ def test_canonical_permission_matrix_integrity():
     assert has_permission(OrganizationRole.RISK_OFFICER, Permission.POSITION_CLOSE) is False
     assert has_permission(OrganizationRole.RISK_OFFICER, Permission.ORGANIZATION_UPDATE) is False
 
-    # TRADER: 22 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.TRADER]) == 22
+    # TRADER: 25 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.TRADER]) == 25
     assert has_permission(OrganizationRole.TRADER, Permission.ORDER_CREATE) is True
     assert has_permission(OrganizationRole.TRADER, Permission.ORDER_CANCEL) is True
     assert has_permission(OrganizationRole.TRADER, Permission.POSITION_CLOSE) is True
@@ -101,16 +101,16 @@ def test_canonical_permission_matrix_integrity():
     assert has_permission(OrganizationRole.TRADER, Permission.ORGANIZATION_UPDATE) is False
     assert has_permission(OrganizationRole.TRADER, Permission.MEMBER_INVITE) is False
 
-    # AUDITOR: 15 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.AUDITOR]) == 15
+    # AUDITOR: 16 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.AUDITOR]) == 16
     assert has_permission(OrganizationRole.AUDITOR, Permission.AUDIT_READ) is True
     assert has_permission(OrganizationRole.AUDITOR, Permission.ORDER_READ) is True
     assert has_permission(OrganizationRole.AUDITOR, Permission.TRADE_READ) is True
     assert has_permission(OrganizationRole.AUDITOR, Permission.ORDER_CREATE) is False
     assert has_permission(OrganizationRole.AUDITOR, Permission.RISK_CONFIGURE) is False
 
-    # VIEWER: 12 permissions
-    assert len(ROLE_PERMISSIONS[OrganizationRole.VIEWER]) == 12
+    # VIEWER: 13 permissions
+    assert len(ROLE_PERMISSIONS[OrganizationRole.VIEWER]) == 13
     assert has_permission(OrganizationRole.VIEWER, Permission.ORDER_READ) is True
     assert has_permission(OrganizationRole.VIEWER, Permission.POSITION_READ) is True
     assert has_permission(OrganizationRole.VIEWER, Permission.AUDIT_READ) is False

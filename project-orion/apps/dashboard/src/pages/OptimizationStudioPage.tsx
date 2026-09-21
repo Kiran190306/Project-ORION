@@ -14,8 +14,9 @@ import {
   Activity,
   XCircle,
   Layers,
+  Rocket,
 } from 'lucide-react';
-import { optimizationApi, researchApi } from '../api/endpoints';
+import { optimizationApi, researchApi, deploymentApi } from '../api/endpoints';
 import type {
   StrategyCatalogueItem,
   ParameterRangeConfig,
@@ -234,6 +235,19 @@ export const OptimizationStudioPage: React.FC = () => {
       toast.error(`Failed to load job: ${getErrorMessage(err)}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePromoteToPaper = async (rank: number) => {
+    if (!activeJob) return;
+    try {
+      const res = await deploymentApi.promoteFromOptimization({
+        optimization_job_id: activeJob.id,
+        candidate_rank: rank,
+      });
+      toast.success(`Candidate #${rank} promoted to Deployment Pipeline (${res.status})!`);
+    } catch (err) {
+      toast.error(`Promotion failed: ${getErrorMessage(err)}`);
     }
   };
 
@@ -825,6 +839,7 @@ export const OptimizationStudioPage: React.FC = () => {
                         <th className="px-4 py-3 text-right">WIN RATE</th>
                         <th className="px-4 py-3 text-right">TRADES</th>
                         <th className="px-4 py-3 text-right">NET PNL</th>
+                        <th className="px-4 py-3 text-right">ACTION</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -868,12 +883,20 @@ export const OptimizationStudioPage: React.FC = () => {
                           }`}>
                             ${cand.net_pnl.toFixed(2)}
                           </td>
+                          <td className="px-4 py-3 text-right">
+                            <button
+                              onClick={() => handlePromoteToPaper(cand.rank)}
+                              className="px-2.5 py-1 text-[11px] bg-indigo-600/80 hover:bg-indigo-500 text-white rounded font-medium inline-flex items-center gap-1 transition cursor-pointer"
+                            >
+                              <Rocket className="w-3 h-3" /> Promote
+                            </button>
+                          </td>
                         </tr>
                       ))}
 
                       {(!activeJob.top_candidates || activeJob.top_candidates.length === 0) && (
                         <tr>
-                          <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                          <td colSpan={11} className="px-4 py-8 text-center text-slate-500">
                             No candidates recorded for this job.
                           </td>
                         </tr>

@@ -15,6 +15,7 @@ import { TradesPage } from './pages/TradesPage';
 import { StrategiesPage } from './pages/StrategiesPage';
 import { ResearchLabPage } from './pages/ResearchLabPage';
 import { OptimizationStudioPage } from './pages/OptimizationStudioPage';
+import { DeploymentPipelinePage } from './pages/DeploymentPipelinePage';
 import { RiskPage } from './pages/RiskPage';
 import { WorkerPage } from './pages/WorkerPage';
 import { BillingPage } from './pages/BillingPage';
@@ -43,6 +44,7 @@ export const AppRoutes: React.FC = () => {
         <Route path="strategies" element={<StrategiesPage />} />
         <Route path="research" element={<ResearchLabPage />} />
         <Route path="optimization" element={<OptimizationStudioPage />} />
+        <Route path="deployments" element={<DeploymentPipelinePage />} />
         <Route path="risk" element={<RiskPage />} />
         <Route path="worker" element={<WorkerPage />} />
         <Route path="billing" element={<BillingPage />} />

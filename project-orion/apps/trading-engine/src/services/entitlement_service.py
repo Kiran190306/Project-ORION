@@ -11,10 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.subscription.exceptions import (
     AccountQuotaExceededError,
+    ActiveDeploymentLimitExceededError,
     AssetNotEntitledError,
     DailyOptimizationQuotaExceededError,
     DailyOrderQuotaExceededError,
     DailyResearchQuotaExceededError,
+    MonthlyDeploymentQuotaExceededError,
     OptimizationCombinationLimitExceededError,
     ResearchHistoryLimitExceededError,
     SubscriptionInactiveError,
@@ -309,6 +311,77 @@ class EntitlementService:
                 limit=max_daily_optimizations,
             )
 
+    async def check_deployment_quota(
+        self,
+        organization_id: str | None,
+    ) -> None:
+        """Verify organization does not exceed active or monthly deployment quotas."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_active_deployments = 1
+            max_monthly_deployments = 3
+        elif plan_code == PlanCode.PRO:
+            max_active_deployments = 5
+            max_monthly_deployments = 25
+        elif plan_code == PlanCode.BUSINESS:
+            max_active_deployments = 15
+            max_monthly_deployments = 100
+        else:
+            max_active_deployments = 50
+            max_monthly_deployments = 500
+
+        from libraries.infrastructure.persistence.models.deployment import (
+            StrategyDeploymentModel,
+        )
+
+        active_statuses = ("PENDING_GATES", "GATES_PASSED", "INCUBATING", "PAUSED")
+
+        # 1. Check active concurrent deployments
+        if organization_id is not None:
+            active_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.organization_id == organization_id,
+                StrategyDeploymentModel.status.in_(active_statuses),
+            )
+        else:
+            active_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.status.in_(active_statuses),
+            )
+        active_res = await self.session.execute(active_stmt)
+        active_count = int(active_res.scalar() or 0)
+
+        if active_count >= max_active_deployments:
+            raise ActiveDeploymentLimitExceededError(
+                current=active_count,
+                limit=max_active_deployments,
+            )
+
+        # 2. Check monthly promotions count
+        now = datetime.now(timezone.utc)
+        start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+
+        if organization_id is not None:
+            monthly_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.organization_id == organization_id,
+                StrategyDeploymentModel.created_at >= start_of_month,
+            )
+        else:
+            monthly_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.created_at >= start_of_month,
+            )
+        monthly_res = await self.session.execute(monthly_stmt)
+        monthly_count = int(monthly_res.scalar() or 0)
+
+        if monthly_count >= max_monthly_deployments:
+            raise MonthlyDeploymentQuotaExceededError(
+                current=monthly_count,
+                limit=max_monthly_deployments,
+            )
+
     async def get_usage_summary(self, organization_id: str | None) -> dict[str, Any]:
         """Aggregate current resource utilization against plan quota thresholds."""
         entitlement = await self.get_effective_entitlement(organization_id)
@@ -330,19 +403,24 @@ class EntitlementService:
         start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
         if organization_id is not None:
             ord_stmt = select(func.count(OrderModel.id)).where(
-                OrderModel.organization_id == organization_id,
+                OrderModel.account_id.in_(
+                    select(AccountModel.id).where(
+                        AccountModel.organization_id == organization_id
+                    )
+                ),
                 OrderModel.created_at >= start_of_day,
             )
         else:
             ord_stmt = select(func.count(OrderModel.id)).where(
-                OrderModel.organization_id.is_(None),
-                OrderModel.created_at >= start_of_day,
+                OrderModel.created_at >= start_of_day
             )
         ord_result = await self.session.execute(ord_stmt)
         orders_today = int(ord_result.scalar() or 0)
 
         # Research experiments today (UTC)
-        from libraries.infrastructure.persistence.models import ResearchExperimentModel
+        from libraries.infrastructure.persistence.models.research import (
+            ResearchExperimentModel,
+        )
 
         if organization_id is not None:
             res_stmt = select(func.count(ResearchExperimentModel.id)).where(
@@ -373,27 +451,64 @@ class EntitlementService:
         opt_result = await self.session.execute(opt_stmt)
         optimizations_today = int(opt_result.scalar() or 0)
 
+        # Deployments active and monthly count
+        from libraries.infrastructure.persistence.models.deployment import (
+            StrategyDeploymentModel,
+        )
+
+        active_statuses = ("PENDING_GATES", "GATES_PASSED", "INCUBATING", "PAUSED")
+        start_of_month = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
+
+        if organization_id is not None:
+            dep_act_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.organization_id == organization_id,
+                StrategyDeploymentModel.status.in_(active_statuses),
+            )
+            dep_mth_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.organization_id == organization_id,
+                StrategyDeploymentModel.created_at >= start_of_month,
+            )
+        else:
+            dep_act_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.status.in_(active_statuses),
+            )
+            dep_mth_stmt = select(func.count(StrategyDeploymentModel.id)).where(
+                StrategyDeploymentModel.created_at >= start_of_month,
+            )
+        dep_act_res = await self.session.execute(dep_act_stmt)
+        deployments_active = int(dep_act_res.scalar() or 0)
+        dep_mth_res = await self.session.execute(dep_mth_stmt)
+        deployments_monthly = int(dep_mth_res.scalar() or 0)
+
         plan_code = entitlement.plan.code
         if plan_code == PlanCode.FREE:
             max_daily_experiments = 10
             max_history_days = 30
             max_daily_optimizations = 5
             max_combinations = 50
+            max_active_deployments = 1
+            max_monthly_deployments = 3
         elif plan_code == PlanCode.PRO:
             max_daily_experiments = 50
             max_history_days = 180
             max_daily_optimizations = 25
             max_combinations = 300
+            max_active_deployments = 5
+            max_monthly_deployments = 25
         elif plan_code == PlanCode.BUSINESS:
             max_daily_experiments = 200
             max_history_days = 365
             max_daily_optimizations = 100
             max_combinations = 1000
+            max_active_deployments = 15
+            max_monthly_deployments = 100
         else:
             max_daily_experiments = -1
             max_history_days = 3650
             max_daily_optimizations = 500
             max_combinations = 5000
+            max_active_deployments = 50
+            max_monthly_deployments = 500
 
         return {
             "organization_id": organization_id,
@@ -422,6 +537,13 @@ class EntitlementService:
                     "limit": max_daily_optimizations,
                     "max_combinations": max_combinations,
                     "is_unlimited": max_daily_optimizations < 0,
+                },
+                "deployments": {
+                    "active_used": deployments_active,
+                    "active_limit": max_active_deployments,
+                    "monthly_used": deployments_monthly,
+                    "monthly_limit": max_monthly_deployments,
+                    "is_unlimited": max_active_deployments < 0,
                 },
                 "workers": {
                     "used": 0,

@@ -955,3 +955,155 @@ export interface OptimizationJobDetail {
   created_at: string;
   completed_at?: string | null;
 }
+
+// ─── Strategy Deployment Pipeline & Paper Incubator (EPIC-025) ───────────────
+
+export type DeploymentStatusType =
+  | 'PENDING_GATES'
+  | 'GATES_PASSED'
+  | 'GATES_FAILED'
+  | 'INCUBATING'
+  | 'PAUSED'
+  | 'PAPER_VALIDATED'
+  | 'INCUBATION_FAILED'
+  | 'CANCELLED'
+  | 'SUSPENDED'
+  | 'PROMOTION_CANDIDATE';
+
+export interface QualityGateResult {
+  gate_type: string;
+  verdict: 'PASS' | 'FAIL' | 'INCONCLUSIVE' | 'INSUFFICIENT_DATA';
+  actual_value?: number | null;
+  threshold?: number | null;
+  details: string;
+  evaluated_at: string;
+}
+
+export interface QualityGateReport {
+  all_passed: boolean;
+  summary_verdict: 'PASS' | 'FAIL' | 'INCONCLUSIVE' | 'INSUFFICIENT_DATA';
+  gate_results: QualityGateResult[];
+  evaluated_at: string;
+}
+
+export interface IncubationConfig {
+  min_duration_days: number;
+  min_trade_count: number;
+  max_drawdown_pct: number;
+  daily_loss_limit_pct: number;
+  risk_violation_limit: number;
+  performance_deviation_threshold_pct: number;
+  initial_capital: string;
+  require_market_data_quality: boolean;
+  evaluation_mode: string;
+}
+
+export interface IncubationMetrics {
+  net_pnl: string;
+  total_return_pct: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  max_drawdown_pct: number;
+  win_rate_pct: number;
+  total_trades: number;
+  profit_factor: number;
+  daily_loss_violations: number;
+  risk_violations: number;
+  trading_days: number;
+  data_quality_score: number;
+}
+
+export interface BenchmarkComparison {
+  backtest_return_pct: number;
+  paper_return_pct: number;
+  return_ratio: number;
+  backtest_sharpe: number;
+  paper_sharpe: number;
+  sharpe_diff: number;
+  backtest_max_dd_pct: number;
+  paper_max_dd_pct: number;
+  drawdown_diff: number;
+  backtest_win_rate_pct: number;
+  paper_win_rate_pct: number;
+  backtest_trades: number;
+  paper_trades: number;
+  deviation_acceptable: boolean;
+}
+
+export interface DeploymentSummary {
+  id: string;
+  organization_id: string;
+  created_by?: string | null;
+  strategy_id: string;
+  strategy_version: string;
+  symbol: string;
+  timeframe: string;
+  status: DeploymentStatusType;
+  initial_capital: number;
+  promotion_verdict: string;
+  created_at: string;
+  updated_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  source_optimization_id?: string | null;
+  source_experiment_id?: string | null;
+}
+
+export interface DeploymentDetail {
+  id: string;
+  organization_id: string;
+  created_by?: string | null;
+  strategy_id: string;
+  strategy_version: string;
+  symbol: string;
+  timeframe: string;
+  status: DeploymentStatusType;
+  parameters: Record<string, any>;
+  evidence_chain: Record<string, any>;
+  initial_capital: number;
+  quality_gate_policy?: Record<string, any> | null;
+  quality_gate_results?: QualityGateReport | null;
+  incubation_config: IncubationConfig;
+  incubation_metrics?: IncubationMetrics | null;
+  benchmark_comparison?: BenchmarkComparison | null;
+  backtest_benchmark?: Record<string, any> | null;
+  promotion_verdict: string;
+  transition_history: Record<string, any>[];
+  started_at?: string | null;
+  completed_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  error_message?: string | null;
+  warnings?: string[] | null;
+  source_optimization_id?: string | null;
+  source_experiment_id?: string | null;
+}
+
+export interface DeploymentListResponse {
+  items: DeploymentSummary[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface PromoteFromOptimizationRequest {
+  optimization_job_id: string;
+  candidate_rank?: number;
+  symbol?: string;
+  timeframe?: string;
+  initial_capital?: number;
+  incubation_duration_days?: number;
+  min_trade_count?: number;
+  max_drawdown_pct?: number;
+  enforce_separation_of_duties?: boolean;
+}
+
+export interface PromoteFromExperimentRequest {
+  experiment_id: string;
+  initial_capital?: number;
+  incubation_duration_days?: number;
+  min_trade_count?: number;
+  max_drawdown_pct?: number;
+  enforce_separation_of_duties?: boolean;
+}
+

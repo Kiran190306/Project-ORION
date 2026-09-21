@@ -63,6 +63,11 @@ import type {
   OptimizationJobSummary,
   OptimizationJobDetail,
   SensitivityHeatmap,
+  DeploymentDetail,
+  DeploymentListResponse,
+  PromoteFromOptimizationRequest,
+  PromoteFromExperimentRequest,
+  QualityGateReport,
 } from './types';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
@@ -512,3 +517,76 @@ export const optimizationApi = {
   getExportUrl: (jobId: string, format: 'csv' | 'json' = 'csv'): string =>
     `/api/v1/optimization/jobs/${encodeURIComponent(jobId)}/export?format=${format}`,
 };
+
+// ─── EPIC-025: Strategy Deployment Pipeline & Paper Incubator ───────────────
+
+export const deploymentApi = {
+  promoteFromOptimization: (req: PromoteFromOptimizationRequest): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>('/api/v1/deployments/promote/optimization', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  promoteFromExperiment: (req: PromoteFromExperimentRequest): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>('/api/v1/deployments/promote/experiment', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listDeployments: (params?: {
+    status?: string;
+    strategy_id?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<DeploymentListResponse> =>
+    apiClient<DeploymentListResponse>('/api/v1/deployments', {
+      method: 'GET',
+      params: params as Record<string, string | number | boolean | undefined>,
+    }),
+
+  getDeployment: (deploymentId: string): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}`, {
+      method: 'GET',
+    }),
+
+  pauseDeployment: (deploymentId: string, reason = ''): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/pause`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  resumeDeployment: (deploymentId: string, reason = ''): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/resume`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  cancelDeployment: (deploymentId: string, reason = ''): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  validateDeployment: (deploymentId: string, reason = ''): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/validate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  promoteToCandidate: (deploymentId: string, reason = ''): Promise<DeploymentDetail> =>
+    apiClient<DeploymentDetail>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/promote-candidate`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  getQualityGates: (deploymentId: string): Promise<QualityGateReport> =>
+    apiClient<QualityGateReport>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/gates`, {
+      method: 'GET',
+    }),
+
+  getMetrics: (deploymentId: string): Promise<any> =>
+    apiClient<any>(`/api/v1/deployments/${encodeURIComponent(deploymentId)}/metrics`, {
+      method: 'GET',
+    }),
+};
+

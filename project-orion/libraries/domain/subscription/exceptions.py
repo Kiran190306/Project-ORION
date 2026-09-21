@@ -135,3 +135,27 @@ class OptimizationCombinationLimitExceededError(QuotaExceededError):
         self.requested = requested
         self.limit = limit
 
+
+class ActiveDeploymentLimitExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum allowed concurrent active deployments."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Active deployment quota exceeded: Organization has {current} active deployments (plan limit: {limit}).",
+            code="ACTIVE_DEPLOYMENT_LIMIT_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+
+
+class MonthlyDeploymentQuotaExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum monthly deployment promotions."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Monthly deployment quota exceeded: Organization has launched {current} deployments this month (plan limit: {limit}).",
+            code="MONTHLY_DEPLOYMENT_QUOTA_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+

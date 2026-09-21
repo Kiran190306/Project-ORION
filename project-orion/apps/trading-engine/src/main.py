@@ -32,6 +32,7 @@ from .routes.account import router as account_router
 from .routes.auth import router as auth_router
 from .routes.billing import router as billing_router
 from .routes.dashboard import router as dashboard_router
+from .routes.deployments import router as deployments_router
 from .routes.health import router as health_router
 from .routes.market_data import router as market_data_router
 from .routes.metrics import router as metrics_router
@@ -174,6 +175,7 @@ def create_app(
     app.include_router(billing_router)
     app.include_router(research_router)
     app.include_router(optimization_router)
+    app.include_router(deployments_router)
 
     return app
 

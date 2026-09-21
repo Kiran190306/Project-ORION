@@ -13,6 +13,9 @@ from libraries.infrastructure.persistence.models.billing import (
 from libraries.infrastructure.persistence.models.invitation import (
     OrganizationInvitationModel,
 )
+from libraries.infrastructure.persistence.models.deployment import (
+    StrategyDeploymentModel,
+)
 from libraries.infrastructure.persistence.models.notification import (
     NotificationRecordModel,
 )
@@ -66,6 +69,7 @@ __all__ = [
     "RiskBreachModel",
     "RiskLimitModel",
     "StrategyConfigModel",
+    "StrategyDeploymentModel",
     "SubscriptionModel",
     "UserModel",
 ]

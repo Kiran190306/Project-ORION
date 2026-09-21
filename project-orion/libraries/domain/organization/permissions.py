@@ -69,6 +69,12 @@ class Permission(StrEnum):
     OPTIMIZATION_CANCEL = "OPTIMIZATION_CANCEL"
     OPTIMIZATION_EXPORT = "OPTIMIZATION_EXPORT"
 
+    # Strategy Deployment Pipeline & Paper Incubator
+    DEPLOYMENT_READ = "DEPLOYMENT_READ"
+    DEPLOYMENT_EXECUTE = "DEPLOYMENT_EXECUTE"
+    DEPLOYMENT_CANCEL = "DEPLOYMENT_CANCEL"
+    DEPLOYMENT_PROMOTE = "DEPLOYMENT_PROMOTE"
+
 
 # Canonical Role -> Permission Matrix
 ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
@@ -106,6 +112,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_EXECUTE,
         Permission.OPTIMIZATION_CANCEL,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
+        Permission.DEPLOYMENT_EXECUTE,
+        Permission.DEPLOYMENT_CANCEL,
+        Permission.DEPLOYMENT_PROMOTE,
     },
     OrganizationRole.ADMINISTRATOR: {
         Permission.ORGANIZATION_READ,
@@ -137,6 +147,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_EXECUTE,
         Permission.OPTIMIZATION_CANCEL,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
+        Permission.DEPLOYMENT_EXECUTE,
+        Permission.DEPLOYMENT_CANCEL,
+        Permission.DEPLOYMENT_PROMOTE,
     },
     OrganizationRole.PORTFOLIO_MANAGER: {
         Permission.ORGANIZATION_READ,
@@ -166,6 +180,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_EXECUTE,
         Permission.OPTIMIZATION_CANCEL,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
+        Permission.DEPLOYMENT_EXECUTE,
+        Permission.DEPLOYMENT_CANCEL,
+        Permission.DEPLOYMENT_PROMOTE,
     },
     OrganizationRole.RISK_OFFICER: {
         Permission.ORGANIZATION_READ,
@@ -184,6 +202,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXPORT,
         Permission.OPTIMIZATION_READ,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
     },
     OrganizationRole.TRADER: {
         Permission.ORGANIZATION_READ,
@@ -208,6 +227,9 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.OPTIMIZATION_EXECUTE,
         Permission.OPTIMIZATION_CANCEL,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
+        Permission.DEPLOYMENT_EXECUTE,
+        Permission.DEPLOYMENT_CANCEL,
     },
     OrganizationRole.AUDITOR: {
         Permission.ORGANIZATION_READ,
@@ -225,6 +247,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXPORT,
         Permission.OPTIMIZATION_READ,
         Permission.OPTIMIZATION_EXPORT,
+        Permission.DEPLOYMENT_READ,
     },
     OrganizationRole.VIEWER: {
         Permission.ORGANIZATION_READ,
@@ -239,6 +262,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.SUBSCRIPTION_READ,
         Permission.RESEARCH_READ,
         Permission.OPTIMIZATION_READ,
+        Permission.DEPLOYMENT_READ,
     },
 }
 

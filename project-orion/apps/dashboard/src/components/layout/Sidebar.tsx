@@ -15,6 +15,7 @@ import {
   FileText,
   X,
   Zap,
+  Rocket,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useOrganization } from '../../auth/OrganizationContext';
@@ -52,6 +53,7 @@ const navGroups: NavGroup[] = [
       { path: '/strategies', label: 'Strategies', icon: Sliders },
       { path: '/research', label: 'Strategy Lab', icon: FlaskConical, permission: Permission.RESEARCH_READ },
       { path: '/optimization', label: 'Optimization Studio', icon: Zap, permission: Permission.OPTIMIZATION_READ },
+      { path: '/deployments', label: 'Deployment Pipeline', icon: Rocket, permission: Permission.DEPLOYMENT_READ },
       { path: '/risk', label: 'Risk Controls', icon: ShieldAlert },
       { path: '/worker', label: 'Worker Status', icon: Cpu },
     ],
