@@ -8,6 +8,7 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -17,7 +18,9 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
   maxWidth = 'md',
+  size,
 }) => {
+  const activeWidth = size || maxWidth;
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -56,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
       <div className="fixed inset-0" onClick={onClose} aria-hidden="true" />
 
       <div
-        className={`relative w-full ${maxWidthStyles[maxWidth]} rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col z-10`}
+        className={`relative w-full ${maxWidthStyles[activeWidth]} rounded-xl border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden flex flex-col z-10`}
         style={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">

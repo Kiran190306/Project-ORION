@@ -480,3 +480,73 @@ export interface CheckoutResponse {
   plan_code: string;
   customer_id: string;
 }
+
+// ─── Organization & Governance ──────────────────────────────────────────────
+
+export interface OrganizationResponse {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  meta_data?: Record<string, unknown>;
+}
+
+export interface UpdateOrganizationRequest {
+  name?: string;
+  meta_data?: Record<string, unknown>;
+}
+
+export interface OrganizationMemberResponse {
+  id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  meta_data?: Record<string, unknown>;
+}
+
+export interface UpdateMemberRoleRequest {
+  role: string;
+}
+
+export interface CreateInvitationRequest {
+  email: string;
+  role: string;
+}
+
+export interface InvitationResponse {
+  id: string;
+  organization_id: string;
+  email: string;
+  role: string;
+  status: string;
+  invited_by_user_id: string;
+  expires_at: string;
+  created_at: string;
+  invitation_token?: string;
+  invitation_url?: string;
+}
+
+export interface AcceptInvitationResponse {
+  membership_id: string;
+  organization_id: string;
+  user_id: string;
+  role: string;
+  status: string;
+  accepted_at: string;
+}
+
+export interface AuditLogResponse {
+  id: string;
+  organization_id: string;
+  event_type: string;
+  component: string;
+  actor: string;
+  details: Record<string, unknown>;
+  timestamp: string;
+}
+

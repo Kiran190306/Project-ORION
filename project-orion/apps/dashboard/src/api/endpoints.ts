@@ -7,19 +7,24 @@ import type {
   AccountResponse,
   AccountStrategyConfigResponse,
   AccountSummary,
+  AuditLogResponse,
   BillingInvoiceResponse,
   BillingOverviewResponse,
   BillingSubscriptionResponse,
   CancelOrderResponse,
   CheckoutResponse,
   ClosePositionResponse,
+  CreateInvitationRequest,
   CreateOrderRequest,
   DashboardResponse,
   EquityCurveResponse,
   ExposureResponse,
+  InvitationResponse,
   LoginRequest,
   LoginResponse,
   OrderResponse,
+  OrganizationMemberResponse,
+  OrganizationResponse,
   PaginatedResponse,
   PaginationParams,
   PnLBreakdownResponse,
@@ -32,6 +37,7 @@ import type {
   StrategyListResponse,
   TradeResponse,
   UpdateAccountStrategyRequest,
+  UpdateOrganizationRequest,
   UserResponse,
   WorkerMetricsResponse,
   WorkerStatusResponse,
@@ -259,4 +265,75 @@ export const billingApi = {
       body: JSON.stringify({ at_period_end: atPeriodEnd }),
     }),
 };
+
+// ─── Organization & Governance ──────────────────────────────────────────────
+
+export const organizationApi = {
+  listUserOrganizations: (): Promise<OrganizationResponse[]> =>
+    apiClient<OrganizationResponse[]>('/api/v1/organizations', {
+      method: 'GET',
+    }),
+
+  getById: (orgId: string): Promise<OrganizationResponse> =>
+    apiClient<OrganizationResponse>(`/api/v1/organizations/${encodeURIComponent(orgId)}`, {
+      method: 'GET',
+    }),
+
+  update: (orgId: string, req: UpdateOrganizationRequest): Promise<OrganizationResponse> =>
+    apiClient<OrganizationResponse>(`/api/v1/organizations/${encodeURIComponent(orgId)}`, {
+      method: 'PATCH',
+      body: JSON.stringify(req),
+    }),
+
+  listMembers: (orgId: string): Promise<OrganizationMemberResponse[]> =>
+    apiClient<OrganizationMemberResponse[]>(
+      `/api/v1/organizations/${encodeURIComponent(orgId)}/members`,
+      {
+        method: 'GET',
+      }
+    ),
+
+  updateMemberRole: (
+    orgId: string,
+    userId: string,
+    role: string
+  ): Promise<OrganizationMemberResponse> =>
+    apiClient<OrganizationMemberResponse>(
+      `/api/v1/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}/role`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }
+    ),
+
+  removeMember: (orgId: string, userId: string): Promise<void> =>
+    apiClient<void>(
+      `/api/v1/organizations/${encodeURIComponent(orgId)}/members/${encodeURIComponent(userId)}`,
+      {
+        method: 'DELETE',
+      }
+    ),
+
+  inviteMember: (orgId: string, req: CreateInvitationRequest): Promise<InvitationResponse> =>
+    apiClient<InvitationResponse>(
+      `/api/v1/organizations/${encodeURIComponent(orgId)}/members/invite`,
+      {
+        method: 'POST',
+        body: JSON.stringify(req),
+      }
+    ),
+
+  listAuditLogs: (
+    orgId: string,
+    params?: { limit?: number; offset?: number; event_type?: string }
+  ): Promise<AuditLogResponse[]> =>
+    apiClient<AuditLogResponse[]>(
+      `/api/v1/organizations/${encodeURIComponent(orgId)}/audit-logs`,
+      {
+        method: 'GET',
+        params: params as Record<string, string | number | boolean | undefined>,
+      }
+    ),
+};
+
 

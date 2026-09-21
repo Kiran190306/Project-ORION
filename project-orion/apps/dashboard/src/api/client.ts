@@ -33,6 +33,27 @@ export function setStoredToken(token: string | null): void {
   }
 }
 
+export function getStoredOrgId(): string | null {
+  try {
+    return sessionStorage.getItem('orion_active_org_id');
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredOrgId(orgId: string | null): void {
+  try {
+    if (orgId) {
+      sessionStorage.setItem('orion_active_org_id', orgId);
+    } else {
+      sessionStorage.removeItem('orion_active_org_id');
+    }
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
+
 function generateCorrelationId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -63,6 +84,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
 
   const token = getStoredToken();
+  const orgId = getStoredOrgId();
   const correlationId = generateCorrelationId();
 
   const headers = new Headers(customHeaders);
@@ -72,6 +94,9 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   }
   if (token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${token}`);
+  }
+  if (orgId && !headers.has('X-Organization-ID')) {
+    headers.set('X-Organization-ID', orgId);
   }
   if (!headers.has('X-Correlation-ID')) {
     headers.set('X-Correlation-ID', correlationId);
@@ -121,6 +146,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       case 401:
         sanitizedMessage = 'Session expired or invalid. Please sign in again.';
         setStoredToken(null);
+        setStoredOrgId(null);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('orion:unauthorized'));
         }

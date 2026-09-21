@@ -56,7 +56,7 @@ describe('BillingPage', () => {
     render(<BillingPage />);
 
     expect(await screen.findByText('COMMERCIAL BILLING & PLANS')).toBeDefined();
-    expect(screen.getByText('PRO')).toBeDefined();
+    expect(await screen.findByText('PRO')).toBeDefined();
     expect(screen.getByText('ACTIVE')).toBeDefined();
     expect(screen.getByText(/Stripe Test Mode Only — Strict Paper-Trading Invariant/i)).toBeDefined();
     expect(screen.getByText('Free Sandbox')).toBeDefined();

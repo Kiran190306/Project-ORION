@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './auth/AuthContext';
+import { OrganizationProvider } from './auth/OrganizationContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import { ToastProvider } from './components/common/Toast';
 import { AppShell } from './components/layout/AppShell';
@@ -15,6 +16,8 @@ import { StrategiesPage } from './pages/StrategiesPage';
 import { RiskPage } from './pages/RiskPage';
 import { WorkerPage } from './pages/WorkerPage';
 import { BillingPage } from './pages/BillingPage';
+import { OrganizationPage } from './pages/OrganizationPage';
+import { AuditPage } from './pages/AuditPage';
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -39,6 +42,8 @@ export const AppRoutes: React.FC = () => {
         <Route path="risk" element={<RiskPage />} />
         <Route path="worker" element={<WorkerPage />} />
         <Route path="billing" element={<BillingPage />} />
+        <Route path="organization" element={<OrganizationPage />} />
+        <Route path="audit" element={<AuditPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -51,7 +56,9 @@ export const App: React.FC = () => {
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <AppRoutes />
+          <OrganizationProvider>
+            <AppRoutes />
+          </OrganizationProvider>
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>

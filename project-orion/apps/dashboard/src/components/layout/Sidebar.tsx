@@ -10,27 +10,62 @@ import {
   ShieldAlert,
   Sliders,
   CreditCard,
+  Users,
+  FileText,
   X,
 } from 'lucide-react';
+import { useAuth } from '../../auth/AuthContext';
+import { useOrganization } from '../../auth/OrganizationContext';
+import { hasPermission, Permission } from '../../auth/permissions';
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const navItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/orders', label: 'Orders', icon: ClipboardList },
-  { path: '/positions', label: 'Positions', icon: Layers },
-  { path: '/trades', label: 'Trade History', icon: History },
-  { path: '/portfolio', label: 'Portfolio', icon: PieChart },
-  { path: '/strategies', label: 'Strategies', icon: Sliders },
-  { path: '/risk', label: 'Risk Controls', icon: ShieldAlert },
-  { path: '/worker', label: 'Worker Status', icon: Cpu },
-  { path: '/billing', label: 'Billing & Plans', icon: CreditCard },
+interface NavGroup {
+  title: string;
+  items: {
+    path: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    permission?: Permission;
+  }[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: 'TRADING OPERATIONS',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { path: '/orders', label: 'Orders', icon: ClipboardList },
+      { path: '/positions', label: 'Positions', icon: Layers },
+      { path: '/trades', label: 'Trade History', icon: History },
+      { path: '/portfolio', label: 'Portfolio', icon: PieChart },
+    ],
+  },
+  {
+    title: 'ALGORITHMIC ENGINE',
+    items: [
+      { path: '/strategies', label: 'Strategies', icon: Sliders },
+      { path: '/risk', label: 'Risk Controls', icon: ShieldAlert },
+      { path: '/worker', label: 'Worker Status', icon: Cpu },
+    ],
+  },
+  {
+    title: 'GOVERNANCE & SAAS',
+    items: [
+      { path: '/billing', label: 'Billing & Plans', icon: CreditCard },
+      { path: '/organization', label: 'Organization', icon: Users },
+      { path: '/audit', label: 'Audit Trail', icon: FileText, permission: Permission.AUDIT_READ },
+    ],
+  },
 ];
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const { user } = useAuth();
+  const { currentRole } = useOrganization();
+
   return (
     <>
       {/* Mobile backdrop */}
@@ -65,33 +100,49 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white lg:hidden p-1"
+            className="text-slate-400 hover:text-white lg:hidden p-1 cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
+        {/* Navigation Links Grouped */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
+          {navGroups.map((group) => {
+            const visibleItems = group.items.filter((item) => {
+              if (!item.permission) return true;
+              return hasPermission(currentRole, item.permission, user?.is_superuser);
+            });
+
+            if (visibleItems.length === 0) return null;
+
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                onClick={onClose}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span>{item.label}</span>
-              </NavLink>
+              <div key={group.title} className="space-y-1">
+                <div className="px-3.5 py-1 text-[10px] font-mono font-semibold tracking-wider text-slate-400 uppercase">
+                  {group.title}
+                </div>
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                          isActive
+                            ? 'bg-sky-500/15 text-sky-300 border border-sky-500/30 shadow-xs'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        }`
+                      }
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  );
+                })}
+              </div>
             );
           })}
         </nav>
