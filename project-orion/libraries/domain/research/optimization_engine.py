@@ -7,7 +7,6 @@ from collections.abc import Callable
 from decimal import Decimal
 from typing import Any
 
-from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
 from libraries.domain.research.optimization_models import (
     FitnessObjective,
     OptimizationCandidate,
@@ -69,6 +68,8 @@ class OptimizationEngine:
             )
 
             # 2. Run deterministic backtest adapter with instant replay
+            from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
+
             adapter = StrategyBacktestAdapter(
                 strategy=strategy_inst,
                 symbol=symbol,

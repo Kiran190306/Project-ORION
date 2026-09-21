@@ -152,26 +152,30 @@ class VolatilityEngine:
 
             return None
 
+    async def _compute_atr_unlocked(self, symbol: str) -> ATRResult | None:
+        """Compute Average True Range for a symbol (internal, caller must hold lock)."""
+        if symbol not in self._true_ranges or not self._true_ranges[symbol]:
+            return None
+
+        tr_values = self._true_ranges[symbol]
+        atr_val = sum(tr_values) / len(tr_values) if tr_values else Decimal("0")
+
+        price_snap = await self._price_stats[symbol].get_snapshot()
+        atr_pct = float(atr_val) / price_snap.mean * 100.0 if price_snap.mean > 0 else 0.0
+
+        return ATRResult(
+            symbol=symbol,
+            atr=atr_val,
+            atr_pct=round(atr_pct, 4),
+            period=self._atr_period,
+            current_high=self._price_highs.get(symbol, Decimal("0")),
+            current_low=self._price_lows.get(symbol, Decimal("0")),
+        )
+
     async def compute_atr(self, symbol: str) -> ATRResult | None:
         """Compute Average True Range for a symbol."""
         async with self._lock:
-            if symbol not in self._true_ranges or not self._true_ranges[symbol]:
-                return None
-
-            tr_values = self._true_ranges[symbol]
-            atr_val = sum(tr_values) / len(tr_values) if tr_values else Decimal("0")
-
-            price_snap = await self._price_stats[symbol].get_snapshot()
-            atr_pct = float(atr_val) / price_snap.mean * 100.0 if price_snap.mean > 0 else 0.0
-
-            return ATRResult(
-                symbol=symbol,
-                atr=atr_val,
-                atr_pct=round(atr_pct, 4),
-                period=self._atr_period,
-                current_high=self._price_highs.get(symbol, Decimal("0")),
-                current_low=self._price_lows.get(symbol, Decimal("0")),
-            )
+            return await self._compute_atr_unlocked(symbol)
 
     async def get_volatility_metrics(self, symbol: str) -> VolatilityMetrics:
         """Get comprehensive volatility metrics for a symbol."""
@@ -179,7 +183,7 @@ class VolatilityEngine:
             spread_snap = await self._spread_stats.get(symbol, RollingStatistics()).get_snapshot()
             price_snap = await self._price_stats.get(symbol, RollingStatistics()).get_snapshot()
 
-            atr_result = await self.compute_atr(symbol)
+            atr_result = await self._compute_atr_unlocked(symbol)
             atr_val = atr_result.atr if atr_result else Decimal("0")
             atr_pct = atr_result.atr_pct if atr_result else 0.0
 

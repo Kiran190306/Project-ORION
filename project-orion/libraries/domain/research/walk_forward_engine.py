@@ -8,7 +8,6 @@ from decimal import Decimal
 from typing import Any
 
 from libraries.domain.backtesting.leakage_guard import LeakageGuard
-from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
 from libraries.domain.research.optimization_engine import OptimizationEngine
 from libraries.domain.research.optimization_models import (
     FitnessObjective,
@@ -98,6 +97,8 @@ class WalkForwardEngine:
             best_params = dict(best_candidate.parameters)
 
             # 3. Out-of-Sample Forward Validation
+            from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
+
             oos_strategy = StrategyRegistry.create_strategy(
                 strategy_id=canonical_id,
                 parameters=best_params,

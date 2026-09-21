@@ -22,6 +22,12 @@ class ProviderTickData:
     latency_ms: float = 0.0
     sequence: int | None = None
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.bid, Decimal):
+            object.__setattr__(self, "bid", Decimal(str(self.bid)))
+        if not isinstance(self.ask, Decimal):
+            object.__setattr__(self, "ask", Decimal(str(self.ask)))
+
     def spread(self) -> Decimal:
         """Calculate the bid-ask spread."""
         return self.ask - self.bid
