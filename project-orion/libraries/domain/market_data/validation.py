@@ -12,7 +12,10 @@ from decimal import Decimal
 from typing import Any
 
 from libraries.domain.market_data.exceptions import (
+    InvalidBarError,
+    InvalidQuoteError,
     InvalidTickError,
+    StaleDataError,
     SymbolNotFoundError,
     UnsupportedBarTypeError,
 )
@@ -208,3 +211,120 @@ def validate_tick_fields(
         result["timestamp"] = validate_timestamp(timestamp)
     result.update(kwargs)
     return result
+
+
+def validate_ohlc(
+    open_price: Decimal,
+    high_price: Decimal,
+    low_price: Decimal,
+    close_price: Decimal,
+    volume: Decimal | None = None,
+) -> tuple[Decimal, Decimal, Decimal, Decimal, Decimal]:
+    """Validate canonical OHLC bar price and volume invariants.
+
+    Enforces:
+    - All prices must be Decimal and > 0
+    - low <= open <= high
+    - low <= close <= high
+    - low <= high
+    - volume >= 0 (defaults to Decimal("0") if None)
+
+    Returns:
+        tuple of (open, high, low, close, volume)
+
+    Raises:
+        InvalidBarError: If any relationship invariant is violated.
+    """
+    for name, val in [
+        ("open", open_price),
+        ("high", high_price),
+        ("low", low_price),
+        ("close", close_price),
+    ]:
+        if not isinstance(val, Decimal):
+            raise InvalidBarError(f"{name} price must be a Decimal, got {type(val).__name__}")
+        if val <= Decimal("0"):
+            raise InvalidBarError(f"{name} price must be positive, got {val}")
+
+    if high_price < low_price:
+        raise InvalidBarError(f"High price ({high_price}) cannot be less than low price ({low_price})")
+    if not (low_price <= open_price <= high_price):
+        raise InvalidBarError(
+            f"Open price ({open_price}) must be within low ({low_price}) and high ({high_price})"
+        )
+    if not (low_price <= close_price <= high_price):
+        raise InvalidBarError(
+            f"Close price ({close_price}) must be within low ({low_price}) and high ({high_price})"
+        )
+
+    vol = volume if volume is not None else Decimal("0")
+    if not isinstance(vol, Decimal):
+        raise InvalidBarError(f"volume must be a Decimal, got {type(vol).__name__}")
+    if vol < Decimal("0"):
+        raise InvalidBarError(f"volume cannot be negative, got {vol}")
+
+    return open_price, high_price, low_price, close_price, vol
+
+
+def validate_quote(
+    bid: Decimal,
+    ask: Decimal,
+    timestamp: datetime,
+    max_spread: Decimal | None = None,
+    allow_future_seconds: float = 60.0,
+) -> tuple[Decimal, Decimal, datetime]:
+    """Validate quote bid, ask, and timestamp invariants.
+
+    Enforces:
+    - bid and ask must be Decimal and > 0
+    - ask >= bid (no crossed/inverted quotes)
+    - ask - bid <= max_spread if specified
+    - timestamp must be timezone-aware UTC
+
+    Returns:
+        tuple of (bid, ask, timestamp)
+
+    Raises:
+        InvalidQuoteError: If quote fails validation.
+    """
+    if not isinstance(bid, Decimal) or not isinstance(ask, Decimal):
+        raise InvalidQuoteError("Bid and ask must be Decimal values")
+    if bid <= Decimal("0") or ask <= Decimal("0"):
+        raise InvalidQuoteError(f"Bid and ask must be positive: bid={bid}, ask={ask}")
+    if ask < bid:
+        raise InvalidQuoteError(f"Crossed market: ask ({ask}) is less than bid ({bid})")
+
+    spread = ask - bid
+    if max_spread is not None and spread > max_spread:
+        raise InvalidQuoteError(f"Spread {spread} exceeds max permitted spread {max_spread}")
+
+    if not isinstance(timestamp, datetime):
+        raise InvalidQuoteError(f"Timestamp must be a datetime, got {type(timestamp).__name__}")
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise InvalidQuoteError("Timestamp must be timezone-aware UTC")
+
+    now = datetime.now(timezone.utc)
+    if (timestamp - now).total_seconds() > allow_future_seconds:
+        raise InvalidQuoteError(f"Quote timestamp ({timestamp}) is too far in future compared to {now}")
+
+    return bid, ask, timestamp
+
+
+def check_staleness(
+    timestamp: datetime,
+    max_age_seconds: float = 30.0,
+    current_time: datetime | None = None,
+) -> bool:
+    """Return True if market data at timestamp exceeds max_age_seconds.
+
+    Args:
+        timestamp: Observation timestamp (must be timezone-aware UTC).
+        max_age_seconds: Maximum allowed age before classified as STALE.
+        current_time: Reference time (defaults to now in UTC).
+    """
+    ref = current_time or datetime.now(timezone.utc)
+    if timestamp.tzinfo is None or timestamp.utcoffset() is None:
+        raise StaleDataError("Cannot compute staleness on timezone-naive timestamp")
+    age = (ref - timestamp).total_seconds()
+    return age > max_age_seconds
+

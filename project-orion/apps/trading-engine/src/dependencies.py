@@ -41,6 +41,7 @@ from .services.auth import decode_access_token
 from .services.paper_trading import PaperTradingService
 
 if TYPE_CHECKING:
+    from .services.market_data_service import MarketDataService
     from .workers.coordinator import AutonomousWorkerCoordinator
 
 
@@ -114,6 +115,18 @@ def get_paper_trading_service(
 def get_worker_coordinator(request: Request) -> AutonomousWorkerCoordinator | None:
     """Provide AutonomousWorkerCoordinator from app state if available."""
     return getattr(request.app.state, "worker", None)
+
+
+def get_market_data_service(request: Request) -> MarketDataService:
+    """Provide MarketDataService from app state."""
+    service: MarketDataService | None = getattr(request.app.state, "market_data_service", None)
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Market data service is unavailable",
+        )
+    return service
+
 
 
 async def get_current_user(

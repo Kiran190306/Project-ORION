@@ -550,3 +550,56 @@ export interface AuditLogResponse {
   timestamp: string;
 }
 
+// ─── Market Data (EPIC-021) ──────────────────────────────────────────────────
+
+export interface MarketInstrument {
+  symbol: string;
+  base_currency: string;
+  quote_currency: string;
+  pip_size: string | number;
+  tick_size: string | number;
+  display_name: string;
+  is_active: boolean;
+}
+
+export interface MarketQuote {
+  symbol: string;
+  bid: string | number;
+  ask: string | number;
+  mid: string | number;
+  spread: string | number;
+  spread_pips: string | number;
+  timestamp: string;
+  provider: string;
+  is_stale: boolean;
+  quality: string;
+}
+
+export interface MarketCandle {
+  timestamp: string;
+  open: string | number;
+  high: string | number;
+  low: string | number;
+  close: string | number;
+  volume: string | number;
+}
+
+export interface MarketCandlesResponse {
+  symbol: string;
+  timeframe: string;
+  provider: string;
+  candles: MarketCandle[];
+}
+
+export interface MarketHealth {
+  provider: string;
+  status: string;
+  data_quality: string;
+  last_update_utc: string | null;
+  symbols_active: number;
+  latency_ms: number;
+  stale_count: number;
+  is_paper_feed: boolean;
+}
+
+

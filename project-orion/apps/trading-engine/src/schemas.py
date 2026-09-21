@@ -900,3 +900,77 @@ class AuditLogResponse(BaseModel):
     timestamp: datetime
 
 
+# ─── Market Data Models (EPIC-021) ─────────────────────────────────────────
+
+
+class MarketInstrumentResponse(BaseModel):
+    """Response model for a canonical tradeable market instrument."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    base_currency: str
+    quote_currency: str
+    pip_size: Decimal
+    tick_size: Decimal
+    display_name: str
+    is_active: bool
+
+
+class MarketQuoteResponse(BaseModel):
+    """Response model for a real-time canonical market quote."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    bid: Decimal
+    ask: Decimal
+    mid: Decimal
+    spread: Decimal
+    spread_pips: Decimal
+    timestamp: datetime
+    provider: str
+    is_stale: bool
+    quality: str
+
+
+class MarketCandleResponse(BaseModel):
+    """Response model for a single OHLCV candle bar."""
+
+    model_config = ConfigDict(frozen=True)
+
+    timestamp: datetime
+    open: Decimal
+    high: Decimal
+    low: Decimal
+    close: Decimal
+    volume: Decimal
+
+
+class MarketCandlesListResponse(BaseModel):
+    """Response model for historical market candles."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    timeframe: str
+    provider: str
+    candles: list[MarketCandleResponse]
+
+
+class MarketHealthResponse(BaseModel):
+    """Response model for market data infrastructure telemetry."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: str
+    status: str
+    data_quality: str
+    last_update_utc: datetime | None
+    symbols_active: int
+    latency_ms: float
+    stale_count: int
+    is_paper_feed: bool = True
+
+
+

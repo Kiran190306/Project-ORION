@@ -33,6 +33,7 @@ from .routes.auth import router as auth_router
 from .routes.billing import router as billing_router
 from .routes.dashboard import router as dashboard_router
 from .routes.health import router as health_router
+from .routes.market_data import router as market_data_router
 from .routes.metrics import router as metrics_router
 from .routes.onboarding import router as onboarding_router
 from .routes.orders import router as orders_router
@@ -55,6 +56,7 @@ def create_app(
     redis_client: RedisClient | None = None,
     paper_adapter: PaperExecutionAdapter | None = None,
     worker: Any | None = None,
+    market_data_service: Any | None = None,
 ) -> FastAPI:
     """FastAPI Application Factory for Project ORION Trading Engine.
 
@@ -74,6 +76,7 @@ def create_app(
         redis_client_override=redis_client,
         paper_adapter_override=paper_adapter,
         worker_override=worker,
+        market_data_service_override=market_data_service,
     )
 
     app = FastAPI(
@@ -162,6 +165,7 @@ def create_app(
     app.include_router(trades_router)
     app.include_router(portfolio_router)
     app.include_router(dashboard_router)
+    app.include_router(market_data_router)
     app.include_router(subscription_router)
     app.include_router(billing_router)
 

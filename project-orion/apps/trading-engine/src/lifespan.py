@@ -13,6 +13,8 @@ from typing import Any
 
 from fastapi import FastAPI
 
+from libraries.domain.market_data.models import ProviderStatus
+from libraries.domain.market_data.quality_engine import MarketDataQualityEngine
 from libraries.infrastructure.caching.client import RedisClient
 from libraries.infrastructure.caching.config import RedisConfig
 from libraries.infrastructure.execution.paper_execution import (
@@ -25,12 +27,15 @@ from libraries.infrastructure.health import (
     HealthCheckResult,
     HealthStatus,
 )
+from libraries.infrastructure.market_data.cache import MarketDataCache
+from libraries.infrastructure.market_data.factory import create_market_data_provider
 from libraries.infrastructure.persistence.config import DatabaseConfig, DatabaseManager
 from libraries.observability.config import LoggingConfig
 from libraries.observability.logging import configure_logging
 from libraries.observability.metrics import MetricsRegistry
 
 from .config import AppSettings
+from .services.market_data_service import MarketDataService
 from .workers.coordinator import AutonomousWorkerCoordinator
 
 logger = logging.getLogger("trading_engine.lifespan")
@@ -101,6 +106,37 @@ class RedisHealthCheck(HealthCheck):
             )
 
 
+class MarketDataHealthCheck(HealthCheck):
+    """Health check for Market Data provider connectivity."""
+
+    def __init__(self, market_service: MarketDataService) -> None:
+        super().__init__(name="market_data", timeout_seconds=5.0)
+        self._market_service = market_service
+
+    async def check(self) -> HealthCheckResult:
+        """Probe market data provider health."""
+        try:
+            health = await self._market_service.get_health()
+            if health.status == ProviderStatus.HEALTHY:
+                return HealthCheckResult(
+                    name=self.name,
+                    status=HealthStatus.HEALTHY,
+                    message=f"Market data provider '{health.provider}' healthy (latency={health.latency_ms:.1f}ms)",
+                )
+            return HealthCheckResult(
+                name=self.name,
+                status=HealthStatus.DEGRADED,
+                message=f"Market data provider status '{health.status.value}'",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return HealthCheckResult(
+                name=self.name,
+                status=HealthStatus.UNHEALTHY,
+                message=f"Market data health check failed: {exc}",
+            )
+
+
+
 # ─── Alembic Migration Hook ────────────────────────────────────────────────
 
 
@@ -136,6 +172,7 @@ def create_lifespan(
     redis_client_override: RedisClient | None = None,
     paper_adapter_override: PaperExecutionAdapter | None = None,
     worker_override: AutonomousWorkerCoordinator | None = None,
+    market_data_service_override: MarketDataService | None = None,
 ) -> Any:
     """Create a FastAPI lifespan context manager with optional overrides for testing."""
 
@@ -215,6 +252,26 @@ def create_lifespan(
         metrics_registry.set("paper_account_balance", float(settings.paper_balance))
         app.state.metrics_registry = metrics_registry
 
+        # 8.5. Initialize Market Data Service (EPIC-021)
+        if market_data_service_override is not None:
+            market_service = market_data_service_override
+        else:
+            market_provider = create_market_data_provider(
+                provider_type=settings.market_data_provider,
+                api_key=settings.market_data_api_key,
+                base_url=settings.market_data_base_url,
+            )
+            market_cache = MarketDataCache(redis_client=redis_client)
+            market_service = MarketDataService(
+                provider=market_provider,
+                quality_engine=MarketDataQualityEngine(),
+                cache=market_cache,
+                paper_adapter=paper_adapter,
+                metrics=metrics_registry,
+            )
+        app.state.market_data_service = market_service
+        health_registry.register(MarketDataHealthCheck(market_service))
+
         logger.info("Trading Engine application runtime successfully initialized.")
 
         # 9. Initialize and start Autonomous Worker
@@ -243,6 +300,14 @@ def create_lifespan(
                 await worker.stop()
             except Exception as exc:  # noqa: BLE001
                 logger.error("Error stopping autonomous worker: %s", exc)
+
+            # Disconnect Market Data Provider
+            try:
+                if hasattr(market_service, "provider") and hasattr(market_service.provider, "disconnect"):
+                    await market_service.provider.disconnect()
+                    logger.info("Market data provider disconnected.")
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Error disconnecting market data provider: %s", exc)
 
             # Disconnect Paper Adapter
             try:

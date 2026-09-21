@@ -46,6 +46,10 @@ class AppSettings:
     trading_cycle_interval: float
     worker_timeout: float
     worker_stale_threshold: float
+    # ─── Market Data (EPIC-021) ───────────────────────────
+    market_data_provider: str = "mock"
+    market_data_api_key: str = ""
+    market_data_base_url: str = "https://api.twelvedata.com"
     # ─── Authentication ───────────────────────────────────
     jwt_secret_key: str = "insecure-dev-secret-key-change-in-production-institutional-orion-2026"
     jwt_algorithm: str = "HS256"
@@ -149,6 +153,10 @@ class AppSettings:
                 os.environ.get("ORION_WORKER_STALE_THRESHOLD", "30.0"),
                 "ORION_WORKER_STALE_THRESHOLD",
             ),
+            # ─── Market Data (EPIC-021) ───────────────────────
+            market_data_provider=os.environ.get("ORION_MARKET_DATA_PROVIDER", "mock").strip().lower(),
+            market_data_api_key=os.environ.get("ORION_MARKET_DATA_API_KEY", "").strip(),
+            market_data_base_url=os.environ.get("ORION_MARKET_DATA_BASE_URL", "https://api.twelvedata.com").strip(),
             jwt_secret_key=os.environ.get(
                 "ORION_JWT_SECRET_KEY",
                 "insecure-dev-secret-key-change-in-production-institutional-orion-2026",

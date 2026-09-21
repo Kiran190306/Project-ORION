@@ -22,6 +22,10 @@ import type {
   InvitationResponse,
   LoginRequest,
   LoginResponse,
+  MarketCandlesResponse,
+  MarketHealth,
+  MarketInstrument,
+  MarketQuote,
   OrderResponse,
   OrganizationMemberResponse,
   OrganizationResponse,
@@ -335,5 +339,34 @@ export const organizationApi = {
       }
     ),
 };
+
+// ─── Market Data (EPIC-021) ──────────────────────────────────────────────────
+
+export const marketDataApi = {
+  getInstruments: (): Promise<MarketInstrument[]> =>
+    apiClient<MarketInstrument[]>('/api/v1/market-data/instruments', {
+      method: 'GET',
+    }),
+
+  getQuote: (symbol: string): Promise<MarketQuote> =>
+    apiClient<MarketQuote>(`/api/v1/market-data/quotes/${encodeURIComponent(symbol)}`, {
+      method: 'GET',
+    }),
+
+  getCandles: (
+    symbol: string,
+    params?: { timeframe?: string; limit?: number; start?: string; end?: string }
+  ): Promise<MarketCandlesResponse> =>
+    apiClient<MarketCandlesResponse>('/api/v1/market-data/candles', {
+      method: 'GET',
+      params: { symbol, ...params } as Record<string, string | number | boolean | undefined>,
+    }),
+
+  getHealth: (): Promise<MarketHealth> =>
+    apiClient<MarketHealth>('/api/v1/market-data/health', {
+      method: 'GET',
+    }),
+};
+
 
 

@@ -128,6 +128,16 @@ class Quote:
     exchange_timestamp: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
 
+    @property
+    def mid(self) -> Decimal:
+        """Mid-market price."""
+        return (self.bid + self.ask) / Decimal("2")
+
+    @property
+    def spread(self) -> Decimal:
+        """Absolute bid-ask spread."""
+        return self.ask - self.bid
+
 
 @dataclass(frozen=True, slots=True)
 class Trade:
@@ -249,3 +259,52 @@ class EconomicEvent:
     previous: str = ""
     description: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+
+
+class DataQuality(StrEnum):
+    """Institutional data quality rating for market data feeds."""
+
+    EXCELLENT = "excellent"
+    GOOD = "good"
+    DEGRADED = "degraded"
+    STALE = "stale"
+    INVALID = "invalid"
+
+
+class ProviderStatus(StrEnum):
+    """Operational status of a market data provider."""
+
+    HEALTHY = "healthy"
+    DEGRADED = "degraded"
+    DISCONNECTED = "disconnected"
+    ERROR = "error"
+
+
+@dataclass(frozen=True, slots=True)
+class Instrument:
+    """Canonical tradable instrument definition."""
+
+    symbol: str
+    base_currency: str
+    quote_currency: str
+    pip_size: Decimal
+    tick_size: Decimal
+    display_name: str
+    is_active: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True, slots=True)
+class MarketDataHealth:
+    """Operational telemetry snapshot for market data infrastructure."""
+
+    provider: str
+    status: ProviderStatus
+    data_quality: DataQuality
+    last_update_utc: datetime
+    symbols_active: tuple[str, ...] = field(default_factory=tuple)
+    latency_ms: float = 0.0
+    stale_count: int = 0
+    is_paper_feed: bool = True
+    metadata: dict[str, Any] = field(default_factory=dict)
+

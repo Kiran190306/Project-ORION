@@ -41,3 +41,24 @@ class SessionLookupError(MarketDataError):
 
 class EconomicCalendarError(MarketDataError):
     """Raised when economic calendar data cannot be fetched."""
+
+
+class InvalidBarError(MarketDataError):
+    """Raised when an OHLC bar violates relationship invariants."""
+
+
+class InvalidQuoteError(MarketDataError):
+    """Raised when a quote fails bid/ask or spread validation."""
+
+
+class StaleDataError(MarketDataError):
+    """Raised when market data exceeds staleness threshold."""
+
+
+class RateLimitExceededError(MarketDataError):
+    """Raised when provider rate limit is exceeded."""
+
+
+class CircuitBreakerOpenError(MarketDataError):
+    """Raised when provider circuit breaker is in OPEN state."""
+

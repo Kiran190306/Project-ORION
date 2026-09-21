@@ -18,6 +18,7 @@ import { Badge, PaperTradingBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { formatCurrency, formatPnl, formatPercent, formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { MarketOverviewWidget } from '../components/market/MarketOverviewWidget';
 
 export const DashboardPage: React.FC = () => {
   const [data, setData] = useState<DashboardResponse | null>(null);
@@ -158,6 +159,9 @@ export const DashboardPage: React.FC = () => {
           </div>
         </Card>
       </div>
+
+      {/* Live Market Feed (EPIC-021) */}
+      <MarketOverviewWidget />
 
       {/* Trading State: Open Positions & Pending Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

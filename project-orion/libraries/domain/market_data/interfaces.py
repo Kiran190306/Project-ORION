@@ -12,11 +12,13 @@ from typing import Any, AsyncIterator, Protocol, runtime_checkable
 
 from libraries.domain.market_data.models import (
     Bar,
+    BarType,
     CorporateAction,
     EconomicEvent,
     MarketSession,
     OHLCV,
     OrderBookSnapshot,
+    Quote,
     Tick,
     TickData,
 )
@@ -272,3 +274,41 @@ class MarketSnapshotProviderPort(Protocol):
     ) -> OrderBookSnapshot | None:
         """Return the current order book snapshot, or None."""
         ...
+
+
+@runtime_checkable
+class MarketDataProviderPort(Protocol):
+    """Unified broker-agnostic market data provider port.
+
+    Provides high-level async methods for querying real-time quotes,
+    historical OHLCV bars, and provider operational telemetry.
+    """
+
+    @property
+    def provider_name(self) -> str:
+        """Identifier for the market data provider."""
+        ...
+
+    async def get_quote(self, symbol: str) -> Quote:
+        """Fetch latest validated quote for canonical symbol."""
+        ...
+
+    async def get_candles(
+        self,
+        symbol: str,
+        timeframe: BarType,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        limit: int = 100,
+    ) -> list[OHLCV]:
+        """Fetch historical candles within optional range."""
+        ...
+
+    async def health_check(self) -> dict[str, Any]:
+        """Return provider connectivity and latency metrics."""
+        ...
+
+    async def is_connected(self) -> bool:
+        """Return True if provider communication channel is active."""
+        ...
+
