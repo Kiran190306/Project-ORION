@@ -150,7 +150,16 @@ class OptimizationService:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
         # 4. Enforce Tenant Subscription Quotas
-        await self.entitlement_service.check_optimization_quota(organization_id, len(combos))
+        try:
+            await self.entitlement_service.check_optimization_quota(organization_id, len(combos))
+        except Exception as exc:
+            from libraries.domain.subscription.exceptions import (
+                DailyOptimizationQuotaExceededError,
+                OptimizationCombinationLimitExceededError,
+            )
+            if isinstance(exc, (OptimizationCombinationLimitExceededError, DailyOptimizationQuotaExceededError)):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+            raise
 
         # 5. Fetch Historical Candles & Enforce LeakageGuard
         try:
@@ -445,7 +454,16 @@ class OptimizationService:
             raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
 
         # 3. Enforce Quota
-        await self.entitlement_service.check_optimization_quota(organization_id, len(combos))
+        try:
+            await self.entitlement_service.check_optimization_quota(organization_id, len(combos))
+        except Exception as exc:
+            from libraries.domain.subscription.exceptions import (
+                DailyOptimizationQuotaExceededError,
+                OptimizationCombinationLimitExceededError,
+            )
+            if isinstance(exc, (OptimizationCombinationLimitExceededError, DailyOptimizationQuotaExceededError)):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=str(exc)) from exc
+            raise
 
         # 4. Fetch Historical Candles & Enforce LeakageGuard
         try:

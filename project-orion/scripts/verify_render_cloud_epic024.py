@@ -33,6 +33,11 @@ import uuid
 from datetime import datetime, timezone
 import httpx
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 API_BASE = "https://orion-api-68u2.onrender.com"
 DASHBOARD_URL = "https://orion-dashboard-6d3z.onrender.com"
 
@@ -40,8 +45,10 @@ results = []
 
 def record(step: str, passed: bool, detail: str) -> None:
     status = "PASS" if passed else "FAIL"
-    results.append({"step": step, "status": status, "detail": detail})
-    print(f"[{status}] {step}: {detail}")
+    # Ensure detail doesn't break console
+    clean_detail = detail.replace("\u2192", "->")
+    results.append({"step": step, "status": status, "detail": clean_detail})
+    print(f"[{status}] {step}: {clean_detail}")
 
 def run_cloud_verification():
     print("=================================================================")
@@ -70,7 +77,7 @@ def run_cloud_verification():
 
         try:
             r = client.get(f"{API_BASE}/metrics")
-            passed = r.status_code == 200 and "python_info" in r.text or "orion" in r.text or "# HELP" in r.text
+            passed = r.status_code == 200 and ("python_info" in r.text or "orion" in r.text or "# HELP" in r.text)
             record("1.3 GET /metrics", passed, f"HTTP {r.status_code} - length: {len(r.text)} bytes")
         except Exception as e:
             record("1.3 GET /metrics", False, str(e))
@@ -115,15 +122,16 @@ def run_cloud_verification():
 
         if not token_a:
             print("[FATAL] Could not acquire Tenant A token. Aborting dependent steps.")
-            return
+            return False
 
         headers_a = {"Authorization": f"Bearer {token_a}"}
 
         # Step 4: Strategy Catalogue
         try:
-            r = client.get(f"{API_BASE}/api/v1/strategies", headers=headers_a)
+            r = client.get(f"{API_BASE}/api/v1/strategies/", headers=headers_a)
             if r.status_code == 200:
-                strategies = r.json()
+                body = r.json()
+                strategies = body.get("strategies", body if isinstance(body, list) else [])
                 strat_ids = [s.get("id") or s.get("strategy_id") for s in strategies]
                 record("4.0 Strategy Catalogue", True, f"Found {len(strategies)} strategies: {strat_ids}")
             else:
@@ -136,7 +144,9 @@ def run_cloud_verification():
             r = client.get(f"{API_BASE}/api/v1/optimization/spaces/TrendFollowing", headers=headers_a)
             if r.status_code == 200:
                 space_data = r.json()
-                record("5.0 Parameter Space", True, f"Strategy: {space_data.get('strategy_id')}, Ranges: {list(space_data.get('ranges', {}).keys())}")
+                ranges = space_data.get("ranges", [])
+                param_names = [rg.get("name") for rg in ranges] if isinstance(ranges, list) else list(ranges.keys())
+                record("5.0 Parameter Space", True, f"Strategy: {space_data.get('strategy_id')}, Parameters: {param_names}")
             else:
                 record("5.0 Parameter Space", False, f"HTTP {r.status_code} - {r.text}")
         except Exception as e:
@@ -148,27 +158,27 @@ def run_cloud_verification():
             sweep_payload = {
                 "strategy_id": "TrendFollowing",
                 "symbol": "EUR/USD",
-                "timeframe": "1h",
+                "timeframe": "H1",
                 "start_date": "2024-01-01T00:00:00Z",
                 "end_date": "2024-03-01T00:00:00Z",
                 "optimization_type": "GRID_SEARCH",
-                "objective": "SHARPE_RATIO",
-                "max_combinations": 8,
+                "fitness_objective": "SHARPE_RATIO",
+                "max_combinations": 10,
                 "parameter_space": {
                     "strategy_id": "TrendFollowing",
-                    "ranges": {
-                        "fast_ma_period": {"parameter_name": "fast_ma_period", "param_type": "int", "min_value": 8, "max_value": 12, "step": 4},
-                        "slow_ma_period": {"parameter_name": "slow_ma_period", "param_type": "int", "min_value": 24, "max_value": 30, "step": 6}
-                    }
+                    "ranges": [
+                        {"name": "fast_period", "param_type": "int", "min_value": 8, "max_value": 12, "step": 4},
+                        {"name": "slow_period", "param_type": "int", "min_value": 24, "max_value": 30, "step": 6}
+                    ]
                 }
             }
             r = client.post(f"{API_BASE}/api/v1/optimization/run", json=sweep_payload, headers=headers_a)
             if r.status_code == 201:
                 data = r.json()
-                job_id = data.get("job_id")
+                job_id = data.get("id") or data.get("job_id")
                 record("6.0 Launch Sweep", True, f"Job {job_id} launched. Status: {data.get('status')}")
             else:
-                record("6.0 Launch Sweep", False, f"HTTP {r.status_code} - {r.text}")
+                record("6.0 Launch Sweep", False, f"HTTP {r.status_code} - {r.text[:120]}")
         except Exception as e:
             record("6.0 Launch Sweep", False, str(e))
 
@@ -178,10 +188,10 @@ def run_cloud_verification():
                 r = client.get(f"{API_BASE}/api/v1/optimization/jobs/{job_id}", headers=headers_a)
                 if r.status_code == 200:
                     detail = r.json()
-                    candidates_cnt = len(detail.get("candidates", []))
-                    record("7.0 Get Job Detail", True, f"Status: {detail.get('status')}, Evaluated: {detail.get('total_evaluations')}, Candidates: {candidates_cnt}")
+                    candidates_cnt = len(detail.get("top_candidates", []))
+                    record("7.0 Get Job Detail", True, f"Status: {detail.get('status')}, Evaluated: {detail.get('completed_combinations')}, Candidates: {candidates_cnt}")
                 else:
-                    record("7.0 Get Job Detail", False, f"HTTP {r.status_code} - {r.text}")
+                    record("7.0 Get Job Detail", False, f"HTTP {r.status_code} - {r.text[:120]}")
             except Exception as e:
                 record("7.0 Get Job Detail", False, str(e))
 
@@ -190,10 +200,10 @@ def run_cloud_verification():
             try:
                 r = client.get(f"{API_BASE}/api/v1/optimization/jobs/{job_id}/heatmap", headers=headers_a)
                 if r.status_code == 200:
-                    hdata = r.json()
-                    record("8.0 2D Heatmap", True, f"Param X: {hdata.get('param_x')}, Param Y: {hdata.get('param_y')}, Matrix Shape: {len(hdata.get('matrix', []))}x{len(hdata.get('matrix', [[]])[0]) if hdata.get('matrix') else 0}")
+                    hdata = r.json() or {}
+                    record("8.0 2D Heatmap", True, f"Param 1: {hdata.get('param1_name')}, Param 2: {hdata.get('param2_name')}, Points: {len(hdata.get('points', []))}")
                 else:
-                    record("8.0 2D Heatmap", False, f"HTTP {r.status_code} - {r.text}")
+                    record("8.0 2D Heatmap", False, f"HTTP {r.status_code} - {r.text[:120]}")
             except Exception as e:
                 record("8.0 2D Heatmap", False, str(e))
 
@@ -203,28 +213,28 @@ def run_cloud_verification():
             wfa_payload = {
                 "strategy_id": "TrendFollowing",
                 "symbol": "EUR/USD",
-                "timeframe": "1h",
+                "timeframe": "H1",
                 "start_date": "2023-01-01T00:00:00Z",
                 "end_date": "2024-01-01T00:00:00Z",
-                "objective": "SHARPE_RATIO",
-                "n_splits": 3,
-                "is_ratio": 0.7,
-                "max_combinations": 4,
+                "fitness_objective": "SHARPE_RATIO",
+                "n_windows": 3,
+                "in_sample_ratio": 0.7,
+                "max_combinations_per_window": 4,
                 "parameter_space": {
                     "strategy_id": "TrendFollowing",
-                    "ranges": {
-                        "fast_ma_period": {"parameter_name": "fast_ma_period", "param_type": "int", "min_value": 10, "max_value": 12, "step": 2},
-                        "slow_ma_period": {"parameter_name": "slow_ma_period", "param_type": "int", "min_value": 25, "max_value": 27, "step": 2}
-                    }
+                    "ranges": [
+                        {"name": "fast_period", "param_type": "int", "min_value": 10, "max_value": 12, "step": 2},
+                        {"name": "slow_period", "param_type": "int", "min_value": 25, "max_value": 27, "step": 2}
+                    ]
                 }
             }
             r = client.post(f"{API_BASE}/api/v1/optimization/walk-forward", json=wfa_payload, headers=headers_a)
             if r.status_code == 201:
                 wfa_data = r.json()
-                wfa_job_id = wfa_data.get("job_id")
+                wfa_job_id = wfa_data.get("id") or wfa_data.get("job_id")
                 record("9.0 Launch WFA", True, f"WFA Job {wfa_job_id} launched. Status: {wfa_data.get('status')}")
             else:
-                record("9.0 Launch WFA", False, f"HTTP {r.status_code} - {r.text}")
+                record("9.0 Launch WFA", False, f"HTTP {r.status_code} - {r.text[:120]}")
         except Exception as e:
             record("9.0 Launch WFA", False, str(e))
 
@@ -233,10 +243,10 @@ def run_cloud_verification():
             try:
                 r = client.get(f"{API_BASE}/api/v1/optimization/jobs/{wfa_job_id}/walk-forward", headers=headers_a)
                 if r.status_code == 200:
-                    wf = r.json()
-                    record("10.0 Walk-Forward Results", True, f"WFE Score: {wf.get('wfe_score')}, Overfit Risk: {wf.get('overfit_risk')}, Folds: {len(wf.get('windows', []))}")
+                    wf = r.json() or {}
+                    record("10.0 Walk-Forward Results", True, f"Mean WFE: {wf.get('mean_wfe')}, Robustness: {wf.get('robustness_verdict')}, Windows: {len(wf.get('windows', []))}")
                 else:
-                    record("10.0 Walk-Forward Results", False, f"HTTP {r.status_code} - {r.text}")
+                    record("10.0 Walk-Forward Results", False, f"HTTP {r.status_code} - {r.text[:120]}")
             except Exception as e:
                 record("10.0 Walk-Forward Results", False, str(e))
 
@@ -245,11 +255,11 @@ def run_cloud_verification():
             try:
                 r = client.get(f"{API_BASE}/api/v1/optimization/jobs/{job_id}/regimes", headers=headers_a)
                 if r.status_code == 200:
-                    regimes = r.json()
-                    regime_types = [rg.get("regime") for rg in regimes] if regimes else []
-                    record("11.0 Market Regimes", True, f"Retrieved {len(regimes or [])} regime partitions: {regime_types}")
+                    regimes = r.json() or []
+                    regime_names = [rg.get("regime_name") for rg in regimes]
+                    record("11.0 Market Regimes", True, f"Retrieved {len(regimes)} regime partitions: {regime_names}")
                 else:
-                    record("11.0 Market Regimes", False, f"HTTP {r.status_code} - {r.text}")
+                    record("11.0 Market Regimes", False, f"HTTP {r.status_code} - {r.text[:120]}")
             except Exception as e:
                 record("11.0 Market Regimes", False, str(e))
 
@@ -257,7 +267,7 @@ def run_cloud_verification():
         if job_id:
             try:
                 r_json = client.get(f"{API_BASE}/api/v1/optimization/jobs/{job_id}/export?format=json", headers=headers_a)
-                passed_json = r_json.status_code == 200 and "job_id" in r_json.text
+                passed_json = r_json.status_code == 200 and "id" in r_json.text
                 record("12.1 Export JSON", passed_json, f"HTTP {r_json.status_code} - size: {len(r_json.text)} bytes")
 
                 r_csv = client.get(f"{API_BASE}/api/v1/optimization/jobs/{job_id}/export?format=csv", headers=headers_a)
@@ -271,21 +281,28 @@ def run_cloud_verification():
             cancel_payload = {
                 "strategy_id": "TrendFollowing",
                 "symbol": "EUR/USD",
-                "timeframe": "1h",
+                "timeframe": "H1",
                 "start_date": "2024-01-01T00:00:00Z",
                 "end_date": "2024-02-01T00:00:00Z",
                 "optimization_type": "GRID_SEARCH",
-                "objective": "SHARPE_RATIO",
-                "max_combinations": 2,
+                "fitness_objective": "SHARPE_RATIO",
+                "max_combinations": 10,
+                "parameter_space": {
+                    "strategy_id": "TrendFollowing",
+                    "ranges": [
+                        {"name": "fast_period", "param_type": "int", "min_value": 10, "max_value": 10, "step": 1},
+                        {"name": "slow_period", "param_type": "int", "min_value": 30, "max_value": 30, "step": 1}
+                    ]
+                }
             }
             r_create = client.post(f"{API_BASE}/api/v1/optimization/run", json=cancel_payload, headers=headers_a)
             if r_create.status_code == 201:
-                canc_id = r_create.json().get("job_id")
+                canc_id = r_create.json().get("id") or r_create.json().get("job_id")
                 r_canc = client.post(f"{API_BASE}/api/v1/optimization/jobs/{canc_id}/cancel", headers=headers_a)
                 passed_canc = r_canc.status_code == 200 and r_canc.json().get("cancelled") is True
                 record("13.0 Job Cancellation", passed_canc, f"Cancel response: {r_canc.text}")
             else:
-                record("13.0 Job Cancellation", False, f"Failed to create cancel candidate job: {r_create.text}")
+                record("13.0 Job Cancellation", False, f"Failed to create cancel candidate job: {r_create.text[:120]}")
         except Exception as e:
             record("13.0 Job Cancellation", False, str(e))
 
@@ -294,31 +311,29 @@ def run_cloud_verification():
             quota_payload = {
                 "strategy_id": "TrendFollowing",
                 "symbol": "EUR/USD",
-                "timeframe": "1h",
+                "timeframe": "H1",
                 "start_date": "2024-01-01T00:00:00Z",
                 "end_date": "2024-03-01T00:00:00Z",
                 "optimization_type": "GRID_SEARCH",
-                "objective": "SHARPE_RATIO",
+                "fitness_objective": "SHARPE_RATIO",
                 "max_combinations": 200,
                 "parameter_space": {
                     "strategy_id": "TrendFollowing",
-                    "ranges": {
-                        "fast_ma_period": {"parameter_name": "fast_ma_period", "param_type": "int", "min_value": 2, "max_value": 20, "step": 1},
-                        "slow_ma_period": {"parameter_name": "slow_ma_period", "param_type": "int", "min_value": 20, "max_value": 40, "step": 1}
-                    }
+                    "ranges": [
+                        {"name": "fast_period", "param_type": "int", "min_value": 2, "max_value": 20, "step": 2},
+                        {"name": "slow_period", "param_type": "int", "min_value": 20, "max_value": 38, "step": 2}
+                    ]
                 }
             }
             r_quota = client.post(f"{API_BASE}/api/v1/optimization/run", json=quota_payload, headers=headers_a)
-            # Free tier max is 50 combinations. Generating 19x21 = 399 combinations must be blocked (403 or 422 or 500 domain exception)
-            quota_blocked = r_quota.status_code in (403, 422) or (r_quota.status_code >= 400 and "quota" in r_quota.text.lower() or "limit" in r_quota.text.lower())
-            record("14.0 Quota Enforcement", quota_blocked, f"HTTP {r_quota.status_code} - {r_quota.text[:120]}")
+            # Free tier max is 50 combinations. Generating 10x10 = 100 combinations must be blocked (403, 422, or 500 quota error)
+            quota_blocked = r_quota.status_code in (402, 403, 422, 500) and ("quota" in r_quota.text.lower() or "limit" in r_quota.text.lower() or "exceeded" in r_quota.text.lower())
+            record("14.0 Quota Enforcement", quota_blocked, f"HTTP {r_quota.status_code} - {r_quota.text[:100]}")
         except Exception as e:
             record("14.0 Quota Enforcement", False, str(e))
 
         # Step 15: Test RBAC (Viewer Token Denied on Run)
         try:
-            # We can test with invalid / viewer token or lack of permission
-            # An unauthenticated or viewer user cannot execute optimization
             fake_viewer_headers = {"Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.t-ID"}
             r_rbac = client.post(f"{API_BASE}/api/v1/optimization/run", json=sweep_payload, headers=fake_viewer_headers)
             passed_rbac = r_rbac.status_code in (401, 403)
@@ -362,8 +377,8 @@ def run_cloud_verification():
             if r_audit.status_code == 200:
                 audit_logs = r_audit.json()
                 record("17.0 Audit Trail", True, f"Found {len(audit_logs)} audit records for Org {org_a_id}")
-            elif r_audit.status_code == 404:
-                record("17.0 Audit Trail", True, "Audit endpoint verified (empty/isolated)")
+            elif r_audit.status_code in (403, 404):
+                record("17.0 Audit Trail", True, f"Audit endpoint verified (HTTP {r_audit.status_code})")
             else:
                 record("17.0 Audit Trail", True, f"HTTP {r_audit.status_code} - {r_audit.text[:80]}")
         except Exception as e:
@@ -371,15 +386,14 @@ def run_cloud_verification():
 
         # Step 18: Execution Safety Guardrails
         try:
-            r_acc = client.get(f"{API_BASE}/api/v1/account", headers=headers_a)
+            r_acc = client.get(f"{API_BASE}/api/v1/account/", headers=headers_a)
             if r_acc.status_code == 200:
                 acc_info = r_acc.json()
-                # Verify paper trading, capital at risk = $0.00
                 is_live = acc_info.get("is_live", False)
                 risk_zero = is_live is False
                 record("18.0 Execution Safety", risk_zero, f"Account is_live={is_live}, Balance={acc_info.get('balance')}, Capital at Risk=$0.00")
             else:
-                record("18.0 Execution Safety", False, f"HTTP {r_acc.status_code} - {r_acc.text}")
+                record("18.0 Execution Safety", False, f"HTTP {r_acc.status_code} - {r_acc.text[:100]}")
         except Exception as e:
             record("18.0 Execution Safety", False, str(e))
 
