@@ -4,22 +4,16 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from decimal import Decimal
-from typing import Any
 
 from libraries.domain.market_data.exceptions import (
-    DataUnavailableError,
     InvalidQuoteError,
-    MarketDataError,
-    SymbolNotFoundError,
 )
 from libraries.domain.market_data.interfaces import MarketDataProviderPort
 from libraries.domain.market_data.models import (
-    BarType,
+    OHLCV,
     DataQuality,
     Instrument,
     MarketDataHealth,
-    OHLCV,
     ProviderStatus,
     Quote,
 )

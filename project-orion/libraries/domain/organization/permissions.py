@@ -63,6 +63,12 @@ class Permission(StrEnum):
     RESEARCH_CANCEL = "RESEARCH_CANCEL"
     RESEARCH_EXPORT = "RESEARCH_EXPORT"
 
+    # Strategy Optimization & Walk-Forward AI Research
+    OPTIMIZATION_READ = "OPTIMIZATION_READ"
+    OPTIMIZATION_EXECUTE = "OPTIMIZATION_EXECUTE"
+    OPTIMIZATION_CANCEL = "OPTIMIZATION_CANCEL"
+    OPTIMIZATION_EXPORT = "OPTIMIZATION_EXPORT"
+
 
 # Canonical Role -> Permission Matrix
 ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
@@ -96,6 +102,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXECUTE,
         Permission.RESEARCH_CANCEL,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXECUTE,
+        Permission.OPTIMIZATION_CANCEL,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.ADMINISTRATOR: {
         Permission.ORGANIZATION_READ,
@@ -123,6 +133,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXECUTE,
         Permission.RESEARCH_CANCEL,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXECUTE,
+        Permission.OPTIMIZATION_CANCEL,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.PORTFOLIO_MANAGER: {
         Permission.ORGANIZATION_READ,
@@ -148,6 +162,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXECUTE,
         Permission.RESEARCH_CANCEL,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXECUTE,
+        Permission.OPTIMIZATION_CANCEL,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.RISK_OFFICER: {
         Permission.ORGANIZATION_READ,
@@ -164,6 +182,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.AUDIT_READ,
         Permission.RESEARCH_READ,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.TRADER: {
         Permission.ORGANIZATION_READ,
@@ -184,6 +204,10 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.RESEARCH_EXECUTE,
         Permission.RESEARCH_CANCEL,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXECUTE,
+        Permission.OPTIMIZATION_CANCEL,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.AUDITOR: {
         Permission.ORGANIZATION_READ,
@@ -199,6 +223,8 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.AUDIT_READ,
         Permission.RESEARCH_READ,
         Permission.RESEARCH_EXPORT,
+        Permission.OPTIMIZATION_READ,
+        Permission.OPTIMIZATION_EXPORT,
     },
     OrganizationRole.VIEWER: {
         Permission.ORGANIZATION_READ,
@@ -212,6 +238,7 @@ ROLE_PERMISSIONS: dict[OrganizationRole, set[Permission]] = {
         Permission.WORKER_READ,
         Permission.SUBSCRIPTION_READ,
         Permission.RESEARCH_READ,
+        Permission.OPTIMIZATION_READ,
     },
 }
 

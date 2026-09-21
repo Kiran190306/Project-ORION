@@ -7,9 +7,9 @@ Create Date: 2026-09-19 23:20:00.000000+00:00
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
-import uuid
 
 import sqlalchemy as sa
 from alembic import op

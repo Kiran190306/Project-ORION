@@ -36,6 +36,7 @@ from .routes.health import router as health_router
 from .routes.market_data import router as market_data_router
 from .routes.metrics import router as metrics_router
 from .routes.onboarding import router as onboarding_router
+from .routes.optimization import router as optimization_router
 from .routes.orders import router as orders_router
 from .routes.organization import router as organization_router
 from .routes.paper import router as paper_router
@@ -172,6 +173,7 @@ def create_app(
     app.include_router(subscription_router)
     app.include_router(billing_router)
     app.include_router(research_router)
+    app.include_router(optimization_router)
 
     return app
 

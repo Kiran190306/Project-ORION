@@ -12,8 +12,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libraries.domain.subscription.exceptions import (
     AccountQuotaExceededError,
     AssetNotEntitledError,
+    DailyOptimizationQuotaExceededError,
     DailyOrderQuotaExceededError,
     DailyResearchQuotaExceededError,
+    OptimizationCombinationLimitExceededError,
     ResearchHistoryLimitExceededError,
     SubscriptionInactiveError,
     WorkerQuotaExceededError,
@@ -249,6 +251,64 @@ class EntitlementService:
                 limit=max_daily_experiments,
             )
 
+    async def check_optimization_quota(
+        self,
+        organization_id: str | None,
+        combinations_count: int,
+    ) -> None:
+        """Verify organization does not exceed parameter combination limits or daily optimization jobs."""
+        entitlement = await self.get_effective_entitlement(organization_id)
+
+        if entitlement.subscription is not None and not entitlement.subscription.is_active:
+            raise SubscriptionInactiveError(entitlement.subscription.status.value)
+
+        plan_code = entitlement.plan.code
+        if plan_code == PlanCode.FREE:
+            max_combinations = 50
+            max_daily_optimizations = 5
+        elif plan_code == PlanCode.PRO:
+            max_combinations = 300
+            max_daily_optimizations = 25
+        elif plan_code == PlanCode.BUSINESS:
+            max_combinations = 1000
+            max_daily_optimizations = 100
+        else:
+            max_combinations = 5000
+            max_daily_optimizations = 500
+
+        # Check combination limit
+        if combinations_count > max_combinations:
+            raise OptimizationCombinationLimitExceededError(
+                requested=combinations_count,
+                limit=max_combinations,
+            )
+
+        # Check daily optimization runs
+        now = datetime.now(timezone.utc)
+        start_of_day = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+
+        from libraries.infrastructure.persistence.models.optimization import (
+            OptimizationJobModel,
+        )
+
+        if organization_id is not None:
+            stmt = select(func.count(OptimizationJobModel.id)).where(
+                OptimizationJobModel.organization_id == organization_id,
+                OptimizationJobModel.created_at >= start_of_day,
+            )
+        else:
+            stmt = select(func.count(OptimizationJobModel.id)).where(
+                OptimizationJobModel.created_at >= start_of_day,
+            )
+        result = await self.session.execute(stmt)
+        optimizations_today = int(result.scalar() or 0)
+
+        if optimizations_today >= max_daily_optimizations:
+            raise DailyOptimizationQuotaExceededError(
+                current=optimizations_today,
+                limit=max_daily_optimizations,
+            )
+
     async def get_usage_summary(self, organization_id: str | None) -> dict[str, Any]:
         """Aggregate current resource utilization against plan quota thresholds."""
         entitlement = await self.get_effective_entitlement(organization_id)
@@ -296,19 +356,44 @@ class EntitlementService:
         res_result = await self.session.execute(res_stmt)
         research_today = int(res_result.scalar() or 0)
 
+        # Optimization jobs today (UTC)
+        from libraries.infrastructure.persistence.models.optimization import (
+            OptimizationJobModel,
+        )
+
+        if organization_id is not None:
+            opt_stmt = select(func.count(OptimizationJobModel.id)).where(
+                OptimizationJobModel.organization_id == organization_id,
+                OptimizationJobModel.created_at >= start_of_day,
+            )
+        else:
+            opt_stmt = select(func.count(OptimizationJobModel.id)).where(
+                OptimizationJobModel.created_at >= start_of_day,
+            )
+        opt_result = await self.session.execute(opt_stmt)
+        optimizations_today = int(opt_result.scalar() or 0)
+
         plan_code = entitlement.plan.code
         if plan_code == PlanCode.FREE:
             max_daily_experiments = 10
             max_history_days = 30
+            max_daily_optimizations = 5
+            max_combinations = 50
         elif plan_code == PlanCode.PRO:
             max_daily_experiments = 50
             max_history_days = 180
+            max_daily_optimizations = 25
+            max_combinations = 300
         elif plan_code == PlanCode.BUSINESS:
             max_daily_experiments = 200
             max_history_days = 365
+            max_daily_optimizations = 100
+            max_combinations = 1000
         else:
             max_daily_experiments = -1
             max_history_days = 3650
+            max_daily_optimizations = 500
+            max_combinations = 5000
 
         return {
             "organization_id": organization_id,
@@ -331,6 +416,12 @@ class EntitlementService:
                     "limit": max_daily_experiments,
                     "is_unlimited": max_daily_experiments < 0,
                     "max_history_days": max_history_days,
+                },
+                "optimization_jobs": {
+                    "used": optimizations_today,
+                    "limit": max_daily_optimizations,
+                    "max_combinations": max_combinations,
+                    "is_unlimited": max_daily_optimizations < 0,
                 },
                 "workers": {
                     "used": 0,

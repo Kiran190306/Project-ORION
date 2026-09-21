@@ -57,6 +57,12 @@ import type {
   ExperimentTradesResponse,
   CompareExperimentsRequest,
   ExperimentComparisonResponse,
+  StrategyDefaultSpaceResponse,
+  OptimizationRunRequest,
+  WalkForwardRunRequest,
+  OptimizationJobSummary,
+  OptimizationJobDetail,
+  SensitivityHeatmap,
 } from './types';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
@@ -461,6 +467,48 @@ export const researchApi = {
     `/api/v1/research/experiments/${encodeURIComponent(experimentId)}/export?format=${format}`,
 };
 
+// ─── EPIC-024: Quantitative Strategy Optimization Engine ───────────────────
 
+export const optimizationApi = {
+  getDefaultSpace: (strategyId: string): Promise<StrategyDefaultSpaceResponse> =>
+    apiClient<StrategyDefaultSpaceResponse>(`/api/v1/optimization/spaces/${encodeURIComponent(strategyId)}`, {
+      method: 'GET',
+    }),
 
+  runOptimization: (req: OptimizationRunRequest): Promise<OptimizationJobDetail> =>
+    apiClient<OptimizationJobDetail>('/api/v1/optimization/run', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
 
+  runWalkForward: (req: WalkForwardRunRequest): Promise<OptimizationJobDetail> =>
+    apiClient<OptimizationJobDetail>('/api/v1/optimization/walk-forward', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    }),
+
+  listJobs: (status?: string): Promise<OptimizationJobSummary[]> => {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    return apiClient<OptimizationJobSummary[]>(`/api/v1/optimization/jobs${query}`, {
+      method: 'GET',
+    });
+  },
+
+  getJob: (jobId: string): Promise<OptimizationJobDetail> =>
+    apiClient<OptimizationJobDetail>(`/api/v1/optimization/jobs/${encodeURIComponent(jobId)}`, {
+      method: 'GET',
+    }),
+
+  cancelJob: (jobId: string): Promise<{ status: string; job_id: string }> =>
+    apiClient<{ status: string; job_id: string }>(`/api/v1/optimization/jobs/${encodeURIComponent(jobId)}/cancel`, {
+      method: 'POST',
+    }),
+
+  getHeatmap: (jobId: string): Promise<SensitivityHeatmap> =>
+    apiClient<SensitivityHeatmap>(`/api/v1/optimization/jobs/${encodeURIComponent(jobId)}/heatmap`, {
+      method: 'GET',
+    }),
+
+  getExportUrl: (jobId: string, format: 'csv' | 'json' = 'csv'): string =>
+    `/api/v1/optimization/jobs/${encodeURIComponent(jobId)}/export?format=${format}`,
+};

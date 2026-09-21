@@ -771,3 +771,187 @@ export interface ExperimentComparisonResponse {
   comparison: Record<string, any>[];
   normalized_curves: Record<string, { timestamp: string; return_pct: number }[]>;
 }
+
+// ---------------------------------------------------------------------------
+// EPIC-024: Quantitative Strategy Optimization & Walk-Forward AI Engine
+// ---------------------------------------------------------------------------
+
+export interface ParameterRangeConfig {
+  name: string;
+  param_type: 'int' | 'float' | 'choice';
+  min_value: number | string;
+  max_value: number | string;
+  step?: number | null;
+  choices?: (string | number)[] | null;
+}
+
+export interface ParameterSpaceConfig {
+  strategy_id: string;
+  ranges: ParameterRangeConfig[];
+}
+
+export interface StrategyDefaultSpaceResponse {
+  strategy_id: string;
+  ranges: ParameterRangeConfig[];
+  estimated_combinations: number;
+}
+
+export interface OptimizationRunRequest {
+  strategy_id: string;
+  symbol?: string;
+  timeframe?: string;
+  start_date: string;
+  end_date: string;
+  initial_capital?: number;
+  optimization_type?: 'GRID_SEARCH' | 'RANDOM_SEARCH';
+  fitness_objective?: string;
+  parameter_space?: ParameterSpaceConfig | null;
+  max_combinations?: number;
+  n_samples?: number;
+  random_seed?: number;
+  spread_pips?: number;
+  slippage_pips?: number;
+  commission?: number;
+}
+
+export interface WalkForwardRunRequest {
+  strategy_id: string;
+  symbol?: string;
+  timeframe?: string;
+  start_date: string;
+  end_date: string;
+  initial_capital?: number;
+  n_windows?: number;
+  in_sample_ratio?: number;
+  anchored?: boolean;
+  fitness_objective?: string;
+  parameter_space?: ParameterSpaceConfig | null;
+  max_combinations_per_window?: number;
+  spread_pips?: number;
+  slippage_pips?: number;
+  commission?: number;
+}
+
+export interface OptimizationCandidate {
+  rank: number;
+  parameters: Record<string, any>;
+  fitness_score: number;
+  total_return: number;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  max_drawdown: number;
+  win_rate: number;
+  profit_factor: number;
+  total_trades: number;
+  net_pnl: number;
+}
+
+export interface WalkForwardWindow {
+  window_index: number;
+  is_start: string;
+  is_end: string;
+  oos_start: string;
+  oos_end: string;
+  optimal_parameters: Record<string, any>;
+  is_metrics: Record<string, any>;
+  oos_metrics: Record<string, any>;
+  is_return: number;
+  oos_return: number;
+  efficiency_ratio?: number | null;
+  oos_equity_curve?: { timestamp: string; equity: number; drawdown: number }[];
+}
+
+export interface WalkForwardAnalysisResult {
+  total_windows: number;
+  windows: WalkForwardWindow[];
+  mean_wfe?: number | null;
+  annualized_oos_return: number;
+  annualized_oos_sharpe: number;
+  robustness_verdict: string;
+  concatenated_oos_equity: { timestamp: string; equity: number; drawdown: number }[];
+  warnings: string[];
+}
+
+export interface RegimeBreakdown {
+  regime_name: string;
+  trade_count: number;
+  win_rate: number;
+  profit_factor: number;
+  total_return: number;
+  sharpe_ratio: number;
+  drawdown: number;
+}
+
+export interface ParameterStabilityReport {
+  optimal_parameters: Record<string, any>;
+  plateau_stability_score: number;
+  max_neighbor_drop_pct: number;
+  is_cliff: boolean;
+  cliff_details: string;
+  adjacent_evaluations: Record<string, any>[];
+}
+
+export interface SensitivityHeatmapPoint {
+  param1_value: number | string;
+  param2_value: number | string;
+  fitness_score: number;
+}
+
+export interface SensitivityHeatmap {
+  param1_name: string;
+  param2_name: string;
+  min_fitness: number;
+  max_fitness: number;
+  points: SensitivityHeatmapPoint[];
+}
+
+export interface OptimizationJobSummary {
+  id: string;
+  organization_id: string;
+  strategy_id: string;
+  symbol: string;
+  timeframe: string;
+  optimization_type: string;
+  fitness_objective: string;
+  status: string;
+  total_combinations: number;
+  completed_combinations: number;
+  execution_time_seconds: number;
+  best_parameters?: Record<string, any> | null;
+  best_fitness_score?: number | null;
+  best_sharpe?: number | null;
+  best_return?: number | null;
+  created_at: string;
+  completed_at?: string | null;
+}
+
+export interface OptimizationJobDetail {
+  id: string;
+  organization_id: string;
+  strategy_id: string;
+  symbol: string;
+  timeframe: string;
+  start_date: string;
+  end_date: string;
+  initial_capital: number;
+  optimization_type: string;
+  fitness_objective: string;
+  parameter_space: Record<string, any>;
+  optimization_config: Record<string, any>;
+  status: string;
+  total_combinations: number;
+  completed_combinations: number;
+  execution_time_seconds: number;
+  best_parameters?: Record<string, any> | null;
+  best_metrics?: Record<string, any> | null;
+  top_candidates?: OptimizationCandidate[] | null;
+  walk_forward_result?: WalkForwardAnalysisResult | null;
+  regime_breakdowns?: RegimeBreakdown[] | null;
+  stability_analysis?: ParameterStabilityReport | null;
+  heatmap?: SensitivityHeatmap | null;
+  warnings?: string[] | null;
+  error_message?: string | null;
+  created_at: string;
+  completed_at?: string | null;
+}

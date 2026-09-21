@@ -110,3 +110,28 @@ class ResearchHistoryLimitExceededError(EntitlementError):
         )
         self.requested_days = requested_days
         self.limit_days = limit_days
+
+
+class DailyOptimizationQuotaExceededError(QuotaExceededError):
+    """Raised when organization exceeds maximum allowed daily optimization runs."""
+
+    def __init__(self, current: int, limit: int) -> None:
+        super().__init__(
+            f"Daily optimization quota exceeded: Organization has launched {current} optimization jobs today (plan limit: {limit}).",
+            code="DAILY_OPTIMIZATION_QUOTA_EXCEEDED",
+        )
+        self.current = current
+        self.limit = limit
+
+
+class OptimizationCombinationLimitExceededError(QuotaExceededError):
+    """Raised when parameter space combination count exceeds plan limit."""
+
+    def __init__(self, requested: int, limit: int) -> None:
+        super().__init__(
+            f"Optimization parameter combinations ({requested}) exceeds plan limit of {limit} combinations per job.",
+            code="OPTIMIZATION_COMBINATION_LIMIT_EXCEEDED",
+        )
+        self.requested = requested
+        self.limit = limit
+

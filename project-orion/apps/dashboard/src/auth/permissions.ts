@@ -43,6 +43,11 @@ export enum Permission {
   RESEARCH_EXECUTE = 'RESEARCH_EXECUTE',
   RESEARCH_CANCEL = 'RESEARCH_CANCEL',
   RESEARCH_EXPORT = 'RESEARCH_EXPORT',
+
+  OPTIMIZATION_READ = 'OPTIMIZATION_READ',
+  OPTIMIZATION_EXECUTE = 'OPTIMIZATION_EXECUTE',
+  OPTIMIZATION_CANCEL = 'OPTIMIZATION_CANCEL',
+  OPTIMIZATION_EXPORT = 'OPTIMIZATION_EXPORT',
 }
 
 export enum OrganizationRole {
@@ -86,6 +91,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.RESEARCH_EXECUTE,
     Permission.RESEARCH_CANCEL,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXECUTE,
+    Permission.OPTIMIZATION_CANCEL,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.ADMINISTRATOR]: new Set([
     Permission.ORGANIZATION_READ,
@@ -113,6 +122,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.RESEARCH_EXECUTE,
     Permission.RESEARCH_CANCEL,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXECUTE,
+    Permission.OPTIMIZATION_CANCEL,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.PORTFOLIO_MANAGER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -138,6 +151,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.RESEARCH_EXECUTE,
     Permission.RESEARCH_CANCEL,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXECUTE,
+    Permission.OPTIMIZATION_CANCEL,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.RISK_OFFICER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -154,6 +171,8 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.AUDIT_READ,
     Permission.RESEARCH_READ,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.TRADER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -174,6 +193,10 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.RESEARCH_EXECUTE,
     Permission.RESEARCH_CANCEL,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXECUTE,
+    Permission.OPTIMIZATION_CANCEL,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.AUDITOR]: new Set([
     Permission.ORGANIZATION_READ,
@@ -189,6 +212,8 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.AUDIT_READ,
     Permission.RESEARCH_READ,
     Permission.RESEARCH_EXPORT,
+    Permission.OPTIMIZATION_READ,
+    Permission.OPTIMIZATION_EXPORT,
   ]),
   [OrganizationRole.VIEWER]: new Set([
     Permission.ORGANIZATION_READ,
@@ -202,6 +227,7 @@ export const ROLE_PERMISSIONS: Record<string, Set<Permission>> = {
     Permission.WORKER_READ,
     Permission.SUBSCRIPTION_READ,
     Permission.RESEARCH_READ,
+    Permission.OPTIMIZATION_READ,
   ]),
 };
 

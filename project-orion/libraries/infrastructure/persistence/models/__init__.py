@@ -16,6 +16,9 @@ from libraries.infrastructure.persistence.models.invitation import (
 from libraries.infrastructure.persistence.models.notification import (
     NotificationRecordModel,
 )
+from libraries.infrastructure.persistence.models.optimization import (
+    OptimizationJobModel,
+)
 from libraries.infrastructure.persistence.models.order import (
     ExecutionReportModel,
     FillModel,
@@ -52,6 +55,7 @@ __all__ = [
     "ExecutionReportModel",
     "FillModel",
     "NotificationRecordModel",
+    "OptimizationJobModel",
     "OrderModel",
     "OrganizationInvitationModel",
     "OrganizationMemberModel",
