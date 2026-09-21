@@ -38,6 +38,7 @@ from .routes.metrics import router as metrics_router
 from .routes.onboarding import router as onboarding_router
 from .routes.orders import router as orders_router
 from .routes.organization import router as organization_router
+from .routes.paper import router as paper_router
 from .routes.portfolio import router as portfolio_router
 from .routes.positions import router as positions_router
 from .routes.risk import router as risk_router
@@ -160,6 +161,7 @@ def create_app(
     app.include_router(strategies_router)
     app.include_router(risk_router)
     app.include_router(trading_router)
+    app.include_router(paper_router)
     app.include_router(orders_router)
     app.include_router(positions_router)
     app.include_router(trades_router)

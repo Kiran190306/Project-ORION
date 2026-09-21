@@ -27,6 +27,7 @@ from libraries.domain.subscription.exceptions import (
 from libraries.infrastructure.execution.paper_execution import PaperExecutionAdapter
 from libraries.infrastructure.persistence.models import (
     AccountModel,
+    ExecutionReportModel,
     FillModel,
     OrderModel,
     PositionModel,
@@ -122,6 +123,20 @@ class OrderService:
 
         await self._ensure_connected()
 
+        # Pre-trade margin check (when account balance is configured)
+        leverage = Decimal(str(self.account.leverage or 100))
+        ref_price = request.price or Decimal("1.20000")
+        required_margin = (request.quantity * ref_price) / leverage
+        if (
+            self.account.balance > Decimal(0)
+            and self.account.margin_free > Decimal(0)
+            and required_margin > self.account.margin_free
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Order rejected: insufficient free margin (required: {required_margin:.2f}, free: {self.account.margin_free:.2f})",
+            )
+
         order_id_str = f"ord_{uuid.uuid4().hex[:16]}"
         now = datetime.now(timezone.utc)
 
@@ -136,6 +151,8 @@ class OrderService:
             order_type = OrderType.LIMIT
         elif req_type == "STOP":
             order_type = OrderType.STOP
+        elif req_type == "TRAILING_STOP":
+            order_type = OrderType.TRAILING_STOP
         else:
             order_type = OrderType.MARKET
 
@@ -149,6 +166,9 @@ class OrderService:
             quantity=request.quantity,
             price=request.price,
             stop_price=request.stop_price,
+            stop_loss=request.stop_loss,
+            take_profit=request.take_profit,
+            trailing_distance=getattr(request, "trailing_distance", None),
         )
 
         try:
@@ -180,7 +200,7 @@ class OrderService:
             filled_quantity=exec_info.filled_quantity,
             average_fill_price=exec_info.average_fill_price,
             strategy_id=request.strategy_id,
-            meta_data={},
+            meta_data={"trailing_distance": str(request.trailing_distance)} if getattr(request, "trailing_distance", None) else {},
             created_at=now,
             updated_at=now,
         )
@@ -202,29 +222,158 @@ class OrderService:
             )
             self.session.add(fill_model)
 
-        # Record open position if filled
+        # Record execution audit report
+        exec_report = ExecutionReportModel(
+            id=f"rep_{uuid.uuid4().hex[:16]}",
+            order_id=order_id_str,
+            status=status_val,
+            latency_ms=0.0,
+            slippage_pips=0.0,
+            timestamp=now,
+        )
+        self.session.add(exec_report)
+
+        # Position netting & balance accounting when fills occur
         if exec_info.filled_quantity > Decimal(0):
-            pos_id = f"pos_{uuid.uuid4().hex[:16]}"
-            position_model = PositionModel(
-                id=pos_id,
-                organization_id=self.account.organization_id,
-                account_id=self.account.id,
-                symbol=request.symbol,
-                side=request.side.value.upper(),
-                quantity=exec_info.filled_quantity,
-                open_price=exec_info.average_fill_price or Decimal("1.20000"),
-                current_price=exec_info.average_fill_price or Decimal("1.20000"),
-                stop_loss=request.stop_loss,
-                take_profit=request.take_profit,
-                realized_pnl=Decimal(0),
-                unrealized_pnl=Decimal(0),
-                commission=exec_info.commission,
-                swap=Decimal(0),
-                is_open=True,
-                opened_at=now,
-                meta_data={"order_id": order_id_str},
+            fill_price = exec_info.average_fill_price or Decimal("1.20000")
+            fill_qty = exec_info.filled_quantity
+            side_str = request.side.value.upper()
+
+            # Deduct commission from cash balance
+            if exec_info.commission > Decimal(0):
+                self.account.balance -= exec_info.commission
+                self.account.equity -= exec_info.commission
+
+            # Check existing open position for this account and symbol
+            pos_stmt = select(PositionModel).where(
+                PositionModel.account_id == self.account.id,
+                PositionModel.symbol == request.symbol,
+                PositionModel.is_open.is_(True),
             )
-            self.session.add(position_model)
+            pos_res = await self.session.execute(pos_stmt)
+            existing_pos = pos_res.scalar_one_or_none()
+
+            if existing_pos is None:
+                # 1. No open position: open new position
+                pos_id = f"pos_{uuid.uuid4().hex[:16]}"
+                position_model = PositionModel(
+                    id=pos_id,
+                    organization_id=self.account.organization_id,
+                    account_id=self.account.id,
+                    symbol=request.symbol,
+                    side=side_str,
+                    quantity=fill_qty,
+                    open_price=fill_price,
+                    current_price=fill_price,
+                    stop_loss=request.stop_loss,
+                    take_profit=request.take_profit,
+                    realized_pnl=Decimal(0),
+                    unrealized_pnl=Decimal(0),
+                    commission=exec_info.commission,
+                    swap=Decimal(0),
+                    is_open=True,
+                    opened_at=now,
+                    meta_data={
+                        "order_id": order_id_str,
+                        "trailing_distance": str(request.trailing_distance) if getattr(request, "trailing_distance", None) else None,
+                    },
+                )
+                self.session.add(position_model)
+                self.account.margin += required_margin
+            elif existing_pos.side == side_str:
+                # 2. Same direction: accumulate position with weighted average entry price
+                new_qty = existing_pos.quantity + fill_qty
+                new_open_price = ((existing_pos.open_price * existing_pos.quantity) + (fill_price * fill_qty)) / new_qty
+                existing_pos.quantity = new_qty
+                existing_pos.open_price = new_open_price
+                existing_pos.current_price = fill_price
+                existing_pos.commission += exec_info.commission
+                if request.stop_loss is not None:
+                    existing_pos.stop_loss = request.stop_loss
+                if request.take_profit is not None:
+                    existing_pos.take_profit = request.take_profit
+                self.account.margin += required_margin
+            else:
+                # 3. Opposite direction: netting / reduction / closure
+                if fill_qty < existing_pos.quantity:
+                    closed_qty = fill_qty
+                    if existing_pos.side == "BUY":
+                        realized_pnl = (fill_price - existing_pos.open_price) * closed_qty
+                    else:
+                        realized_pnl = (existing_pos.open_price - fill_price) * closed_qty
+
+                    existing_pos.quantity -= closed_qty
+                    existing_pos.realized_pnl += realized_pnl
+                    existing_pos.current_price = fill_price
+                    self.account.balance += realized_pnl
+                    self.account.equity += realized_pnl
+
+                    released_margin = (closed_qty * existing_pos.open_price) / leverage
+                    self.account.margin = max(Decimal(0), self.account.margin - released_margin)
+                elif fill_qty == existing_pos.quantity:
+                    if existing_pos.side == "BUY":
+                        realized_pnl = (fill_price - existing_pos.open_price) * existing_pos.quantity
+                    else:
+                        realized_pnl = (existing_pos.open_price - fill_price) * existing_pos.quantity
+
+                    existing_pos.is_open = False
+                    existing_pos.closed_at = now
+                    existing_pos.realized_pnl += realized_pnl
+                    existing_pos.current_price = fill_price
+                    self.account.balance += realized_pnl
+                    self.account.equity += realized_pnl
+
+                    released_margin = (existing_pos.quantity * existing_pos.open_price) / leverage
+                    self.account.margin = max(Decimal(0), self.account.margin - released_margin)
+                else:
+                    # Reversal
+                    closed_qty = existing_pos.quantity
+                    residual_qty = fill_qty - existing_pos.quantity
+
+                    if existing_pos.side == "BUY":
+                        realized_pnl = (fill_price - existing_pos.open_price) * closed_qty
+                    else:
+                        realized_pnl = (existing_pos.open_price - fill_price) * closed_qty
+
+                    existing_pos.is_open = False
+                    existing_pos.closed_at = now
+                    existing_pos.realized_pnl += realized_pnl
+                    existing_pos.current_price = fill_price
+                    self.account.balance += realized_pnl
+                    self.account.equity += realized_pnl
+
+                    old_margin = (closed_qty * existing_pos.open_price) / leverage
+                    self.account.margin = max(Decimal(0), self.account.margin - old_margin)
+
+                    # Open residual position in opposite direction
+                    pos_id = f"pos_{uuid.uuid4().hex[:16]}"
+                    position_model = PositionModel(
+                        id=pos_id,
+                        organization_id=self.account.organization_id,
+                        account_id=self.account.id,
+                        symbol=request.symbol,
+                        side=side_str,
+                        quantity=residual_qty,
+                        open_price=fill_price,
+                        current_price=fill_price,
+                        stop_loss=request.stop_loss,
+                        take_profit=request.take_profit,
+                        realized_pnl=Decimal(0),
+                        unrealized_pnl=Decimal(0),
+                        commission=Decimal(0),
+                        swap=Decimal(0),
+                        is_open=True,
+                        opened_at=now,
+                        meta_data={"order_id": order_id_str},
+                    )
+                    self.session.add(position_model)
+                    new_margin = (residual_qty * fill_price) / leverage
+                    self.account.margin += new_margin
+
+            # Recalculate free margin and margin level
+            self.account.margin_free = max(Decimal(0), self.account.equity - self.account.margin)
+            if self.account.margin > Decimal(0):
+                self.account.margin_level = float((self.account.equity / self.account.margin) * Decimal(100))
 
         await self.session.flush()
 
@@ -240,6 +389,7 @@ class OrderService:
             stop_price=request.stop_price,
             stop_loss=request.stop_loss,
             take_profit=request.take_profit,
+            trailing_distance=getattr(request, "trailing_distance", None),
             status=status_val,
             filled_quantity=exec_info.filled_quantity,
             average_fill_price=exec_info.average_fill_price,

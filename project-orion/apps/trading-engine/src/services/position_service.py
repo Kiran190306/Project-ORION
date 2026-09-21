@@ -83,27 +83,38 @@ class PositionService:
         res = await self.session.execute(query)
         positions = res.scalars().all()
 
-        items = [
-            PositionResponse(
-                id=p.id,
-                account_id=p.account_id,
-                symbol=p.symbol,
-                side=p.side,
-                quantity=p.quantity,
-                open_price=p.open_price,
-                current_price=p.current_price,
-                stop_loss=p.stop_loss,
-                take_profit=p.take_profit,
-                realized_pnl=p.realized_pnl,
-                unrealized_pnl=p.unrealized_pnl,
-                commission=p.commission,
-                swap=p.swap,
-                is_open=p.is_open,
-                opened_at=p.opened_at,
-                closed_at=p.closed_at,
+        items = []
+        for p in positions:
+            curr_price = p.current_price
+            unrealized = p.unrealized_pnl
+            if p.is_open and hasattr(self.adapter, "_get_quote"):
+                bid, ask, _ = self.adapter._get_quote(p.symbol)
+                curr_price = bid if p.side.upper() == "BUY" else ask
+                if p.side.upper() == "BUY":
+                    unrealized = (curr_price - p.open_price) * p.quantity - p.commission - p.swap
+                else:
+                    unrealized = (p.open_price - curr_price) * p.quantity - p.commission - p.swap
+
+            items.append(
+                PositionResponse(
+                    id=p.id,
+                    account_id=p.account_id,
+                    symbol=p.symbol,
+                    side=p.side,
+                    quantity=p.quantity,
+                    open_price=p.open_price,
+                    current_price=curr_price,
+                    stop_loss=p.stop_loss,
+                    take_profit=p.take_profit,
+                    realized_pnl=p.realized_pnl,
+                    unrealized_pnl=unrealized,
+                    commission=p.commission,
+                    swap=p.swap,
+                    is_open=p.is_open,
+                    opened_at=p.opened_at,
+                    closed_at=p.closed_at,
+                )
             )
-            for p in positions
-        ]
 
         has_more = (pagination.offset + pagination.limit) < total
         return PaginatedResponse[PositionResponse](
@@ -135,6 +146,16 @@ class PositionService:
                 detail="Forbidden: access to this position is not permitted",
             )
 
+        curr_price = pos.current_price
+        unrealized = pos.unrealized_pnl
+        if pos.is_open and hasattr(self.adapter, "_get_quote"):
+            bid, ask, _ = self.adapter._get_quote(pos.symbol)
+            curr_price = bid if pos.side.upper() == "BUY" else ask
+            if pos.side.upper() == "BUY":
+                unrealized = (curr_price - pos.open_price) * pos.quantity - pos.commission - pos.swap
+            else:
+                unrealized = (pos.open_price - curr_price) * pos.quantity - pos.commission - pos.swap
+
         return PositionResponse(
             id=pos.id,
             account_id=pos.account_id,
@@ -142,11 +163,11 @@ class PositionService:
             side=pos.side,
             quantity=pos.quantity,
             open_price=pos.open_price,
-            current_price=pos.current_price,
+            current_price=curr_price,
             stop_loss=pos.stop_loss,
             take_profit=pos.take_profit,
             realized_pnl=pos.realized_pnl,
-            unrealized_pnl=pos.unrealized_pnl,
+            unrealized_pnl=unrealized,
             commission=pos.commission,
             swap=pos.swap,
             is_open=pos.is_open,
@@ -208,7 +229,16 @@ class PositionService:
         # Update account balance and equity
         self.account.balance += pnl
         self.account.equity += pnl
-        self.account.margin_free = self.account.equity - self.account.margin
+
+        # Release margin
+        leverage = Decimal(str(self.account.leverage or 100))
+        released_margin = (pos.quantity * pos.open_price) / leverage
+        self.account.margin = max(Decimal(0), self.account.margin - released_margin)
+        self.account.margin_free = max(Decimal(0), self.account.equity - self.account.margin)
+        if self.account.margin > Decimal(0):
+            self.account.margin_level = float((self.account.equity / self.account.margin) * Decimal(100))
+        else:
+            self.account.margin_level = 0.0
 
         await self.session.flush()
 

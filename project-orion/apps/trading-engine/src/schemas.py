@@ -396,6 +396,7 @@ class OrderTypeEnum(StrEnum):
     MARKET = "MARKET"
     LIMIT = "LIMIT"
     STOP = "STOP"
+    TRAILING_STOP = "TRAILING_STOP"
 
 
 class OrderStatusEnum(StrEnum):
@@ -417,12 +418,13 @@ class CreateOrderRequest(BaseModel):
 
     symbol: str = Field(..., min_length=3, max_length=16, description="Instrument symbol, e.g. EUR/USD")
     side: OrderSideEnum = Field(..., description="Order side: BUY or SELL")
-    order_type: OrderTypeEnum = Field(default=OrderTypeEnum.MARKET, description="Order type: MARKET, LIMIT, or STOP")
+    order_type: OrderTypeEnum = Field(default=OrderTypeEnum.MARKET, description="Order type: MARKET, LIMIT, STOP, or TRAILING_STOP")
     quantity: Decimal = Field(..., gt=Decimal(0), description="Order volume in units")
     price: Decimal | None = Field(None, gt=Decimal(0), description="Limit price if LIMIT order")
     stop_price: Decimal | None = Field(None, gt=Decimal(0), description="Trigger price if STOP order")
     stop_loss: Decimal | None = Field(None, gt=Decimal(0), description="Stop loss price")
     take_profit: Decimal | None = Field(None, gt=Decimal(0), description="Take profit price")
+    trailing_distance: Decimal | None = Field(None, gt=Decimal(0), description="Trailing distance for trailing stop")
     strategy_id: str | None = Field(None, description="Originating strategy ID if applicable")
 
     @field_validator("symbol")
@@ -451,6 +453,7 @@ class OrderResponse(BaseModel):
     stop_price: Decimal | None = None
     stop_loss: Decimal | None = None
     take_profit: Decimal | None = None
+    trailing_distance: Decimal | None = None
     status: str
     filled_quantity: Decimal = Decimal(0)
     average_fill_price: Decimal | None = None
@@ -971,6 +974,67 @@ class MarketHealthResponse(BaseModel):
     latency_ms: float
     stale_count: int
     is_paper_feed: bool = True
+
+
+# ─── Paper Trading Simulation Control Schemas ─────────────────────────
+
+
+class PaperResetRequest(BaseModel):
+    """Request model for resetting paper account balance and state."""
+
+    model_config = ConfigDict(frozen=True)
+
+    balance: Decimal = Field(default=Decimal("100000.00"), gt=Decimal(0), description="Initial paper capital balance")
+
+
+class PaperResetResponse(BaseModel):
+    """Response model for paper account reset."""
+
+    model_config = ConfigDict(frozen=True)
+
+    message: str
+    account_id: str
+    balance: Decimal
+    equity: Decimal
+    positions_closed: int
+    orders_cancelled: int
+
+
+class PaperConfigResponse(BaseModel):
+    """Response model for paper trading simulation configuration."""
+
+    model_config = ConfigDict(frozen=True)
+
+    broker_name: str
+    is_paper: bool
+    spread: float
+    slippage_mean: float
+    slippage_std: float
+    commission_rate: float
+    swap_long_rate: float
+    swap_short_rate: float
+    latency_ms_mean: float
+    latency_ms_std: float
+    partial_fill_probability: float
+    min_fill_ratio: float
+    deterministic: bool
+    leverage: int
+
+
+class UpdatePaperConfigRequest(BaseModel):
+    """Request model for updating paper trading simulation parameters."""
+
+    model_config = ConfigDict(frozen=True)
+
+    spread: float | None = None
+    slippage_mean: float | None = None
+    slippage_std: float | None = None
+    commission_rate: float | None = None
+    latency_ms_mean: float | None = None
+    partial_fill_probability: float | None = None
+    deterministic: bool | None = None
+    leverage: int | None = None
+
 
 
 

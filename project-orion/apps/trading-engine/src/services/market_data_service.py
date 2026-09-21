@@ -112,9 +112,12 @@ class MarketDataService:
         # 5. Feed into Paper Execution Adapter so paper simulated fills reflect live market prices
         if self._paper_adapter is not None:
             try:
-                await self._paper_adapter.set_current_price(canonical, quote.mid)
+                if hasattr(self._paper_adapter, "update_quote"):
+                    await self._paper_adapter.update_quote(quote)
+                else:
+                    await self._paper_adapter.set_current_price(canonical, quote.mid)
             except Exception as exc:
-                logger.warning("Failed to update paper execution price for %s: %s", canonical, exc)
+                logger.warning("Failed to update paper execution quote for %s: %s", canonical, exc)
 
         if self._metrics:
             self._metrics.inc("market_data_quotes_total")

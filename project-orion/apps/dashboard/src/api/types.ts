@@ -6,7 +6,7 @@
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export type OrderSide = 'BUY' | 'SELL';
-export type OrderType = 'MARKET' | 'LIMIT' | 'STOP';
+export type OrderType = 'MARKET' | 'LIMIT' | 'STOP' | 'TRAILING_STOP';
 export type OrderStatus =
   | 'PENDING'
   | 'SUBMITTED'
@@ -101,6 +101,7 @@ export interface CreateOrderRequest {
   stop_price?: string | number | null;
   stop_loss?: string | number | null;
   take_profit?: string | number | null;
+  trailing_distance?: string | number | null;
   strategy_id?: string | null;
 }
 
@@ -116,6 +117,7 @@ export interface OrderResponse {
   stop_price?: string | number | null;
   stop_loss?: string | number | null;
   take_profit?: string | number | null;
+  trailing_distance?: string | number | null;
   status: OrderStatus | string;
   filled_quantity: string | number;
   average_fill_price?: string | number | null;
@@ -601,5 +603,39 @@ export interface MarketHealth {
   stale_count: number;
   is_paper_feed: boolean;
 }
+
+// ─── Paper Trading (EPIC-022) ────────────────────────────────────────────────
+
+export interface PaperResetRequest {
+  initial_balance?: string | number;
+}
+
+export interface PaperResetResponse {
+  account_id: string;
+  new_balance: string | number;
+  cancelled_orders_count: number;
+  closed_positions_count: number;
+  message: string;
+  timestamp: string;
+}
+
+export interface PaperConfigResponse {
+  default_spread_pips: string | number;
+  slippage_bps: string | number;
+  latency_ms: number;
+  partial_fill_probability: number;
+  deterministic: boolean;
+  fill_probability: number;
+}
+
+export interface UpdatePaperConfigRequest {
+  default_spread_pips?: string | number;
+  slippage_bps?: string | number;
+  latency_ms?: number;
+  partial_fill_probability?: number;
+  deterministic?: boolean;
+  fill_probability?: number;
+}
+
 
 

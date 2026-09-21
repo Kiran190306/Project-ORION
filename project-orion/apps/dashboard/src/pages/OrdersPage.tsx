@@ -38,6 +38,7 @@ export const OrdersPage: React.FC = () => {
     stop_price: string;
     stop_loss: string;
     take_profit: string;
+    trailing_distance: string;
   }>({
     symbol: 'EUR/USD',
     side: 'BUY',
@@ -47,6 +48,7 @@ export const OrdersPage: React.FC = () => {
     stop_price: '',
     stop_loss: '',
     take_profit: '',
+    trailing_distance: '',
   });
 
   const toast = useToast();
@@ -92,6 +94,11 @@ export const OrdersPage: React.FC = () => {
       return;
     }
 
+    if (formData.order_type === 'TRAILING_STOP' && (!formData.trailing_distance || parseFloat(formData.trailing_distance) <= 0)) {
+      toast.error('Trailing Stop order requires a valid positive trailing distance.');
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const payload: CreateOrderRequest = {
@@ -103,6 +110,7 @@ export const OrdersPage: React.FC = () => {
         stop_price: formData.stop_price ? parseFloat(formData.stop_price) : undefined,
         stop_loss: formData.stop_loss ? parseFloat(formData.stop_loss) : undefined,
         take_profit: formData.take_profit ? parseFloat(formData.take_profit) : undefined,
+        trailing_distance: formData.trailing_distance ? parseFloat(formData.trailing_distance) : undefined,
       };
 
       const res = await ordersApi.create(payload);
@@ -118,6 +126,7 @@ export const OrdersPage: React.FC = () => {
         stop_price: '',
         stop_loss: '',
         take_profit: '',
+        trailing_distance: '',
       });
       fetchOrders();
     } catch (err) {
@@ -382,6 +391,7 @@ export const OrdersPage: React.FC = () => {
                 <option value="MARKET">MARKET</option>
                 <option value="LIMIT">LIMIT</option>
                 <option value="STOP">STOP</option>
+                <option value="TRAILING_STOP">TRAILING STOP</option>
               </select>
             </div>
 
@@ -425,6 +435,21 @@ export const OrdersPage: React.FC = () => {
                 value={formData.stop_price}
                 onChange={(e) => setFormData({ ...formData, stop_price: e.target.value })}
                 placeholder="e.g. 1.09000"
+                className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+              />
+            </div>
+          )}
+
+          {formData.order_type === 'TRAILING_STOP' && (
+            <div>
+              <label className="block uppercase text-slate-400 mb-1">Trailing Distance (Price Offset / Pips)</label>
+              <input
+                type="number"
+                step="0.0001"
+                required
+                value={formData.trailing_distance}
+                onChange={(e) => setFormData({ ...formData, trailing_distance: e.target.value })}
+                placeholder="e.g. 0.0020 (20 pips)"
                 className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
               />
             </div>

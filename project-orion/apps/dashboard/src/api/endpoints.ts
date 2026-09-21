@@ -31,6 +31,9 @@ import type {
   OrganizationResponse,
   PaginatedResponse,
   PaginationParams,
+  PaperConfigResponse,
+  PaperResetRequest,
+  PaperResetResponse,
   PnLBreakdownResponse,
   PortfolioOverviewResponse,
   PositionResponse,
@@ -42,6 +45,7 @@ import type {
   TradeResponse,
   UpdateAccountStrategyRequest,
   UpdateOrganizationRequest,
+  UpdatePaperConfigRequest,
   UserResponse,
   WorkerMetricsResponse,
   WorkerStatusResponse,
@@ -367,6 +371,28 @@ export const marketDataApi = {
       method: 'GET',
     }),
 };
+
+// ─── Paper Trading (EPIC-022) ────────────────────────────────────────────────
+
+export const paperApi = {
+  reset: (req?: PaperResetRequest): Promise<PaperResetResponse> =>
+    apiClient<PaperResetResponse>('/api/v1/trading/paper/reset', {
+      method: 'POST',
+      body: JSON.stringify(req || { initial_balance: 100000.0 }),
+    }),
+
+  getConfig: (): Promise<PaperConfigResponse> =>
+    apiClient<PaperConfigResponse>('/api/v1/trading/paper/config', {
+      method: 'GET',
+    }),
+
+  updateConfig: (req: UpdatePaperConfigRequest): Promise<PaperConfigResponse> =>
+    apiClient<PaperConfigResponse>('/api/v1/trading/paper/config', {
+      method: 'PATCH',
+      body: JSON.stringify(req),
+    }),
+};
+
 
 
 
