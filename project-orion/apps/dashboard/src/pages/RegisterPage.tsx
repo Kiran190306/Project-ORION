@@ -560,7 +560,7 @@ export const RegisterPage: React.FC = () => {
 
                 <div className="mt-6 pt-5 border-t border-slate-800/80 text-[11px] text-slate-500 flex items-center justify-center gap-1.5 font-mono">
                   <ShieldCheck className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Argon2id/Bcrypt Credentials &bull; Tenant IDOR Isolated</span>
+                  <span>Bcrypt Credentials &bull; Tenant IDOR Isolated</span>
                 </div>
               </div>
             )}

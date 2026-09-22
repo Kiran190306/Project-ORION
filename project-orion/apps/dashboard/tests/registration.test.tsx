@@ -360,7 +360,7 @@ describe('EPIC-027 Phase 4B: Self-Service Registration & Onboarding Funnel', () 
       expect(registerLink).toHaveAttribute('href', '/register');
     });
 
-    it('AppRoutes renders RegisterPage when path is /register', () => {
+    it('AppRoutes renders RegisterPage when path is /register', async () => {
       render(
         <MemoryRouter initialEntries={['/register']}>
           <AuthProvider>
@@ -371,7 +371,7 @@ describe('EPIC-027 Phase 4B: Self-Service Registration & Onboarding Funnel', () 
         </MemoryRouter>
       );
 
-      expect(screen.getByRole('heading', { level: 1, name: /project orion/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { level: 1, name: /project orion/i })).toBeInTheDocument();
       expect(screen.getByText(/self-service registration & onboarding/i)).toBeInTheDocument();
     });
   });

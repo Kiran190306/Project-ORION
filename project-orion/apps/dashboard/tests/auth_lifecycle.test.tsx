@@ -242,7 +242,7 @@ describe('Auth Lifecycle Pages (EPIC-027 Phase 1)', () => {
   });
 
   describe('Routing Integration in AppRoutes', () => {
-    it('renders /forgot-password route', () => {
+    it('renders /forgot-password route', async () => {
       render(
         <MemoryRouter initialEntries={['/forgot-password']}>
           <AuthProvider>
@@ -253,10 +253,10 @@ describe('Auth Lifecycle Pages (EPIC-027 Phase 1)', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByRole('heading', { name: /reset your password/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /reset your password/i })).toBeInTheDocument();
     });
 
-    it('renders /reset-password route', () => {
+    it('renders /reset-password route', async () => {
       render(
         <MemoryRouter initialEntries={['/reset-password']}>
           <AuthProvider>
@@ -267,10 +267,10 @@ describe('Auth Lifecycle Pages (EPIC-027 Phase 1)', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByRole('heading', { name: /set new password/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /set new password/i })).toBeInTheDocument();
     });
 
-    it('renders /verify-email route', () => {
+    it('renders /verify-email route', async () => {
       render(
         <MemoryRouter initialEntries={['/verify-email']}>
           <AuthProvider>
@@ -281,7 +281,7 @@ describe('Auth Lifecycle Pages (EPIC-027 Phase 1)', () => {
         </MemoryRouter>
       );
 
-      expect(screen.getByRole('heading', { name: /verify your email/i })).toBeInTheDocument();
+      expect(await screen.findByRole('heading', { name: /verify your email/i })).toBeInTheDocument();
     });
   });
 });

@@ -1,0 +1,37 @@
+# Project ORION — Robots Exclusion Configuration
+# Allow search engines to index public presentation, pricing, and legal trust pages.
+# Disallow crawler indexing of internal authenticated trading terminal routes.
+
+User-agent: *
+Allow: /$
+Allow: /pricing
+Allow: /terms
+Allow: /privacy
+Allow: /risk-disclosure
+Allow: /refund-policy
+Allow: /security
+Allow: /login
+Allow: /register
+
+# Disallow internal authenticated trading terminal routes
+Disallow: /dashboard
+Disallow: /orders
+Disallow: /positions
+Disallow: /trades
+Disallow: /portfolio
+Disallow: /broker-sandbox
+Disallow: /strategies
+Disallow: /research
+Disallow: /optimization
+Disallow: /deployments
+Disallow: /risk
+Disallow: /worker
+Disallow: /billing
+Disallow: /organization
+Disallow: /audit
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+
+# Sitemap reference (Relative to deployment root)
+Sitemap: /sitemap.xml

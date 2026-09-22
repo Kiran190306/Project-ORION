@@ -15,6 +15,7 @@ import { Badge, PaperTradingBadge } from '../components/common/Badge';
 import { Button } from '../components/common/Button';
 import { formatCurrency, formatDateTime } from '../utils/formatters';
 import { getErrorMessage } from '../utils/errors';
+import { PRICING_PLANS } from '../config/pricing';
 
 export const BillingPage: React.FC = () => {
   const [overview, setOverview] = useState<BillingOverviewResponse | null>(null);
@@ -78,70 +79,7 @@ export const BillingPage: React.FC = () => {
   const subStatus = overview?.subscription?.status || 'active';
   const cancelAtPeriodEnd = overview?.subscription?.cancel_at_period_end || false;
 
-  const plans = [
-    {
-      code: 'FREE',
-      name: 'Free Sandbox',
-      price: '$0',
-      period: '/month',
-      description: 'Ideal for getting started with algorithmic paper trading.',
-      features: [
-        '1 Paper Trading Account',
-        '100 Daily Orders Quota',
-        '0 Autonomous Workers',
-        '4 Major FX Pairs (EUR/USD, GBP/USD, USD/JPY, USD/CHF)',
-        '30-Day Data Retention',
-      ],
-      isPopular: false,
-    },
-    {
-      code: 'PRO',
-      name: 'Pro Trader',
-      price: '$99',
-      period: '/month',
-      description: 'Expanded capacity with 1 autonomous trading worker.',
-      features: [
-        '3 Paper Trading Accounts',
-        '2,500 Daily Orders Quota',
-        '1 Autonomous Worker Entitled',
-        '12 Liquid Forex Pairs',
-        '365-Day Historical Data Retention',
-        'Email Incident Notifications',
-      ],
-      isPopular: true,
-    },
-    {
-      code: 'BUSINESS',
-      name: 'Business Prop Desk',
-      price: '$299',
-      period: '/month',
-      description: 'Multi-account prop trading with 5 parallel autonomous workers.',
-      features: [
-        '10 Paper Trading Accounts',
-        '50,000 Daily Orders Quota',
-        '5 Autonomous Workers Entitled',
-        'All Currency Pairs Supported (*)',
-        '1,825-Day (5-Year) Retention',
-        'Priority SRE Support SLA',
-      ],
-      isPopular: false,
-    },
-    {
-      code: 'ENTERPRISE',
-      name: 'Enterprise Institutional',
-      price: 'Custom',
-      period: '',
-      description: 'Unlimited institutional capacity with bespoke integrations.',
-      features: [
-        'Unlimited Accounts & Orders',
-        'Unlimited Autonomous Workers',
-        'All Asset Classes (*)',
-        'Long-term system audit log retention (subject to data agreement)',
-        'Dedicated SRE Account Manager',
-      ],
-      isPopular: false,
-    },
-  ];
+  const plans = PRICING_PLANS;
 
   return (
     <div className="space-y-6">
