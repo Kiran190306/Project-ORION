@@ -157,10 +157,16 @@ export const LoginPage: React.FC = () => {
               </Button>
             </div>
 
-            <div className="pt-2 text-center">
+            <div className="pt-2 text-center space-y-2">
+              <Link
+                to="/register"
+                className="block text-xs text-sky-400 hover:text-sky-300 transition-colors font-mono"
+              >
+                Don&apos;t have an account? Sign up for paper trading
+              </Link>
               <Link
                 to="/verify-email"
-                className="text-xs text-slate-400 hover:text-slate-300 transition-colors font-mono"
+                className="block text-xs text-slate-400 hover:text-slate-300 transition-colors font-mono"
               >
                 Need to verify your email?
               </Link>

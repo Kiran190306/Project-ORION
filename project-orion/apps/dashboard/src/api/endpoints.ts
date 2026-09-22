@@ -28,6 +28,8 @@ import type {
   ResendVerificationRequest,
   DeactivateAccountRequest,
   VerifyEmailRequest,
+  OnboardingRegisterRequest,
+  OnboardingResponse,
   MarketCandlesResponse,
   MarketHealth,
   MarketInstrument,
@@ -129,6 +131,16 @@ export const authApi = {
 
   deactivateAccount: (data: DeactivateAccountRequest): Promise<GenericMessageResponse> =>
     apiClient<GenericMessageResponse>('/api/v1/auth/deactivate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// ─── Onboarding ──────────────────────────────────────────────────────────────
+
+export const onboardingApi = {
+  register: (data: OnboardingRegisterRequest): Promise<OnboardingResponse> =>
+    apiClient<OnboardingResponse>('/api/v1/onboarding/register', {
       method: 'POST',
       body: JSON.stringify(data),
     }),

@@ -71,6 +71,37 @@ export interface GenericMessageResponse {
   message: string;
 }
 
+// ─── Onboarding Models ───────────────────────────────────────────────────────
+
+export interface OnboardingRegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  organization_name: string;
+  organization_slug?: string | null;
+  full_name?: string | null;
+  terms_accepted: boolean;
+  privacy_acknowledged: boolean;
+  risk_disclosure_acknowledged: boolean;
+}
+
+export interface OnboardingResponse {
+  user_id: string;
+  username: string;
+  email: string;
+  organization_id: string;
+  organization_name: string;
+  organization_slug: string;
+  role: string;
+  subscription_tier: string;
+  account_id: string;
+  account_number: string;
+  initial_balance: number | string;
+  access_token: string;
+  token_type: string;
+  created_at: string;
+}
+
 // ─── Account & Summary ───────────────────────────────────────────────────────
 
 export interface AccountSummary {
