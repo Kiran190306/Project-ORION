@@ -207,6 +207,51 @@ describe('EPIC-027 Phase 4C: Public Marketing Website & Pricing', () => {
       expect(screen.getByText(/beta environment: commercial subscription checkouts are simulated via stripe test mode/i)).toBeInTheDocument();
       expect(screen.getAllByText(/strictly simulated paper mode • \$0\.00 capital at risk/i).length).toBeGreaterThanOrEqual(1);
     });
+
+    it('opens and closes accessible Enterprise Modal with dialog role, aria-modal, and Escape key support', async () => {
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter>
+          <PricingPage />
+        </MemoryRouter>
+      );
+
+      // Verify trigger button accessibility attributes
+      const enterpriseBtn = screen.getByRole('button', { name: /contact enterprise/i });
+      expect(enterpriseBtn).toHaveAttribute('aria-haspopup', 'dialog');
+      expect(enterpriseBtn).toHaveAttribute('aria-expanded', 'false');
+
+      // Click to open modal
+      await user.click(enterpriseBtn);
+      expect(enterpriseBtn).toHaveAttribute('aria-expanded', 'true');
+
+      // Modal dialog accessibility attributes
+      const dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+      expect(dialog).toHaveAttribute('aria-modal', 'true');
+      expect(dialog).toHaveAttribute('aria-labelledby', 'enterprise-modal-title');
+      expect(dialog).toHaveAttribute('aria-describedby', 'enterprise-modal-desc');
+
+      // Dialog title and description
+      expect(screen.getByRole('heading', { level: 3, name: /enterprise inquiries/i })).toBeInTheDocument();
+      expect(screen.getByText(/during public beta, enterprise quotas/i)).toBeInTheDocument();
+
+      // Acknowledge button inside modal has accessible name
+      const ackBtn = screen.getByRole('button', { name: /acknowledge enterprise notice and close dialog/i });
+      expect(ackBtn).toBeInTheDocument();
+
+      // Test closing via Acknowledge button
+      await user.click(ackBtn);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(enterpriseBtn).toHaveAttribute('aria-expanded', 'false');
+
+      // Test closing via Escape key
+      await user.click(enterpriseBtn);
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+
+      await user.keyboard('{Escape}');
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 
   describe('Route Architecture & Code Splitting (AppRoutes)', () => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Check,
@@ -15,6 +15,32 @@ import { PRICING_PLANS, PRICING_DISCLAIMERS } from '../config/pricing';
 
 export const PricingPage: React.FC = () => {
   const [enterpriseNoticeOpen, setEnterpriseNoticeOpen] = useState(false);
+  const triggerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const acknowledgeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (enterpriseNoticeOpen) {
+      // Move focus into the modal once mounted
+      const focusTimer = setTimeout(() => {
+        acknowledgeButtonRef.current?.focus();
+      }, 50);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setEnterpriseNoticeOpen(false);
+        }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        clearTimeout(focusTimer);
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      // Return focus to triggering button when dialog closes
+      triggerButtonRef.current?.focus();
+    }
+  }, [enterpriseNoticeOpen]);
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col text-slate-100 selection:bg-sky-500/30 selection:text-sky-200">
@@ -122,9 +148,12 @@ export const PricingPage: React.FC = () => {
                     {isEnterprise ? (
                       <div>
                         <button
+                          ref={triggerButtonRef}
                           type="button"
                           onClick={() => setEnterpriseNoticeOpen(true)}
-                          className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors cursor-pointer text-center"
+                          className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium border border-slate-700 transition-colors cursor-pointer text-center focus:outline-none focus:ring-2 focus:ring-sky-500"
+                          aria-haspopup="dialog"
+                          aria-expanded={enterpriseNoticeOpen}
                         >
                           Contact Enterprise
                         </button>
@@ -150,31 +179,50 @@ export const PricingPage: React.FC = () => {
 
           {/* Enterprise Modal Notice */}
           {enterpriseNoticeOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn">
-              <div className="max-w-md w-full rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl">
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fadeIn"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setEnterpriseNoticeOpen(false);
+                }
+              }}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="enterprise-modal-title"
+                aria-describedby="enterprise-modal-desc"
+                className="max-w-md w-full rounded-2xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                     <Building className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-base font-semibold text-slate-100 font-sans">Enterprise Inquiries</h3>
+                    <h3 id="enterprise-modal-title" className="text-base font-semibold text-slate-100 font-sans">
+                      Enterprise Inquiries
+                    </h3>
                     <p className="text-xs text-slate-400 font-mono">Bespoke Capacity &amp; SLA</p>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                  {PRICING_DISCLAIMERS.enterpriseContactNotice}
-                </p>
+                <div id="enterprise-modal-desc" className="space-y-3">
+                  <p className="text-xs text-slate-300 leading-relaxed font-sans">
+                    {PRICING_DISCLAIMERS.enterpriseContactNotice}
+                  </p>
 
-                <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                  During Public Beta, enterprise quotas and custom dedicated worker clusters are provisioned through account representatives.
-                </p>
+                  <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                    During Public Beta, enterprise quotas and custom dedicated worker clusters are provisioned through account representatives.
+                  </p>
+                </div>
 
                 <div className="pt-2 flex justify-end">
                   <button
+                    ref={acknowledgeButtonRef}
                     type="button"
                     onClick={() => setEnterpriseNoticeOpen(false)}
-                    className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-mono font-medium transition-colors cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-mono font-medium transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    aria-label="Acknowledge enterprise notice and close dialog"
                   >
                     Acknowledge
                   </button>

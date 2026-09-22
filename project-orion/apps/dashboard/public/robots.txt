@@ -13,6 +13,10 @@ Allow: /security
 Allow: /login
 Allow: /register
 
+# Disallow API endpoints from indexing
+Disallow: /api/
+Disallow: /api
+
 # Disallow internal authenticated trading terminal routes
 Disallow: /dashboard
 Disallow: /orders
@@ -33,5 +37,5 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /verify-email
 
-# Sitemap reference (Relative to deployment root)
-Sitemap: /sitemap.xml
+# Sitemap reference (Authoritative absolute URL)
+Sitemap: https://orion-dashboard.onrender.com/sitemap.xml
