@@ -163,9 +163,16 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
       case 422:
         sanitizedMessage = `Validation error: ${errorMessage}`;
         break;
-      case 429:
-        sanitizedMessage = 'Rate limit exceeded. Please try again shortly.';
+      case 429: {
+        const retryAfterHeader = response.headers.get('retry-after');
+        const retryAfterNum = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+        if (!isNaN(retryAfterNum) && retryAfterNum > 0) {
+          sanitizedMessage = `Rate limit exceeded. Please retry after ${retryAfterNum} seconds.`;
+        } else {
+          sanitizedMessage = errorMessage || 'Rate limit exceeded. Please try again shortly.';
+        }
         break;
+      }
       case 500:
       case 502:
       case 503:
@@ -174,7 +181,12 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
         break;
     }
 
-    throw new ApiError(response.status, sanitizedMessage, resCorrelationId, errorDetail);
+    const retryAfterHeader = response.headers.get('retry-after');
+    const retryAfterSeconds = retryAfterHeader && !isNaN(parseInt(retryAfterHeader, 10))
+      ? parseInt(retryAfterHeader, 10)
+      : undefined;
+
+    throw new ApiError(response.status, sanitizedMessage, resCorrelationId, errorDetail, retryAfterSeconds);
   }
 
   // HTTP 204 No Content

@@ -10,6 +10,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.security.rate_limit import RateLimitPolicies
 from libraries.infrastructure.persistence.models import AuditLogModel
 
 from ..dependencies import (
@@ -18,6 +19,7 @@ from ..dependencies import (
     get_db_session,
     get_invitation_service,
     get_organization_service,
+    rate_limit,
     require_permission,
 )
 from ..schemas import (
@@ -216,6 +218,7 @@ async def invite_member(
     status_code=status.HTTP_200_OK,
     summary="Accept Member Invitation",
     description="Accepts an issued invitation using its raw token, granting membership to the authenticated user.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.INVITATION_ACCEPT))],
 )
 async def accept_invitation(
     token: str,
@@ -458,6 +461,7 @@ async def revoke_invitation(
     status_code=status.HTTP_200_OK,
     summary="List Organization Audit Logs",
     description="Returns compliance audit trail entries for the organization with pagination and secret redaction. Requires AUDIT_READ.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.AUDIT_QUERY))],
 )
 async def list_organization_audit_logs(
     id: str,

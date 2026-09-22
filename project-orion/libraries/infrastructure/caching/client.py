@@ -202,6 +202,28 @@ class RedisClient:
         except AioRedisGenericError as exc:
             raise RedisError(f"Redis hgetall failed for {name}: {exc}") from exc
 
+    @property
+    def raw_client(self) -> aioredis.Redis | None:
+        """Access underlying redis.asyncio.Redis client if connected."""
+        return self._client
+
+    async def eval_script(
+        self,
+        script: str,
+        keys: list[str],
+        args: list[Any],
+    ) -> Any:
+        """Execute a Lua script atomically against Redis."""
+        client = self._ensure_connected()
+        try:
+            return await client.eval(script, len(keys), *keys, *args)
+        except AioRedisTimeoutError as exc:
+            raise RedisTimeoutError(f"Redis eval_script timed out: {exc}") from exc
+        except AioRedisConnectionError as exc:
+            raise RedisConnectionError(f"Redis eval_script connection error: {exc}") from exc
+        except AioRedisGenericError as exc:
+            raise RedisError(f"Redis eval_script failed: {exc}") from exc
+
     async def __aenter__(self) -> Self:
         await self.connect()
         return self

@@ -9,8 +9,9 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.security.rate_limit import RateLimitPolicies
 
-from ..dependencies import TenantContext, get_db_session, require_permission
+from ..dependencies import TenantContext, get_db_session, rate_limit, require_permission
 from ..schemas_optimization import (
     OptimizationJobDetailResponse,
     OptimizationJobSummaryResponse,
@@ -64,6 +65,7 @@ async def get_default_space(
     status_code=status.HTTP_201_CREATED,
     summary="Launch Parameter Optimization Sweep",
     description="Run a deterministic Grid Search or Random Search sweep over a defined parameter space. Requires OPTIMIZATION_EXECUTE.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.OPTIMIZATION_EXECUTE))],
 )
 async def run_optimization(
     request: OptimizationRunRequest,
@@ -85,6 +87,7 @@ async def run_optimization(
     status_code=status.HTTP_201_CREATED,
     summary="Launch Walk-Forward Analysis",
     description="Execute chronological multi-window Walk-Forward Analysis (WFA) with strict IS/OOS segregation. Requires OPTIMIZATION_EXECUTE.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.OPTIMIZATION_EXECUTE))],
 )
 async def run_walk_forward(
     request: WalkForwardRunRequest,
@@ -219,6 +222,7 @@ async def get_regimes(
     status_code=status.HTTP_200_OK,
     summary="Export Optimization Results",
     description="Export evaluated candidate leaderboard as CSV or JSON format. Requires OPTIMIZATION_EXPORT.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.DATA_EXPORT))],
 )
 async def export_job(
     job_id: str,

@@ -38,8 +38,37 @@ export interface UserResponse {
   full_name?: string | null;
   is_active: boolean;
   is_superuser: boolean;
+  status?: string;
+  email_verified?: boolean;
+  password_changed_at?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  new_password: string;
+}
+
+export interface VerifyEmailRequest {
+  token: string;
+}
+
+export interface ResendVerificationRequest {
+  email: string;
+}
+
+export interface DeactivateAccountRequest {
+  password: string;
+  confirmation: string;
+}
+
+export interface GenericMessageResponse {
+  message: string;
 }
 
 // ─── Account & Summary ───────────────────────────────────────────────────────
@@ -427,13 +456,21 @@ export class ApiError extends Error {
   public statusCode: number;
   public correlationId?: string;
   public rawDetail?: unknown;
+  public retryAfterSeconds?: number;
 
-  constructor(statusCode: number, message: string, correlationId?: string, rawDetail?: unknown) {
+  constructor(
+    statusCode: number,
+    message: string,
+    correlationId?: string,
+    rawDetail?: unknown,
+    retryAfterSeconds?: number
+  ) {
     super(message);
     this.name = 'ApiError';
     this.statusCode = statusCode;
     this.correlationId = correlationId;
     this.rawDetail = rawDetail;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 

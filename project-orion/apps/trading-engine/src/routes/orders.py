@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.security.rate_limit import RateLimitPolicies
 from libraries.infrastructure.execution.paper_execution import PaperExecutionAdapter
 from libraries.infrastructure.persistence.models import AccountModel
 
@@ -18,6 +19,7 @@ from ..dependencies import (
     get_pagination_params,
     get_paper_adapter,
     get_user_account,
+    rate_limit,
     require_permission,
 )
 from ..schemas import (
@@ -40,6 +42,7 @@ router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
     status_code=status.HTTP_201_CREATED,
     summary="Create Order",
     description="Submit a new paper trading order (market, limit, or stop).",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.ORDERS_CREATE))],
 )
 async def create_order(
     request: CreateOrderRequest,

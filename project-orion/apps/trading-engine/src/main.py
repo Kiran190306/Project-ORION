@@ -62,6 +62,7 @@ def create_app(
     paper_adapter: PaperExecutionAdapter | None = None,
     worker: Any | None = None,
     market_data_service: Any | None = None,
+    rate_limit_service: Any | None = None,
 ) -> FastAPI:
     """FastAPI Application Factory for Project ORION Trading Engine.
 
@@ -71,6 +72,8 @@ def create_app(
         redis_client: Optional RedisClient override for testing.
         paper_adapter: Optional PaperExecutionAdapter override for testing.
         worker: Optional AutonomousWorkerCoordinator override for testing.
+        market_data_service: Optional MarketDataService override for testing.
+        rate_limit_service: Optional RateLimitService override for testing.
 
     Returns:
         Configured FastAPI application instance.
@@ -82,6 +85,7 @@ def create_app(
         paper_adapter_override=paper_adapter,
         worker_override=worker,
         market_data_service_override=market_data_service,
+        rate_limit_service_override=rate_limit_service,
     )
 
     app = FastAPI(

@@ -9,6 +9,7 @@ Enforces fail-closed defense-in-depth:
 from __future__ import annotations
 
 import base64
+import hashlib
 import ipaddress
 import json
 import logging
@@ -19,7 +20,6 @@ from typing import Any
 from urllib.parse import urlparse
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import hashlib
 
 logger = logging.getLogger("infrastructure.security.endpoint_validator")
 
@@ -27,19 +27,16 @@ logger = logging.getLogger("infrastructure.security.endpoint_validator")
 class SecurityViolationError(Exception):
     """Raised when an operation violates core platform security invariants."""
 
-    pass
 
 
 class InvalidEndpointError(SecurityViolationError):
     """Raised when a broker endpoint fails validation or allowlisting rules."""
 
-    pass
 
 
 class CredentialEncryptionError(SecurityViolationError):
     """Raised when credential encryption or decryption fails."""
 
-    pass
 
 
 class BrokerEndpointValidator:
@@ -148,7 +145,7 @@ class BrokerEndpointValidator:
         # 3. Reject IP Literals (Must use approved domain names)
         # Check if hostname is an IPv4 or IPv6 literal
         try:
-            ip_obj = ipaddress.ip_address(hostname)
+            ipaddress.ip_address(hostname)
             # If parsing succeeds, it's an IP literal!
             raise SecurityViolationError(
                 f"IP literals are prohibited for broker endpoints: {hostname}. "
@@ -324,7 +321,10 @@ class CredentialCipher:
             nonce = base64.b64decode(nonce_b64)
 
             decrypted_bytes = aesgcm.decrypt(nonce, ciphertext, None)
-            return json.loads(decrypted_bytes.decode("utf-8"))
+            parsed: Any = json.loads(decrypted_bytes.decode("utf-8"))
+            if not isinstance(parsed, dict):
+                raise CredentialEncryptionError("Decrypted credentials payload must be a JSON object")
+            return {str(k): v for k, v in parsed.items()}
         except Exception as e:
             if isinstance(e, CredentialEncryptionError):
                 raise

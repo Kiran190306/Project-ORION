@@ -13,12 +13,14 @@ from libraries.domain.billing.exceptions import (
     SubscriptionNotFoundError,
 )
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.security.rate_limit import RateLimitPolicies
 from libraries.domain.subscription.models import PlanCode
 
 from ..dependencies import (
     TenantContext,
     get_billing_service,
     get_current_active_user,
+    rate_limit,
     require_permission,
 )
 from ..services.billing_service import BillingService
@@ -254,6 +256,7 @@ async def list_billing_invoices(
     status_code=status.HTTP_200_OK,
     summary="Create Stripe Checkout Session",
     description="Initiates a hosted Stripe checkout session for plan upgrade. Requires SUBSCRIPTION_MANAGE.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.BILLING_CHECKOUT))],
 )
 async def create_checkout(
     req: CreateCheckoutRequest,

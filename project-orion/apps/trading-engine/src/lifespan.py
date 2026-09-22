@@ -30,12 +30,18 @@ from libraries.infrastructure.health import (
 from libraries.infrastructure.market_data.cache import MarketDataCache
 from libraries.infrastructure.market_data.factory import create_market_data_provider
 from libraries.infrastructure.persistence.config import DatabaseConfig, DatabaseManager
+from libraries.infrastructure.security.ip_resolver import ClientIpResolver
+from libraries.infrastructure.security.rate_limiter import (
+    InMemoryRateLimiter,
+    RedisRateLimiter,
+)
 from libraries.observability.config import LoggingConfig
 from libraries.observability.logging import configure_logging
 from libraries.observability.metrics import MetricsRegistry
 
 from .config import AppSettings
 from .services.market_data_service import MarketDataService
+from .services.rate_limit_service import RateLimitService
 from .workers.coordinator import AutonomousWorkerCoordinator
 
 logger = logging.getLogger("trading_engine.lifespan")
@@ -173,6 +179,7 @@ def create_lifespan(
     paper_adapter_override: PaperExecutionAdapter | None = None,
     worker_override: AutonomousWorkerCoordinator | None = None,
     market_data_service_override: MarketDataService | None = None,
+    rate_limit_service_override: RateLimitService | None = None,
 ) -> Any:
     """Create a FastAPI lifespan context manager with optional overrides for testing."""
 
@@ -250,7 +257,29 @@ def create_lifespan(
         metrics_registry.counter("paper_trades_total", "Total paper trade orders submitted")
         metrics_registry.gauge("paper_account_balance", "Current paper account balance")
         metrics_registry.set("paper_account_balance", float(settings.paper_balance))
+
+        # 8.1 Initialize Rate Limiting & Abuse Defense Telemetry (EPIC-027)
+        metrics_registry.counter("rate_limit_allowed_total", "Total requests allowed by rate limiting")
+        metrics_registry.counter("rate_limit_rejected_total", "Total requests rejected with HTTP 429")
+        metrics_registry.counter("rate_limit_redis_errors_total", "Total Redis failures during rate check")
+        metrics_registry.counter("rate_limit_fallback_total", "Total rate checks served by in-memory fallback")
         app.state.metrics_registry = metrics_registry
+
+        # 8.2 Initialize Rate Limiting & Abuse Defense Service
+        if rate_limit_service_override is not None:
+            rate_limit_service = rate_limit_service_override
+        else:
+            ip_resolver = ClientIpResolver(trusted_proxies=settings.trusted_proxies)
+            redis_limiter = RedisRateLimiter(redis_client=redis_client)
+            fallback_limiter = InMemoryRateLimiter(max_keys=10000)
+            rate_limit_service = RateLimitService(
+                redis_limiter=redis_limiter,
+                fallback_limiter=fallback_limiter,
+                ip_resolver=ip_resolver,
+                metrics_registry=metrics_registry,
+                enabled=settings.rate_limiting_enabled,
+            )
+        app.state.rate_limit_service = rate_limit_service
 
         # 8.5. Initialize Market Data Service (EPIC-021)
         if market_data_service_override is not None:

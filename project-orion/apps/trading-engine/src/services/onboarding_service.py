@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -19,15 +19,25 @@ from libraries.domain.organization.models import (
     OrganizationStatus,
 )
 from libraries.domain.subscription.models import Subscription
+from libraries.infrastructure.communication.email_service import get_email_service
 from libraries.infrastructure.persistence.models.account import AccountModel
 from libraries.infrastructure.persistence.models.audit import AuditLogModel
+from libraries.infrastructure.persistence.models.auth_token import (
+    AuthTokenModel,
+    TokenType,
+)
 from libraries.infrastructure.persistence.models.organization import (
     OrganizationMemberModel,
     OrganizationModel,
 )
-from libraries.infrastructure.persistence.models.user import UserModel
+from libraries.infrastructure.persistence.models.user import UserModel, UserStatus
 
-from .auth import create_access_token, get_password_hash
+from .auth import (
+    create_access_token,
+    generate_secure_token,
+    get_password_hash,
+    hash_security_token,
+)
 from .organization_service import slugify
 from .subscription_service import SubscriptionService
 
@@ -112,6 +122,9 @@ class OnboardingService:
                 hashed_password=get_password_hash(password),
                 is_active=True,
                 is_superuser=False,
+                status=UserStatus.ACTIVE.value,
+                email_verified=False,
+                password_changed_at=now,
                 full_name=full_name.strip() if full_name else None,
                 meta_data={"registered_via": "onboarding_service"},
                 created_at=now,
@@ -189,9 +202,41 @@ class OnboardingService:
                 timestamp=now,
             )
             self.session.add(audit)
+
+            # 8. Create Email Verification Token and record USER_REGISTERED event
+            raw_token = generate_secure_token()
+            token_hash = hash_security_token(raw_token)
+            token_record = AuthTokenModel(
+                id=f"tok_{uuid.uuid4().hex[:16]}",
+                user_id=user_id,
+                token_hash=token_hash,
+                token_type=TokenType.EMAIL_VERIFICATION.value,
+                expires_at=now + timedelta(hours=24),
+                used_at=None,
+                created_at=now,
+                updated_at=now,
+            )
+            self.session.add(token_record)
+
+            domain_part = clean_email.split("@")[1] if "@" in clean_email else "example.com"
+            masked_email = clean_email[:2] + "***@" + domain_part
+            user_audit = AuditLogModel(
+                id=f"aud_{uuid.uuid4().hex[:16]}",
+                organization_id=org_id,
+                event_type="USER_REGISTERED",
+                component="auth",
+                actor=user_id,
+                details={"username": clean_username, "email": masked_email},
+                timestamp=now,
+            )
+            self.session.add(user_audit)
             await self.session.flush()
 
-            # 8. Generate Access Token
+            # Dispatch email verification
+            email_svc = get_email_service()
+            await email_svc.send_verification_email(clean_email, raw_token, clean_username)
+
+            # 9. Generate Access Token
             access_token = create_access_token(
                 data={"sub": user.id, "username": user.username}
             )

@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.security.rate_limit import RateLimitPolicies
 from libraries.domain.strategy.registry import UnknownStrategyError
 from libraries.domain.subscription.exceptions import (
     DailyResearchQuotaExceededError,
@@ -18,6 +19,7 @@ from libraries.domain.subscription.exceptions import (
 from ..dependencies import (
     TenantContext,
     get_research_service,
+    rate_limit,
     require_permission,
 )
 from ..schemas_research import (
@@ -89,6 +91,7 @@ async def get_strategy(
     status_code=status.HTTP_201_CREATED,
     summary="Create and Run Deterministic Research Experiment",
     description="Initiates a deterministic backtest simulation, enforcing quota, leakage guard, and risk accounting.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.RESEARCH_EXECUTE))],
 )
 async def create_experiment(
     request: CreateExperimentRequest,
@@ -339,6 +342,7 @@ async def compare_experiments(
     "/experiments/{experiment_id}/export",
     summary="Export Experiment Dataset",
     description="Downloads backtest metrics, simulation parameters, and full trade ledger in CSV or JSON format.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.DATA_EXPORT))],
 )
 async def export_experiment(
     experiment_id: str,

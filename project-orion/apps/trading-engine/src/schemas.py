@@ -153,6 +153,7 @@ class ErrorResponse(BaseModel):
 
     error: str
     message: str
+    detail: str | None = None
     correlation_id: str = ""
     timestamp: str = Field(
         default_factory=lambda: datetime.now(timezone.utc).isoformat()
@@ -348,8 +349,97 @@ class UserResponse(BaseModel):
     full_name: str | None = None
     is_active: bool
     is_superuser: bool
+    status: str = "ACTIVE"
+    email_verified: bool = False
+    password_changed_at: datetime | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ForgotPasswordRequest(BaseModel):
+    """Request body for POST /api/v1/auth/forgot-password."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    email: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Registered email address",
+        examples=["trader@example.com"],
+    )
+
+
+class ResetPasswordRequest(BaseModel):
+    """Request body for POST /api/v1/auth/reset-password."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    token: str = Field(
+        ...,
+        min_length=16,
+        max_length=128,
+        description="Cryptographic password reset token",
+    )
+    new_password: str = Field(
+        ...,
+        min_length=8,
+        max_length=72,
+        description="New secure password",
+    )
+
+
+class VerifyEmailRequest(BaseModel):
+    """Request body for POST /api/v1/auth/verify-email."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    token: str = Field(
+        ...,
+        min_length=16,
+        max_length=128,
+        description="Cryptographic email verification token",
+    )
+
+
+class ResendVerificationRequest(BaseModel):
+    """Request body for POST /api/v1/auth/resend-verification."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    email: str = Field(
+        ...,
+        min_length=5,
+        max_length=255,
+        description="Registered email address to resend verification link to",
+        examples=["trader@example.com"],
+    )
+
+
+class DeactivateAccountRequest(BaseModel):
+    """Request body for POST /api/v1/auth/deactivate."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    password: str = Field(
+        ...,
+        min_length=8,
+        max_length=128,
+        description="Current password to authenticate deactivation",
+    )
+    confirmation: str = Field(
+        ...,
+        description="Must be strictly 'DEACTIVATE' to prevent accidental account deactivation",
+        examples=["DEACTIVATE"],
+    )
+
+
+class GenericMessageResponse(BaseModel):
+    """Standard message response for auth lifecycle operations."""
+
+    model_config = ConfigDict(frozen=True)
+
+    message: str
 
 
 # ─── Pagination Models ───────────────────────────────────────────────────────
@@ -1037,7 +1127,7 @@ class UpdatePaperConfigRequest(BaseModel):
 
 
 # Re-export research and optimization schemas for unified schema access
+from .schemas_broker_sandbox import *
 from .schemas_optimization import *
 from .schemas_research import *
-from .schemas_broker_sandbox import *
 

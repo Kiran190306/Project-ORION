@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Lock, User, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/common/Button';
@@ -108,12 +108,20 @@ export const LoginPage: React.FC = () => {
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-xs font-mono uppercase tracking-wider text-slate-400 mb-1.5"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label
+                  htmlFor="password"
+                  className="block text-xs font-mono uppercase tracking-wider text-slate-400"
+                >
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-sky-400 hover:text-sky-300 transition-colors font-mono"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
                   <Lock className="w-4 h-4" />
@@ -142,6 +150,15 @@ export const LoginPage: React.FC = () => {
               >
                 Authenticate Session
               </Button>
+            </div>
+
+            <div className="pt-2 text-center">
+              <Link
+                to="/verify-email"
+                className="text-xs text-slate-400 hover:text-slate-300 transition-colors font-mono"
+              >
+                Need to verify your email?
+              </Link>
             </div>
           </form>
 

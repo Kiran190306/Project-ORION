@@ -35,6 +35,7 @@ def test_config_from_env_custom_values() -> None:
     env = {
         "ORION_DATABASE_URL": "postgresql+asyncpg://prod_user:secret@prod-db:5432/orion_prod",
         "ORION_ENVIRONMENT": "production",
+        "ORION_JWT_SECRET_KEY": "production-jwt-secret-key-must-be-at-least-32-chars-long",
         "ORION_LOG_LEVEL": "WARNING",
         "ORION_REDIS_URL": "redis://redis-cluster:6379/2",
         "ORION_RUN_MIGRATIONS": "true",
@@ -127,3 +128,80 @@ def test_config_cloud_environment_fallbacks() -> None:
         assert settings.database_url == "postgresql+asyncpg://render_pg:pass@render-db:5432/prod"
         assert settings.server_port == 8080
         assert settings.redis_url == "redis://render-redis:6379/1"
+
+
+def test_config_production_missing_jwt_secret_fails_closed() -> None:
+    """Test that missing ORION_JWT_SECRET_KEY in production fails closed."""
+    env = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "production",
+    }
+    with (
+        mock.patch.dict(os.environ, env, clear=True),
+        pytest.raises(ConfigurationError, match="ORION_JWT_SECRET_KEY is required in production"),
+    ):
+        AppSettings.from_env()
+
+
+def test_config_production_default_insecure_jwt_secret_fails_closed() -> None:
+    """Test that using default insecure JWT secret in production fails closed."""
+    env = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "production",
+        "ORION_JWT_SECRET_KEY": "insecure-dev-secret-key-change-in-production-institutional-orion-2026",
+    }
+    with (
+        mock.patch.dict(os.environ, env, clear=True),
+        pytest.raises(ConfigurationError, match="cannot use the default development secret in production"),
+    ):
+        AppSettings.from_env()
+
+
+def test_config_production_short_jwt_secret_fails_closed() -> None:
+    """Test that short JWT secret (<32 chars) in production fails closed."""
+    env = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "production",
+        "ORION_JWT_SECRET_KEY": "too-short",
+    }
+    with (
+        mock.patch.dict(os.environ, env, clear=True),
+        pytest.raises(ConfigurationError, match="must be at least 32 characters in production"),
+    ):
+        AppSettings.from_env()
+
+
+def test_config_production_valid_jwt_secret_succeeds() -> None:
+    """Test that valid 32+ char secret in production succeeds."""
+    env = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "production",
+        "ORION_JWT_SECRET_KEY": "a-strong-production-secret-with-32-plus-characters-institutional!",
+    }
+    with mock.patch.dict(os.environ, env, clear=True):
+        settings = AppSettings.from_env()
+        assert settings.is_production is True
+        assert settings.jwt_secret_key == "a-strong-production-secret-with-32-plus-characters-institutional!"
+
+
+def test_config_development_uses_default_or_custom_jwt_secret() -> None:
+    """Test that development environment can use default secret or custom test secret."""
+    # 1. Default secret in dev
+    env_default = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "development",
+    }
+    with mock.patch.dict(os.environ, env_default, clear=True):
+        settings = AppSettings.from_env()
+        assert settings.is_development is True
+        assert "institutional-orion-2026" in settings.jwt_secret_key
+
+    # 2. Custom secret in test/dev
+    env_custom = {
+        "ORION_DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/db",
+        "ORION_ENVIRONMENT": "test",
+        "ORION_JWT_SECRET_KEY": "explicit-test-secret",
+    }
+    with mock.patch.dict(os.environ, env_custom, clear=True):
+        settings_custom = AppSettings.from_env()
+        assert settings_custom.jwt_secret_key == "explicit-test-secret"

@@ -7,7 +7,9 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..dependencies import get_onboarding_service
+from libraries.domain.security.rate_limit import RateLimitPolicies
+
+from ..dependencies import get_onboarding_service, rate_limit
 from ..schemas import OnboardingRegisterRequest, OnboardingResponse
 from ..services.onboarding_service import OnboardingService
 
@@ -22,6 +24,7 @@ router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
     status_code=status.HTTP_201_CREATED,
     summary="Register Institutional Organization",
     description="Atomically registers a new customer user, creates an organization with OWNER role, provisions a default Free subscription, and initializes a $100,000 USD paper trading account.",
+    dependencies=[Depends(rate_limit(RateLimitPolicies.ONBOARDING_REGISTER))],
 )
 async def register_organization(
     request: OnboardingRegisterRequest,

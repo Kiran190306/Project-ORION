@@ -55,8 +55,8 @@ from libraries.infrastructure.persistence.models import (
 
 
 def test_canonical_permission_matrix_37_members():
-    """Verify that exactly 37 granular permissions exist and match the canonical role matrix."""
-    assert len(Permission) == 37
+    """Verify that exactly 41 granular permissions exist and match the canonical role matrix."""
+    assert len(Permission) == 41
 
     expected_permissions = {
         "ACCOUNT_READ", "ACCOUNT_CREATE", "ACCOUNT_UPDATE",
@@ -73,18 +73,19 @@ def test_canonical_permission_matrix_37_members():
         "RESEARCH_READ", "RESEARCH_EXECUTE", "RESEARCH_CANCEL", "RESEARCH_EXPORT",
         "OPTIMIZATION_READ", "OPTIMIZATION_EXECUTE", "OPTIMIZATION_CANCEL", "OPTIMIZATION_EXPORT",
         "DEPLOYMENT_READ", "DEPLOYMENT_EXECUTE", "DEPLOYMENT_CANCEL", "DEPLOYMENT_PROMOTE",
+        "BROKER_READ", "BROKER_SANDBOX_CONNECT", "BROKER_SANDBOX_EXECUTE", "BROKER_SANDBOX_RECONCILE",
     }
     actual_permissions = {p.name for p in Permission}
     assert actual_permissions == expected_permissions, f"Mismatch: {actual_permissions ^ expected_permissions}"
 
     # Role counts
-    assert len(ROLE_PERMISSIONS[OrganizationRole.OWNER]) == 37
-    assert len(ROLE_PERMISSIONS[OrganizationRole.ADMINISTRATOR]) == 33
-    assert len(ROLE_PERMISSIONS[OrganizationRole.PORTFOLIO_MANAGER]) == 31
-    assert len(ROLE_PERMISSIONS[OrganizationRole.RISK_OFFICER]) == 17
-    assert len(ROLE_PERMISSIONS[OrganizationRole.TRADER]) == 25
-    assert len(ROLE_PERMISSIONS[OrganizationRole.AUDITOR]) == 16
-    assert len(ROLE_PERMISSIONS[OrganizationRole.VIEWER]) == 13
+    assert len(ROLE_PERMISSIONS[OrganizationRole.OWNER]) == 41
+    assert len(ROLE_PERMISSIONS[OrganizationRole.ADMINISTRATOR]) == 36
+    assert len(ROLE_PERMISSIONS[OrganizationRole.PORTFOLIO_MANAGER]) == 35
+    assert len(ROLE_PERMISSIONS[OrganizationRole.RISK_OFFICER]) == 19
+    assert len(ROLE_PERMISSIONS[OrganizationRole.TRADER]) == 27
+    assert len(ROLE_PERMISSIONS[OrganizationRole.AUDITOR]) == 18
+    assert len(ROLE_PERMISSIONS[OrganizationRole.VIEWER]) == 14
 
     # Specific key invariants
     # ADMINISTRATOR lacks trading execution

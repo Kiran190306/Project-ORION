@@ -60,6 +60,9 @@ class AppSettings:
         "http://127.0.0.1:5173",
         "http://127.0.0.1:3000",
     )
+    # ─── Rate Limiting & Abuse Defense (EPIC-027) ─────────
+    rate_limiting_enabled: bool = True
+    trusted_proxies: tuple[str, ...] = ("127.0.0.1", "::1")
 
     @classmethod
     def from_env(cls) -> AppSettings:
@@ -122,6 +125,27 @@ class AppSettings:
             or "redis://localhost:6379/0"
         )
 
+        env_name = os.environ.get("ORION_ENVIRONMENT", "development").strip().lower()
+        raw_jwt_secret = os.environ.get("ORION_JWT_SECRET_KEY", "").strip()
+        default_insecure_secret = "insecure-dev-secret-key-change-in-production-institutional-orion-2026"
+
+        if env_name == "production":
+            if not raw_jwt_secret:
+                raise ConfigurationError(
+                    "ORION_JWT_SECRET_KEY is required in production environment but is not set."
+                )
+            if raw_jwt_secret == default_insecure_secret:
+                raise ConfigurationError(
+                    "ORION_JWT_SECRET_KEY cannot use the default development secret in production."
+                )
+            if len(raw_jwt_secret) < 32:
+                raise ConfigurationError(
+                    "ORION_JWT_SECRET_KEY must be at least 32 characters in production."
+                )
+            jwt_secret_key = raw_jwt_secret
+        else:
+            jwt_secret_key = raw_jwt_secret if raw_jwt_secret else default_insecure_secret
+
         return cls(
             environment=os.environ.get("ORION_ENVIRONMENT", "development"),
             log_level=log_level,
@@ -157,10 +181,7 @@ class AppSettings:
             market_data_provider=os.environ.get("ORION_MARKET_DATA_PROVIDER", "mock").strip().lower(),
             market_data_api_key=os.environ.get("ORION_MARKET_DATA_API_KEY", "").strip(),
             market_data_base_url=os.environ.get("ORION_MARKET_DATA_BASE_URL", "https://api.twelvedata.com").strip(),
-            jwt_secret_key=os.environ.get(
-                "ORION_JWT_SECRET_KEY",
-                "insecure-dev-secret-key-change-in-production-institutional-orion-2026",
-            ),
+            jwt_secret_key=jwt_secret_key,
             jwt_algorithm=os.environ.get("ORION_JWT_ALGORITHM", "HS256"),
             jwt_expire_minutes=int(os.environ.get("ORION_JWT_EXPIRE_MINUTES", "30")),
             cors_origins=_parse_cors_origins(
@@ -168,6 +189,15 @@ class AppSettings:
                     "ORION_CORS_ORIGINS",
                     "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000",
                 )
+            ),
+            rate_limiting_enabled=os.environ.get(
+                "ORION_RATE_LIMITING_ENABLED", "true"
+            ).lower()
+            in ("true", "1", "yes"),
+            trusted_proxies=tuple(
+                p.strip()
+                for p in os.environ.get("ORION_TRUSTED_PROXIES", "127.0.0.1,::1").split(",")
+                if p.strip()
             ),
         )
 

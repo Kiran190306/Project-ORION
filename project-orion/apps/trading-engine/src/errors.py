@@ -31,14 +31,27 @@ def _correlation_id(request: Request) -> str:
     return cid
 
 
-def _error_response(error: str, message: str, status_code: int, correlation_id: str) -> JSONResponse:
+def _error_response(
+    error: str,
+    message: str,
+    status_code: int,
+    correlation_id: str,
+    headers: dict[str, str] | None = None,
+) -> JSONResponse:
     payload = ErrorResponse(
         error=error,
         message=message,
+        detail=message,
         correlation_id=correlation_id,
     )
-    headers = {"x-correlation-id": correlation_id} if correlation_id else None
-    return JSONResponse(status_code=status_code, content=payload.model_dump(), headers=headers)
+    resp_headers: dict[str, str] = dict(headers) if headers else {}
+    if correlation_id and "x-correlation-id" not in resp_headers:
+        resp_headers["x-correlation-id"] = correlation_id
+    return JSONResponse(
+        status_code=status_code,
+        content=payload.model_dump(),
+        headers=resp_headers if resp_headers else None,
+    )
 
 
 def register_exception_handlers(app: FastAPI) -> None:
@@ -82,11 +95,13 @@ def register_exception_handlers(app: FastAPI) -> None:
             request.url.path,
             cid,
         )
+        error_type = "rate_limit_exceeded" if exc.status_code == 429 else "http_error"
         return _error_response(
-            error="http_error",
+            error=error_type,
             message=str(exc.detail),
             status_code=exc.status_code,
             correlation_id=cid,
+            headers=dict(exc.headers) if exc.headers else None,
         )
 
     @app.exception_handler(ConfigurationError)

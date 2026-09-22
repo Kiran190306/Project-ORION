@@ -28,6 +28,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.organization.permissions import Permission, has_permission
+from libraries.domain.security.rate_limit import (
+    RateLimitPolicy,
+    RateLimitResult,
+    RateLimitScope,
+)
 from libraries.infrastructure.caching.client import RedisClient
 from libraries.infrastructure.execution.paper_execution import PaperExecutionAdapter
 from libraries.infrastructure.health import HealthCheckRegistry
@@ -180,10 +185,23 @@ async def get_current_user(
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
-        if not user.is_active:
+        if not user.is_active or user.status == "DEACTIVATED":
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User account is disabled",
+            )
+
+        # Check if password was changed after token issuance (token revocation)
+        token_iat = payload.get("iat")
+        if (
+            user.password_changed_at is not None
+            and token_iat is not None
+            and token_iat < int(user.password_changed_at.timestamp()) - 1
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session revoked due to password change. Please log in again.",
+                headers={"WWW-Authenticate": "Bearer"},
             )
 
         return {
@@ -193,6 +211,9 @@ async def get_current_user(
             "full_name": user.full_name,
             "is_active": user.is_active,
             "is_superuser": user.is_superuser,
+            "status": user.status,
+            "email_verified": user.email_verified,
+            "password_changed_at": user.password_changed_at,
             "created_at": user.created_at,
             "updated_at": user.updated_at,
         }
@@ -213,7 +234,7 @@ async def get_current_active_user(
 
     Raises HTTPException if user is not active.
     """
-    if not current_user["is_active"]:
+    if not current_user["is_active"] or current_user.get("status") == "DEACTIVATED":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is disabled",
@@ -618,5 +639,87 @@ def get_deployment_service(
         session=session,
         entitlement_service=entitlements,
     )
+
+
+def get_rate_limit_service(request: Request) -> Any:
+    """Provide RateLimitService from app state."""
+    from .services.rate_limit_service import RateLimitService
+
+    svc = getattr(request.app.state, "rate_limit_service", None)
+    if svc is None:
+        svc = RateLimitService()
+        request.app.state.rate_limit_service = svc
+    return svc
+
+
+def rate_limit(policy: RateLimitPolicy) -> Callable[..., Any]:
+    """FastAPI dependency factory enforcing rate limits on route handlers."""
+
+    async def _rate_limit_dependency(
+        request: Request,
+        rate_limit_svc: Annotated[Any, Depends(get_rate_limit_service)],
+    ) -> RateLimitResult:
+        client_ip = rate_limit_svc.ip_resolver.resolve_client_ip(request)
+
+        user_id: str | None = None
+        org_id: str | None = None
+
+        if policy.scope in (
+            RateLimitScope.USER,
+            RateLimitScope.ORGANIZATION,
+            RateLimitScope.USER_AND_ORG,
+        ):
+            # Check if user or tenant context is already resolved on request.state
+            tenant_ctx: Any = getattr(request.state, "tenant_context", None)
+            if tenant_ctx is not None:
+                user_id = getattr(tenant_ctx, "user_id", None)
+                org_id = getattr(tenant_ctx, "organization_id", None)
+            else:
+                user_state: Any = getattr(request.state, "user", None)
+                if isinstance(user_state, dict):
+                    user_id = str(user_state.get("id") or "")
+                elif hasattr(user_state, "id"):
+                    user_id = str(user_state.id)
+
+            if not user_id:
+                auth_header = request.headers.get("Authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    parts = auth_header.split(" ")
+                    if len(parts) == 2:
+                        payload = decode_access_token(parts[1])
+                        if payload:
+                            user_id = payload.get("sub")
+
+            if not org_id:
+                org_id = (
+                    request.headers.get("X-Organization-ID")
+                    or request.headers.get("x-organization-id")
+                    or request.path_params.get("organization_id")
+                    or request.path_params.get("id")
+                )
+
+        result: RateLimitResult = await rate_limit_svc.check_rate_limit(
+            policy=policy,
+            ip=client_ip,
+            user_id=user_id,
+            org_id=org_id,
+        )
+
+        if not result.allowed:
+            headers = {
+                "Retry-After": str(result.retry_after_seconds),
+                "X-RateLimit-Limit": str(result.limit),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": str(result.reset_timestamp),
+            }
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Rate limit exceeded. Please retry after {result.retry_after_seconds} seconds.",
+                headers=headers,
+            )
+
+        return result
+
+    return _rate_limit_dependency
 
 

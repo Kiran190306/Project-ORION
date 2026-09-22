@@ -19,9 +19,15 @@ import type {
   DashboardResponse,
   EquityCurveResponse,
   ExposureResponse,
+  ForgotPasswordRequest,
+  GenericMessageResponse,
   InvitationResponse,
   LoginRequest,
   LoginResponse,
+  ResetPasswordRequest,
+  ResendVerificationRequest,
+  DeactivateAccountRequest,
+  VerifyEmailRequest,
   MarketCandlesResponse,
   MarketHealth,
   MarketInstrument,
@@ -95,6 +101,36 @@ export const authApi = {
   getMe: (): Promise<UserResponse> =>
     apiClient<UserResponse>('/api/v1/auth/me', {
       method: 'GET',
+    }),
+
+  forgotPassword: (data: ForgotPasswordRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resetPassword: (data: ResetPasswordRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  verifyEmail: (data: VerifyEmailRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  resendVerification: (data: ResendVerificationRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/resend-verification', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  deactivateAccount: (data: DeactivateAccountRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/deactivate', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 
