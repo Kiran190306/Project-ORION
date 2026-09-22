@@ -536,6 +536,16 @@ def get_onboarding_service(
     return OnboardingService(session=session)
 
 
+def get_legal_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> Any:
+    """Provide LegalService with injected database session."""
+    from .services.legal_service import LegalService
+
+    return LegalService(session=session)
+
+
+
 def require_permission(permission: Permission) -> Callable[..., Any]:
     """FastAPI dependency factory enforcing institutional RBAC permissions.
 

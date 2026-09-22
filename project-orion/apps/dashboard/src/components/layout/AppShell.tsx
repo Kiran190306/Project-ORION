@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 
@@ -17,8 +17,16 @@ export const AppShell: React.FC = () => {
           <Outlet />
         </main>
 
-        <footer className="py-3 px-6 border-t border-slate-900 text-center text-xs text-slate-600 font-mono">
-          Project ORION v0.1.0 &bull; Institutional Forex Trading Architecture &bull; Paper Simulation Mode Active
+        <footer className="py-3 px-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
+          <div>
+            Project ORION v0.1.0 &bull; Paper Simulation Mode Active &bull; <span className="text-amber-400 font-semibold">$0.00 Capital at Risk</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
+            <Link to="/privacy" className="hover:text-slate-300 transition-colors">Privacy</Link>
+            <Link to="/risk-disclosure" className="hover:text-amber-400 transition-colors">Risk Disclosure</Link>
+            <Link to="/security" className="hover:text-emerald-400 transition-colors">Security</Link>
+          </div>
         </footer>
       </div>
     </div>

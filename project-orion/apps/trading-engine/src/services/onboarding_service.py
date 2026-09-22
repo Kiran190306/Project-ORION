@@ -38,6 +38,7 @@ from .auth import (
     get_password_hash,
     hash_security_token,
 )
+from .legal_service import LegalService
 from .organization_service import slugify
 from .subscription_service import SubscriptionService
 
@@ -71,6 +72,7 @@ class OnboardingService:
         organization_name: str,
         organization_slug: str | None = None,
         full_name: str | None = None,
+        user_agent: str | None = None,
     ) -> OnboardingResult:
         """Execute transactional onboarding creating User, Organization, Owner, Subscription, and Paper Account."""
         clean_username = username.strip()
@@ -235,6 +237,14 @@ class OnboardingService:
             # Dispatch email verification
             email_svc = get_email_service()
             await email_svc.send_verification_email(clean_email, raw_token, clean_username)
+
+            # 8b. Record mandatory legal agreements and acknowledgements (Terms, Privacy, Risk Disclosure)
+            legal_svc = LegalService(session=self.session)
+            await legal_svc.record_registration_consents(
+                user_id=user_id,
+                organization_id=org_id,
+                user_agent=user_agent,
+            )
 
             # 9. Generate Access Token
             access_token = create_access_token(

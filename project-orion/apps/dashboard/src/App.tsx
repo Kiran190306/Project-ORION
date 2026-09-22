@@ -10,6 +10,11 @@ import { LoginPage } from './pages/LoginPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { RiskDisclosurePage } from './pages/RiskDisclosurePage';
+import { RefundPolicyPage } from './pages/RefundPolicyPage';
+import { SecurityTrustPage } from './pages/SecurityTrustPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { PortfolioPage } from './pages/PortfolioPage';
 import { OrdersPage } from './pages/OrdersPage';
@@ -33,6 +38,11 @@ export const AppRoutes: React.FC = () => {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/risk-disclosure" element={<RiskDisclosurePage />} />
+      <Route path="/refund-policy" element={<RefundPolicyPage />} />
+      <Route path="/security" element={<SecurityTrustPage />} />
 
       <Route
         path="/"

@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from libraries.domain.security.rate_limit import RateLimitPolicies
 
@@ -28,6 +28,7 @@ router = APIRouter(prefix="/api/v1/onboarding", tags=["Onboarding"])
 )
 async def register_organization(
     request: OnboardingRegisterRequest,
+    http_request: Request,
     onboarding_service: Annotated[OnboardingService, Depends(get_onboarding_service)],
 ) -> OnboardingResponse:
     """Execute atomic institutional onboarding."""
@@ -39,6 +40,7 @@ async def register_organization(
             organization_name=request.organization_name,
             organization_slug=request.organization_slug,
             full_name=request.full_name,
+            user_agent=http_request.headers.get("User-Agent"),
         )
         return OnboardingResponse(
             user_id=result.user.id,

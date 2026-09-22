@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   CheckCircle,
   AlertCircle,
@@ -135,7 +136,7 @@ export const BillingPage: React.FC = () => {
         'Unlimited Accounts & Orders',
         'Unlimited Autonomous Workers',
         'All Asset Classes (*)',
-        '7-Year Audit Trail Compliance',
+        'Long-term system audit log retention (subject to data agreement)',
         'Dedicated SRE Account Manager',
       ],
       isPopular: false,
@@ -315,6 +316,32 @@ export const BillingPage: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* Legal & Billing Policy Disclosures Card */}
+      <div className="p-4 rounded-lg bg-slate-900/60 border border-slate-800 text-xs text-slate-400 space-y-2 font-mono">
+        <div className="flex items-center gap-2 text-slate-300 font-semibold">
+          <ShieldCheck className="w-4 h-4 text-sky-400" />
+          <span>COMMERCIAL TERMS &amp; BILLING NOTICE</span>
+        </div>
+        <p>
+          Project ORION operates in Paper Trading / Simulated Mode ($0.00 capital at risk). Subscription tiers entitle organizations to platform compute quotas and system access. Payment processing is currently conducted via Stripe Test Mode.
+        </p>
+        <p>
+          Subscriptions renew automatically each billing cycle unless cancelled prior to renewal. For detailed terms regarding prorations, cancellations, and disputes, please review our{' '}
+          <Link to="/refund-policy" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">
+            Refund &amp; Cancellation Policy
+          </Link>
+          ,{' '}
+          <Link to="/terms" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">
+            Terms of Service
+          </Link>
+          , and{' '}
+          <Link to="/risk-disclosure" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">
+            Paper Trading Risk Disclosure
+          </Link>
+          .
+        </p>
       </div>
 
       {/* Invoices History Table */}

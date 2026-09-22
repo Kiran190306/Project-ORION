@@ -4,6 +4,7 @@ import { Lock, User, AlertCircle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { Button } from '../components/common/Button';
 import { PaperTradingBadge } from '../components/common/Badge';
+import { PublicFooter } from '../components/layout/PublicFooter';
 import { getErrorMessage } from '../utils/errors';
 
 export const LoginPage: React.FC = () => {
@@ -44,23 +45,27 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 sm:p-6 text-slate-100 selection:bg-sky-500/30">
-      <div className="w-full max-w-md">
-        {/* Header Branding */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-400 font-bold font-mono text-2xl mb-4 shadow-lg shadow-sky-950/40">
-            Ω
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-between text-slate-100 selection:bg-sky-500/30">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6">
+        <div className="w-full max-w-md">
+          {/* Header Branding */}
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-sky-500/10 border border-sky-500/30 text-sky-400 font-bold font-mono text-2xl mb-4 shadow-lg shadow-sky-950/40">
+              Ω
+            </div>
+            <h1 className="text-xl font-bold font-mono tracking-wider text-slate-100">
+              PROJECT ORION
+            </h1>
+            <p className="text-xs font-mono text-slate-400 tracking-wider mt-1">
+              QUANTITATIVE PAPER TRADING PLATFORM
+            </p>
+            <p className="text-[11px] font-mono text-amber-400/90 tracking-wide mt-0.5">
+              Simulated Execution &bull; $0.00 Capital at Risk
+            </p>
+            <div className="mt-3 flex justify-center">
+              <PaperTradingBadge size="sm" />
+            </div>
           </div>
-          <h1 className="text-xl font-bold font-mono tracking-wider text-slate-100">
-            PROJECT ORION
-          </h1>
-          <p className="text-xs font-mono text-slate-400 tracking-wider mt-1">
-            INSTITUTIONAL FOREX TRADING PLATFORM
-          </p>
-          <div className="mt-3 flex justify-center">
-            <PaperTradingBadge size="sm" />
-          </div>
-        </div>
 
         {/* Login Box */}
         <div
@@ -168,6 +173,8 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
       </div>
+      </div>
+      <PublicFooter />
     </div>
   );
 };

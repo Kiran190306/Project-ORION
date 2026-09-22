@@ -9,9 +9,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 from enum import StrEnum
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Self, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 T = TypeVar("T")
 
@@ -868,6 +868,19 @@ class OnboardingRegisterRequest(BaseModel):
     organization_name: str = Field(..., min_length=2, max_length=100, description="Organization or firm name")
     organization_slug: str | None = Field(None, min_length=2, max_length=50, description="Optional custom URL slug")
     full_name: str | None = Field(None, max_length=100, description="Full name of primary owner")
+    terms_accepted: bool = Field(..., description="Explicit agreement to the Terms of Service")
+    privacy_acknowledged: bool = Field(..., description="Explicit acknowledgement of Privacy Policy and data disclosures")
+    risk_disclosure_acknowledged: bool = Field(..., description="Explicit acknowledgement of Paper Trading Risk Disclosure ($0.00 capital)")
+
+    @model_validator(mode="after")
+    def validate_mandatory_consents(self) -> Self:
+        if not self.terms_accepted:
+            raise ValueError("You must accept the Terms of Service to register an account.")
+        if not self.privacy_acknowledged:
+            raise ValueError("You must acknowledge the Privacy Policy to register an account.")
+        if not self.risk_disclosure_acknowledged:
+            raise ValueError("You must acknowledge the Paper Trading Risk Disclosure to register an account.")
+        return self
 
 
 class OnboardingResponse(BaseModel):
@@ -1126,8 +1139,54 @@ class UpdatePaperConfigRequest(BaseModel):
     leverage: int | None = None
 
 
+# ─── Legal & Trust Schemas ───────────────────────────────────────────────────
+
+
+class LegalDocumentResponse(BaseModel):
+    """Public metadata describing a versioned legal document."""
+
+    model_config = ConfigDict(frozen=True)
+
+    document_type: str = Field(..., description="Canonical document type")
+    version: str = Field(..., description="Semantic version string")
+    title: str = Field(..., description="Document title")
+    summary: str = Field(..., description="Document summary")
+    effective_date: str = Field(..., description="Effective date (YYYY-MM-DD)")
+    status: str = Field(..., description="Publication status")
+    consent_kind: str = Field(..., description="AGREEMENT, ACKNOWLEDGEMENT, or INFORMATIONAL")
+    requires_consent: bool = Field(..., description="Whether user agreement/acknowledgement is required")
+
+
+class LegalDocumentDetailResponse(LegalDocumentResponse):
+    """Detailed document payload including markdown prose content."""
+
+    content_markdown: str = Field(..., description="Full document text in Markdown format")
+
+
+class SubmitLegalAcceptanceRequest(BaseModel):
+    """Request payload to submit a legal agreement or acknowledgement."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    document_type: str = Field(..., description="Canonical document type")
+    version: str = Field(..., description="Version string being accepted")
+
+
+class LegalAcceptanceResponse(BaseModel):
+    """Response payload for a recorded legal acceptance."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str = Field(..., description="Unique acceptance ID")
+    user_id: str = Field(..., description="Accepting user UUID")
+    organization_id: str | None = Field(None, description="Associated tenant organization UUID")
+    document_type: str = Field(..., description="Document type accepted")
+    document_version: str = Field(..., description="Document version accepted")
+    accepted_at: datetime = Field(..., description="UTC timestamp of acceptance")
+    acceptance_method: str = Field(..., description="Method by which consent was captured")
+
+
 # Re-export research and optimization schemas for unified schema access
 from .schemas_broker_sandbox import *
 from .schemas_optimization import *
 from .schemas_research import *
-

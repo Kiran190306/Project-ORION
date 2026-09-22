@@ -35,6 +35,7 @@ from .routes.broker_sandbox import router as broker_sandbox_router
 from .routes.dashboard import router as dashboard_router
 from .routes.deployments import router as deployments_router
 from .routes.health import router as health_router
+from .routes.legal import router as legal_router
 from .routes.market_data import router as market_data_router
 from .routes.metrics import router as metrics_router
 from .routes.onboarding import router as onboarding_router
@@ -161,6 +162,7 @@ def create_app(
     # ─── Routers ────────────────────────────────────────────────────────────
     app.include_router(health_router)
     app.include_router(metrics_router)
+    app.include_router(legal_router)
     app.include_router(auth_router)
     app.include_router(onboarding_router)
     app.include_router(organization_router)

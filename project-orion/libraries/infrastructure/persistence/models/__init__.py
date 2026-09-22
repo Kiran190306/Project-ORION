@@ -24,6 +24,9 @@ from libraries.infrastructure.persistence.models.deployment import (
 from libraries.infrastructure.persistence.models.invitation import (
     OrganizationInvitationModel,
 )
+from libraries.infrastructure.persistence.models.legal_acceptance import (
+    LegalAcceptanceModel,
+)
 from libraries.infrastructure.persistence.models.notification import (
     NotificationRecordModel,
 )
@@ -68,6 +71,7 @@ __all__ = [
     "BrokerSandboxAccountModel",
     "ExecutionReportModel",
     "FillModel",
+    "LegalAcceptanceModel",
     "NotificationRecordModel",
     "OptimizationJobModel",
     "OrderModel",

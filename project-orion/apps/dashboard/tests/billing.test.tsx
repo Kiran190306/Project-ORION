@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { BillingPage } from '../src/pages/BillingPage';
 import { billingApi } from '../src/api/endpoints';
 import type { BillingOverviewResponse } from '../src/api/types';
@@ -53,7 +54,11 @@ describe('BillingPage', () => {
   });
 
   it('renders active plan tier, billing cycle, and strict paper-trading warning', async () => {
-    render(<BillingPage />);
+    render(
+      <MemoryRouter>
+        <BillingPage />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText('COMMERCIAL BILLING & PLANS')).toBeDefined();
     expect(await screen.findByText('PRO')).toBeDefined();
@@ -63,10 +68,20 @@ describe('BillingPage', () => {
     expect(screen.getByText('Pro Trader')).toBeDefined();
     expect(screen.getByText('Business Prop Desk')).toBeDefined();
     expect(screen.getByText('Enterprise Institutional')).toBeDefined();
+    expect(screen.getByText(/Long-term system audit log retention \(subject to data agreement\)/i)).toBeDefined();
+
+    // Verify Commercial Terms & Billing Notice
+    expect(screen.getByText('COMMERCIAL TERMS & BILLING NOTICE')).toBeDefined();
+    const refundLink = screen.getByRole('link', { name: /Refund & Cancellation Policy/i });
+    expect(refundLink.getAttribute('href')).toBe('/refund-policy');
   });
 
   it('displays invoice history table with formatted values and receipt link', async () => {
-    render(<BillingPage />);
+    render(
+      <MemoryRouter>
+        <BillingPage />
+      </MemoryRouter>
+    );
 
     expect(await screen.findByText('in_test_123')).toBeDefined();
     expect(screen.getByText('PAID')).toBeDefined();
@@ -83,7 +98,11 @@ describe('BillingPage', () => {
       customer_id: 'cus_test_123',
     });
 
-    render(<BillingPage />);
+    render(
+      <MemoryRouter>
+        <BillingPage />
+      </MemoryRouter>
+    );
 
     const upgradeButton = await screen.findByRole('button', { name: /Upgrade to Business Prop Desk/i });
     fireEvent.click(upgradeButton);
