@@ -2,9 +2,20 @@ import React, { useState } from 'react';
 import { Outlet, Link } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
+import { useOnboarding } from '../../hooks/useOnboarding';
+import { OnboardingWizard } from '../onboarding/OnboardingWizard';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import { Button } from '../common/Button';
 
 export const AppShell: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const {
+    status,
+    isLoading: isOnboardingLoading,
+    error: onboardingError,
+    refreshStatus,
+    completeStep,
+  } = useOnboarding();
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col lg:flex-row text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
@@ -14,7 +25,40 @@ export const AppShell: React.FC = () => {
         <Topbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
-          <Outlet />
+          {isOnboardingLoading ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className="py-24 flex flex-col items-center justify-center text-slate-300"
+            >
+              <div className="w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs font-mono tracking-wider text-slate-400">
+                Checking institutional onboarding status...
+              </p>
+            </div>
+          ) : onboardingError && !status ? (
+            <div className="py-20 text-center space-y-4">
+              <div className="inline-flex p-3 rounded-full bg-rose-950/60 border border-rose-800 text-rose-400">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <h2 className="text-base font-semibold text-slate-200">
+                Failed to Load Onboarding Status
+              </h2>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">{onboardingError}</p>
+              <Button variant="secondary" size="sm" onClick={() => refreshStatus()}>
+                <RefreshCw className="w-4 h-4 mr-1.5" />
+                Retry Connection
+              </Button>
+            </div>
+          ) : status && status.status !== 'COMPLETED' ? (
+            <OnboardingWizard
+              status={status}
+              onRefresh={refreshStatus}
+              onCompleteStep={completeStep}
+            />
+          ) : (
+            <Outlet />
+          )}
         </main>
 
         <footer className="py-3 px-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">

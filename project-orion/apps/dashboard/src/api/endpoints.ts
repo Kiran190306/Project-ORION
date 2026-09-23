@@ -30,6 +30,9 @@ import type {
   VerifyEmailRequest,
   OnboardingRegisterRequest,
   OnboardingResponse,
+  OnboardingStatusResponse,
+  OnboardingStep,
+  CompleteOnboardingStepRequest,
   MarketCandlesResponse,
   MarketHealth,
   MarketInstrument,
@@ -144,6 +147,23 @@ export const onboardingApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  getStatus: (): Promise<OnboardingStatusResponse> =>
+    apiClient<OnboardingStatusResponse>('/api/v1/onboarding/status', {
+      method: 'GET',
+    }),
+
+  completeStep: (
+    step: OnboardingStep | string,
+    data?: CompleteOnboardingStepRequest
+  ): Promise<OnboardingStatusResponse> =>
+    apiClient<OnboardingStatusResponse>(
+      `/api/v1/onboarding/steps/${encodeURIComponent(step)}/complete`,
+      {
+        method: 'POST',
+        body: data ? JSON.stringify(data) : undefined,
+      }
+    ),
 };
 
 // ─── Account ─────────────────────────────────────────────────────────────────

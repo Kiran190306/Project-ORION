@@ -102,6 +102,46 @@ export interface OnboardingResponse {
   created_at: string;
 }
 
+export type OnboardingStatus = 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+
+export type OnboardingStep =
+  | 'WELCOME'
+  | 'EMAIL_VERIFICATION'
+  | 'STRATEGY'
+  | 'RISK'
+  | 'PAPER_TRADING_READY';
+
+export interface OnboardingStepDetail {
+  step: OnboardingStep;
+  title: string;
+  description: string;
+  is_completed: boolean;
+  is_automated: boolean;
+  prerequisites_met: boolean;
+}
+
+export interface OnboardingStatusResponse {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  status: OnboardingStatus;
+  current_step: OnboardingStep;
+  completed_steps: OnboardingStep[];
+  next_step: OnboardingStep | null;
+  steps: OnboardingStepDetail[];
+  email_verified: boolean;
+  paper_account_ready: boolean;
+  strategy_configured: boolean;
+  risk_configured: boolean;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CompleteOnboardingStepRequest {
+  metadata?: Record<string, any>;
+}
+
 // ─── Account & Summary ───────────────────────────────────────────────────────
 
 export interface AccountSummary {
