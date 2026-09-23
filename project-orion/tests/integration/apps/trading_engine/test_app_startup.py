@@ -267,6 +267,52 @@ async def test_integration_startup_with_migrations_enabled(mock_redis: RedisClie
 
 
 @pytest.mark.asyncio
+async def test_integration_startup_with_migrations_disabled(
+    mock_redis: RedisClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Application starts successfully and skips Alembic when run_migrations=False (EPIC-027 Phase 6B)."""
+    from unittest.mock import MagicMock
+
+    import apps.trading_engine.src.lifespan as lifespan_module
+
+    # Mock/spy the migration execution boundary
+    mock_migration_fn = MagicMock()
+    monkeypatch.setattr(lifespan_module, "run_database_migrations", mock_migration_fn)
+
+    settings = AppSettings(
+        environment="testing",
+        log_level="INFO",
+        database_url="sqlite+aiosqlite:///:memory:",
+        redis_url="redis://localhost:6379/0",
+        run_migrations=False,  # Decoupled production behavior
+        server_host="127.0.0.1",
+        server_port=8000,
+        paper_balance=Decimal(100000),
+        worker_enabled=False,
+        worker_symbols="EUR/USD,GBP/USD",
+        market_data_poll_interval=5.0,
+        trading_cycle_interval=10.0,
+        worker_timeout=30.0,
+        worker_stale_threshold=30.0,
+    )
+    app = create_app(
+        settings=settings,
+        redis_client=mock_redis,
+    )
+    async with app.router.lifespan_context(app):
+        # 1. Starts successfully
+        assert app.state.db_manager is not None
+        # 2. Does not invoke Alembic / run_database_migrations
+        assert mock_migration_fn.call_count == 0
+        # 3. Health check operates cleanly
+        is_healthy = await app.state.db_manager.health_check()
+        assert is_healthy is True
+
+    # Confirm migration function was never called throughout the entire lifecycle
+    mock_migration_fn.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_integration_database_session_commit_and_rollback(integration_app: any) -> None:
     """Verify get_db_session commits on success and rolls back on exception."""
     app = integration_app

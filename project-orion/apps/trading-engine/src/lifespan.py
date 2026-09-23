@@ -218,6 +218,11 @@ def create_lifespan(
             except Exception as exc:
                 logger.error("Failed to execute database migrations: %s", exc)
                 raise
+        else:
+            logger.info(
+                "In-lifespan database migrations disabled (ORION_RUN_MIGRATIONS=false). "
+                "Migrations are decoupled and managed via pre-deploy execution."
+            )
 
         # 5. Initialize Redis
         redis_config = RedisConfig(url=settings.redis_url)

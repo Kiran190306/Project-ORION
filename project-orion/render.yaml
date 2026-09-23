@@ -1,26 +1,33 @@
 version: "1"
 
 databases:
+  # ─── Relational Storage (PostgreSQL) ──────────────────────────────────────
+  # Plan upgraded from free to basic-1gb for persistent SSD, daily automated snapshots,
+  # and elimination of the 30-day free-tier database expiration.
+  # Note: Requires active Render account payment method (External Dependency).
   - name: orion-postgres
     databaseName: orion_prod
     user: orion
-    plan: free
+    plan: basic-1gb
     ipAllowList: []
 
 services:
+  # ─── In-Memory Cache & Message Bus (Redis) ─────────────────────────────────
   - type: redis
     name: orion-redis
     plan: free
     ipAllowList: [] # Internal private network only
 
   # ─── Trading Engine ASGI API ───────────────────────────────────────────────
+  # Plan configured to starter to support preDeployCommand migration decoupling.
   - type: web
     name: orion-api
     rootDir: project-orion
     env: docker
     dockerfilePath: docker/apps/trading-engine/Dockerfile
     dockerContext: .
-    plan: free
+    plan: starter
+    preDeployCommand: python scripts/deploy/migrate.py
     healthCheckPath: /health/live
     envVars:
       - key: ORION_ENVIRONMENT
@@ -37,7 +44,7 @@ services:
           name: orion-redis
           property: connectionString
       - key: ORION_RUN_MIGRATIONS
-        value: "true"
+        value: "false" # Migrations decoupled; executed via preDeployCommand
       - key: ORION_JWT_SECRET_KEY
         generateValue: true
       - key: ORION_CORS_ORIGINS
@@ -57,4 +64,3 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://orion-api.onrender.com
-

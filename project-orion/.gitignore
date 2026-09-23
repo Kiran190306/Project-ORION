@@ -245,6 +245,8 @@ configs/dev/env.yaml
 configs/staging/env.yaml
 configs/production/env.yaml
 security/secrets/
+.env*
+!.env.example
 *.key
 *.pem
 *.crt

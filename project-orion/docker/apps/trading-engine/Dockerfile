@@ -58,6 +58,7 @@ COPY database ./database
 COPY shared ./shared
 COPY libraries ./libraries
 COPY apps ./apps
+COPY scripts ./scripts
 
 # Security: Create and run as non-root user
 RUN groupadd -r orion && useradd -r -g orion -d /app -s /sbin/nologin orion && \
