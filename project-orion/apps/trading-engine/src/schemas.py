@@ -904,6 +904,67 @@ class OnboardingResponse(BaseModel):
     created_at: datetime
 
 
+class OnboardingStatus(StrEnum):
+    """Lifecycle status of an institutional tenant onboarding journey."""
+
+    NOT_STARTED = "NOT_STARTED"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+
+
+class OnboardingStep(StrEnum):
+    """Sequential steps of the guided paper trading onboarding workflow."""
+
+    WELCOME = "WELCOME"
+    EMAIL_VERIFICATION = "EMAIL_VERIFICATION"
+    STRATEGY = "STRATEGY"
+    RISK = "RISK"
+    PAPER_TRADING_READY = "PAPER_TRADING_READY"
+
+
+class OnboardingStepDetail(BaseModel):
+    """Structured descriptor for an individual onboarding step."""
+
+    model_config = ConfigDict(frozen=True)
+
+    step: OnboardingStep
+    title: str
+    description: str
+    is_completed: bool
+    is_automated: bool
+    prerequisites_met: bool
+
+
+class OnboardingStatusResponse(BaseModel):
+    """Authoritative onboarding lifecycle progress for authenticated tenant."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    user_id: str
+    organization_id: str
+    status: OnboardingStatus
+    current_step: OnboardingStep
+    completed_steps: list[OnboardingStep]
+    next_step: OnboardingStep | None = None
+    steps: list[OnboardingStepDetail]
+    email_verified: bool
+    paper_account_ready: bool
+    strategy_configured: bool
+    risk_configured: bool
+    completed_at: datetime | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class CompleteOnboardingStepRequest(BaseModel):
+    """Payload to complete an onboarding step with optional step parameters."""
+
+    model_config = ConfigDict(frozen=True)
+
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Optional step-specific configuration")
+
+
 # ─── Organization & Member Models ────────────────────────────────────────────
 
 

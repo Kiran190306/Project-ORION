@@ -30,6 +30,12 @@ from libraries.infrastructure.persistence.models.legal_acceptance import (
 from libraries.infrastructure.persistence.models.notification import (
     NotificationRecordModel,
 )
+from libraries.infrastructure.persistence.models.onboarding import (
+    ONBOARDING_STEP_SEQUENCE,
+    OnboardingProgressModel,
+    OnboardingStatus,
+    OnboardingStep,
+)
 from libraries.infrastructure.persistence.models.optimization import (
     OptimizationJobModel,
 )
@@ -73,6 +79,10 @@ __all__ = [
     "FillModel",
     "LegalAcceptanceModel",
     "NotificationRecordModel",
+    "ONBOARDING_STEP_SEQUENCE",
+    "OnboardingProgressModel",
+    "OnboardingStatus",
+    "OnboardingStep",
     "OptimizationJobModel",
     "OrderModel",
     "OrganizationInvitationModel",

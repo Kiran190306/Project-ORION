@@ -32,6 +32,7 @@ from libraries.infrastructure.persistence.config import DatabaseConfig, Database
 from libraries.infrastructure.persistence.models import (
     AccountModel,
     AuditLogModel,
+    OnboardingProgressModel,
     OrganizationMemberModel,
     OrganizationModel,
     SubscriptionModel,
@@ -117,6 +118,9 @@ async def test_successful_transactional_onboarding(onboarding_env: dict):
         "organization_name": "Apex Capital Management",
         "organization_slug": "apex-capital",
         "full_name": "Apex Lead PM",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
 
     response = await client.post("/api/v1/onboarding/register", json=payload)
@@ -185,6 +189,17 @@ async def test_successful_transactional_onboarding(onboarding_env: dict):
         )).scalar_one()
         assert audit.actor == user_id
 
+        # 7. Persistent Onboarding Progress
+        ob_progress = (await session.execute(
+            select(OnboardingProgressModel).where(
+                OnboardingProgressModel.organization_id == org_id,
+                OnboardingProgressModel.user_id == user_id,
+            )
+        )).scalar_one()
+        assert ob_progress.status in ("NOT_STARTED", "IN_PROGRESS")
+        assert ob_progress.current_step == "WELCOME"
+        assert ob_progress.completed_steps == []
+
     # Verify returned JWT token immediately authenticates against protected routes
     token = data["access_token"]
     headers = {
@@ -208,6 +223,9 @@ async def test_duplicate_username_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Org One",
         "organization_slug": "org-one",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r1 = await client.post("/api/v1/onboarding/register", json=payload1)
     assert r1.status_code == 201
@@ -219,6 +237,9 @@ async def test_duplicate_username_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Org Two",
         "organization_slug": "org-two",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r2 = await client.post("/api/v1/onboarding/register", json=payload2)
     assert r2.status_code == 409
@@ -237,6 +258,9 @@ async def test_duplicate_email_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Alpha Org",
         "organization_slug": "alpha-org",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r1 = await client.post("/api/v1/onboarding/register", json=payload1)
     assert r1.status_code == 201
@@ -247,6 +271,9 @@ async def test_duplicate_email_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Beta Org",
         "organization_slug": "beta-org",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r2 = await client.post("/api/v1/onboarding/register", json=payload2)
     assert r2.status_code == 409
@@ -265,6 +292,9 @@ async def test_duplicate_slug_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Omega Ventures",
         "organization_slug": "omega-ventures",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r1 = await client.post("/api/v1/onboarding/register", json=payload1)
     assert r1.status_code == 201
@@ -275,6 +305,9 @@ async def test_duplicate_slug_conflict_rejection(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Omega Ventures International",
         "organization_slug": "omega-ventures",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
     r2 = await client.post("/api/v1/onboarding/register", json=payload2)
     assert r2.status_code == 409
@@ -295,6 +328,9 @@ async def test_input_validation_rejections(onboarding_env: dict):
             "email": "valid@email.com",
             "password": "short",
             "organization_name": "Valid Org",
+            "terms_accepted": True,
+            "privacy_acknowledged": True,
+            "risk_disclosure_acknowledged": True,
         },
     )
     assert r1.status_code in (400, 422)
@@ -307,6 +343,9 @@ async def test_input_validation_rejections(onboarding_env: dict):
             "email": "not-an-email",
             "password": "ValidPassword123!",
             "organization_name": "Valid Org",
+            "terms_accepted": True,
+            "privacy_acknowledged": True,
+            "risk_disclosure_acknowledged": True,
         },
     )
     assert r2.status_code in (400, 422)
@@ -324,6 +363,9 @@ async def test_atomic_rollback_on_failure(onboarding_env: dict):
         "password": "Password123!",
         "organization_name": "Rollback Org",
         "organization_slug": "rollback-org",
+        "terms_accepted": True,
+        "privacy_acknowledged": True,
+        "risk_disclosure_acknowledged": True,
     }
 
     # Simulate an error in subscription assignment
@@ -334,7 +376,7 @@ async def test_atomic_rollback_on_failure(onboarding_env: dict):
         response = await client.post("/api/v1/onboarding/register", json=payload)
         assert response.status_code == 500
 
-    # Verify database state has zero traces of user, org, or membership
+    # Verify database state has zero traces of user, org, membership, or progress
     async with db_manager.session() as session:
         user = (await session.execute(
             select(UserModel).where(UserModel.username == "rollback_user")
@@ -345,3 +387,8 @@ async def test_atomic_rollback_on_failure(onboarding_env: dict):
             select(OrganizationModel).where(OrganizationModel.slug == "rollback-org")
         )).scalar_one_or_none()
         assert org is None
+
+        progress = (await session.execute(
+            select(OnboardingProgressModel).where(OnboardingProgressModel.user_id == "rollback_user")
+        )).scalar_one_or_none()
+        assert progress is None
