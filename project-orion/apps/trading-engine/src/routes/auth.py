@@ -236,9 +236,21 @@ async def forgot_password(
 
         await session.commit()
 
-        # 4. Dispatch email instructions (token never logged)
-        email_svc = get_email_service()
-        await email_svc.send_password_reset_email(user.email, raw_token, user.username)
+        # 4. Dispatch email instructions (token never logged; delivery failure must not leak existence)
+        try:
+            email_svc = get_email_service()
+            sent = await email_svc.send_password_reset_email(user.email, raw_token, user.username)
+            if not sent:
+                logger.warning(
+                    "Email provider reported failure dispatching password reset for user_id=%s",
+                    user.id,
+                )
+        except Exception as email_exc:  # noqa: BLE001
+            logger.error(
+                "Exception during password reset email dispatch for user_id=%s: %s",
+                user.id,
+                email_exc.__class__.__name__,
+            )
 
         logger.info("Password reset requested for user_id=%s", user.id)
         return GenericMessageResponse(message=generic_msg)
@@ -512,8 +524,21 @@ async def resend_verification(
 
         await session.commit()
 
-        email_svc = get_email_service()
-        await email_svc.send_verification_email(user.email, raw_token, user.username)
+        # Dispatch email verification (token never logged; delivery failure must not leak existence)
+        try:
+            email_svc = get_email_service()
+            sent = await email_svc.send_verification_email(user.email, raw_token, user.username)
+            if not sent:
+                logger.warning(
+                    "Email provider reported failure dispatching verification email for user_id=%s",
+                    user.id,
+                )
+        except Exception as email_exc:  # noqa: BLE001
+            logger.error(
+                "Exception during email verification dispatch for user_id=%s: %s",
+                user.id,
+                email_exc.__class__.__name__,
+            )
 
         return GenericMessageResponse(message=generic_msg)
 
