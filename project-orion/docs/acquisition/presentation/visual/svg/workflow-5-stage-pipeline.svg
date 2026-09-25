@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" width="1200" height="520">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="chevronGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#141E33" />
+      <stop offset="100%" stop-color="#1A2744" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="520" fill="url(#bgGrad2)" />
+
+  <!-- Title -->
+  <text x="60" y="50" font-family="Inter, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#F8FAFC">Project ORION — 5-Stage Quantitative Research &amp; Incubation Pipeline</text>
+  <text x="60" y="78" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Mathematical Strategy Formulation to Simulated Paper Incubation ($0.00 Live Financial Capital at Risk)</text>
+
+  <!-- CHEVRON 1: SPECIFICATION -->
+  <g transform="translate(60, 120)">
+    <rect width="200" height="240" rx="8" fill="url(#chevronGrad)" stroke="#1E293B" stroke-width="1.5" />
+    <circle cx="36" cy="36" r="16" fill="#0284C7" />
+    <text x="36" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#F8FAFC" text-anchor="middle">1</text>
+    <text x="62" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#38BDF8">SPECIFICATION</text>
+    
+    <text x="20" y="80" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Strategy Formulation</text>
+    <text x="20" y="104" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• 4 concrete classes in StrategyRegistry</text>
+    <text x="20" y="128" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• 9 API catalogue archetype schemas</text>
+    <text x="20" y="152" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Typed parameter bounds</text>
+    <text x="20" y="176" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Arbitrary-precision Decimal arithmetic</text>
+    
+    <rect x="20" y="198" width="160" height="26" rx="4" fill="#090D16" stroke="#334155" stroke-width="1" />
+    <text x="100" y="215" font-family="JetBrains Mono, Consolas, monospace" font-size="10" fill="#38BDF8" text-anchor="middle">POST /experiments</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 265 240 L 285 240" stroke="#38BDF8" stroke-width="2" />
+  <polygon points="285,236 293,240 285,244" fill="#38BDF8" />
+
+  <!-- CHEVRON 2: DETERMINISTIC BACKTESTING -->
+  <g transform="translate(295, 120)">
+    <rect width="200" height="240" rx="8" fill="url(#chevronGrad)" stroke="#1E293B" stroke-width="1.5" />
+    <circle cx="36" cy="36" r="16" fill="#0284C7" />
+    <text x="36" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#F8FAFC" text-anchor="middle">2</text>
+    <text x="62" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#38BDF8">BACKTESTING</text>
+    
+    <text x="20" y="80" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Chronological Replay</text>
+    <text x="20" y="104" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• DeterministicBacktestEngine bar traversal</text>
+    <text x="20" y="128" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#10B981">• LeakageGuard look-ahead prevention</text>
+    <text x="20" y="152" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Sharpe, Sortino, Max DD &amp; Profit Factor</text>
+    <text x="20" y="176" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Identical cent-level reproducibility</text>
+    
+    <rect x="20" y="198" width="160" height="26" rx="4" fill="#090D16" stroke="#334155" stroke-width="1" />
+    <text x="100" y="215" font-family="JetBrains Mono, Consolas, monospace" font-size="10" fill="#10B981" text-anchor="middle">LeakageGuard Monotonic</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 500 240 L 520 240" stroke="#38BDF8" stroke-width="2" />
+  <polygon points="520,236 528,240 520,244" fill="#38BDF8" />
+
+  <!-- CHEVRON 3: OPTIMIZATION & WFA -->
+  <g transform="translate(530, 120)">
+    <rect width="200" height="240" rx="8" fill="url(#chevronGrad)" stroke="#1E293B" stroke-width="1.5" />
+    <circle cx="36" cy="36" r="16" fill="#0284C7" />
+    <text x="36" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#F8FAFC" text-anchor="middle">3</text>
+    <text x="62" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#38BDF8">OPTIMIZATION</text>
+    
+    <text x="20" y="80" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Walk-Forward Analysis</text>
+    <text x="20" y="104" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Parameter space grid exploration</text>
+    <text x="20" y="128" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Rolling In-Sample &amp; Out-Of-Sample</text>
+    <text x="20" y="152" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Walk-Forward Efficiency (WFE)</text>
+    <text x="20" y="176" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Curve-fitting detection</text>
+    
+    <rect x="20" y="198" width="160" height="26" rx="4" fill="#090D16" stroke="#334155" stroke-width="1" />
+    <text x="100" y="215" font-family="JetBrains Mono, Consolas, monospace" font-size="10" fill="#38BDF8" text-anchor="middle">POST /walk-forward</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <path d="M 735 240 L 755 240" stroke="#38BDF8" stroke-width="2" />
+  <polygon points="755,236 763,240 755,244" fill="#38BDF8" />
+
+  <!-- CHEVRON 4: QUALITY GATES -->
+  <g transform="translate(765, 120)">
+    <rect width="200" height="240" rx="8" fill="url(#chevronGrad)" stroke="#10B981" stroke-width="1.5" />
+    <circle cx="36" cy="36" r="16" fill="#10B981" />
+    <text x="36" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#F8FAFC" text-anchor="middle">4</text>
+    <text x="62" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#10B981">QUALITY GATES</text>
+    
+    <text x="20" y="80" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Automated Hurdles</text>
+    <text x="20" y="104" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#10B981">✓ WFE Threshold ≥ 0.50</text>
+    <text x="20" y="128" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#10B981">✓ Max Permissible DD ≤ 15%</text>
+    <text x="20" y="152" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#10B981">✓ Parameter Surface Stability</text>
+    <text x="20" y="176" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Fail-closed rejection</text>
+    
+    <rect x="20" y="198" width="160" height="26" rx="4" fill="#090D16" stroke="#10B981" stroke-width="1" />
+    <text x="100" y="215" font-family="JetBrains Mono, Consolas, monospace" font-size="10" fill="#10B981" text-anchor="middle">GATES_PASSED</text>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <path d="M 970 240 L 990 240" stroke="#10B981" stroke-width="2" />
+  <polygon points="990,236 998,240 990,244" fill="#10B981" />
+
+  <!-- CHEVRON 5: PAPER INCUBATION -->
+  <g transform="translate(1000, 120)">
+    <rect width="140" height="240" rx="8" fill="url(#chevronGrad)" stroke="#FBBF24" stroke-width="1.5" />
+    <circle cx="36" cy="36" r="16" fill="#FBBF24" />
+    <text x="36" y="42" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#090D16" text-anchor="middle">5</text>
+    <text x="60" y="42" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#FBBF24">INCUBATION</text>
+    
+    <text x="16" y="80" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Simulated Only</text>
+    <text x="16" y="104" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Paper adapter</text>
+    <text x="16" y="128" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Spread/slippage</text>
+    <text x="16" y="152" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">• Netting &amp; MTM</text>
+    <text x="16" y="176" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#FBBF24">• $0.00 Live Risk</text>
+    
+    <rect x="16" y="198" width="108" height="26" rx="4" fill="#090D16" stroke="#FBBF24" stroke-width="1" />
+    <text x="70" y="215" font-family="JetBrains Mono, Consolas, monospace" font-size="9" fill="#FBBF24" text-anchor="middle">TERMINAL</text>
+  </g>
+
+  <!-- Bottom Banner: Paper Safety Invariant -->
+  <g transform="translate(60, 400)">
+    <rect width="1080" height="70" rx="8" fill="#141E33" stroke="#FBBF24" stroke-width="1.5" />
+    <rect x="24" y="20" width="180" height="30" rx="4" fill="#FBBF24" fill-opacity="0.15" stroke="#FBBF24" stroke-width="1" />
+    <text x="114" y="40" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#FBBF24" text-anchor="middle">STRICT SAFETY INVARIANT</text>
+    
+    <text x="225" y="32" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">Pipeline strictly terminates at Paper Validated or Promotion Candidate status.</text>
+    <text x="225" y="52" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#94A3B8">Live real-money brokerage execution is absent from the software. Exactly $0.00 live financial capital is exposed at any stage.</text>
+  </g>
+</svg>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Buyer Technical &amp; Commercial FAQ</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 10px 15px;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 6px;
+      padding: 8px 11px;
+      margin-bottom: 8px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 3px;
+    }
+    .qa-item {
+      margin-bottom: 6px;
+    }
+    .qa-q {
+      font-size: 8.2pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      margin-bottom: 1px;
+    }
+    .qa-a {
+      font-size: 8pt;
+      color: #CBD5E1;
+      padding-left: 8px;
+      border-left: 2px solid #0284C7;
+    }
+    .highlight { color: #38BDF8; font-weight: 600; }
+    .badge-paper { color: #FBBF24; font-weight: 600; }
+    .badge-test { color: #10B981; font-weight: 600; }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Page 1 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Buyer Technical &amp; Commercial FAQ</div>
+      <div class="brand-subtitle">Authoritative Due Diligence Questions &amp; Answers for CTOs, Quants &amp; M&amp;A Teams</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/05-BUYER-FAQ.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="grid-2col">
+    <!-- Section 1 -->
+    <div class="section-card">
+      <div class="section-title">1. Product &amp; Platform Scope</div>
+      <div class="qa-item">
+        <div class="qa-q">Q1: What is Project ORION?</div>
+        <div class="qa-a">Multi-tenant SaaS platform for quantitative FX research, algorithmic backtesting, optimization, walk-forward analysis, and simulated paper execution.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q2: Is Project ORION a live trading engine?</div>
+        <div class="qa-a">No. The software operates strictly in paper simulation mode with <span class="badge-paper">exactly $0.00 live financial capital at risk</span>. Real-money clearing code is absent.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q3: Is Project ORION a regulated platform?</div>
+        <div class="qa-a">No. ORION is strictly a software and intellectual property technology asset with no broker-dealer or RIA regulatory registrations.</div>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="section-card">
+      <div class="section-title">2. Architecture &amp; Technology Stack</div>
+      <div class="qa-item">
+        <div class="qa-q">Q4: What is the architectural design pattern?</div>
+        <div class="qa-a">Hexagonal modular monorepo (ports and adapters). Pure business logic is isolated in <span class="highlight">21 internal domain packages</span> with zero framework imports.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q5: Why FastAPI and PostgreSQL 16?</div>
+        <div class="qa-a">FastAPI provides asynchronous ASGI performance with typed Pydantic v2 schemas. PostgreSQL 16 via async SQLAlchemy guarantees ACID multi-tenancy.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q6: What happens if Redis is offline?</div>
+        <div class="qa-a">The system implements a graceful in-memory degraded fallback for sessions and rate limits without crashing the application.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2col">
+    <!-- Section 3 -->
+    <div class="section-card">
+      <div class="section-title">3. Quantitative Research &amp; Backtesting</div>
+      <div class="qa-item">
+        <div class="qa-q">Q7: How many algorithmic strategies exist?</div>
+        <div class="qa-a"><span class="highlight">4 concrete backtesting classes</span> in StrategyRegistry (Trend Following, Mean Reversion, Breakout, Momentum) and 9 parameter schemas in API catalogue.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q8: How is look-ahead bias prevented?</div>
+        <div class="qa-a">Sequential bar traversal protected by <span class="badge-test">LeakageGuard</span>, verifying temporal timestamp monotonicity at every indicator computation slice.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q9: Are backtest results reproducible?</div>
+        <div class="qa-a">Yes. Identical inputs across identical bars produce mathematically identical trade journals and equity curves to the exact cent.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q10: How is financial arithmetic handled?</div>
+        <div class="qa-a">Strictly uses Python <code>Decimal</code> arbitrary-precision math to avoid binary floating-point rounding errors.</div>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="section-card">
+      <div class="section-title">4. Optimization &amp; Walk-Forward Analysis</div>
+      <div class="qa-item">
+        <div class="qa-q">Q11: How does parameter optimization work?</div>
+        <div class="qa-a">Systematic multi-dimensional grid search across parameter bounds (<code>POST /optimization/run</code>) evaluating parameter sensitivity surfaces.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q12: How does WFA detect curve-fitting?</div>
+        <div class="qa-a">Slices history into rolling In-Sample (IS) and Out-Of-Sample (OOS) windows; scores <span class="highlight">Walk-Forward Efficiency (WFE)</span> to verify performance retention.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-2col">
+    <!-- Section 5 -->
+    <div class="section-card">
+      <div class="section-title">5. Strategy Deployment Lifecycle</div>
+      <div class="qa-item">
+        <div class="qa-q">Q13: What is the deployment lifecycle?</div>
+        <div class="qa-a">Fail-closed state machine: <code>PENDING_GATES</code> → <code>GATES_PASSED</code> → <code>INCUBATING</code> → <code>PAPER_VALIDATED</code> → <code>PROMOTION_CANDIDATE</code>. Terminates at paper mode.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q14: What quality gates are enforced?</div>
+        <div class="qa-a">Automated hurdles: WFE Threshold (≥ 0.50), Drawdown Ceiling (≤ 15%), and Parameter Surface Stability before incubation entry.</div>
+      </div>
+    </div>
+
+    <!-- Section 6 -->
+    <div class="section-card">
+      <div class="section-title">6. Paper Trading &amp; Risk Management</div>
+      <div class="qa-item">
+        <div class="qa-q">Q15: How does paper execution match orders?</div>
+        <div class="qa-a"><code>PaperExecutionAdapter</code> simulates realistic market spread, adverse slippage, latency, and netting. All orders stamped <code>is_paper=True</code>.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q16: How are risk controls enforced?</div>
+        <div class="qa-a">Synchronous <code>RiskService</code> checks available margin, leverage ceilings (1:100 default), position sizes, and daily drawdown caps before order acceptance.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q17: Is the autonomous worker active?</div>
+        <div class="qa-a">Source implemented with manual trigger (<code>/worker/run-once</code>); automated background loop is <span style="color:#F43F5E; font-weight:600;">disabled by default</span> (<code>WORKER_ENABLED=false</code>).</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Header Page 2 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Buyer Technical &amp; Commercial FAQ (Cont.)</div>
+      <div class="brand-subtitle">Sections 7 through 9: Multi-Tenancy, Operations, and Acquisition Scope</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/05-BUYER-FAQ.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>PAGE 2 OF 2</div>
+    </div>
+  </div>
+
+  <div class="grid-2col">
+    <!-- Section 7 -->
+    <div class="section-card">
+      <div class="section-title">7. Multi-Tenancy &amp; Security</div>
+      <div class="qa-item">
+        <div class="qa-q">Q18: How is tenant data isolated?</div>
+        <div class="qa-a">All queries bind <code>WHERE organization_id = :org_id</code> via dependency-injected <code>TenantContext</code>, mitigating cross-tenant data leakage.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q19: What RBAC roles and permissions exist?</div>
+        <div class="qa-a"><span class="highlight">7 organization roles</span> (Owner, Admin, PM, Risk Officer, Trader, Auditor, Viewer) governing <span class="highlight">41 granular permissions</span> across 14 domains.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q20: What is captured in the audit log?</div>
+        <div class="qa-a"><code>AuditLogModel</code> records operational actions (<code>ORDER_CREATE</code>, <code>USER_REGISTER</code>) with acting user IDs, timestamps, and structured JSON details.</div>
+      </div>
+    </div>
+
+    <!-- Section 8 -->
+    <div class="section-card">
+      <div class="section-title">8. Deployment, Operations &amp; DR</div>
+      <div class="qa-item">
+        <div class="qa-q">Q21: How is the platform deployed?</div>
+        <div class="qa-a">Declarative <code>render.yaml</code> PaaS blueprint orchestrating FastAPI web service, React static SPA, PostgreSQL 16, and Redis 7.</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q22: What is the baseline cloud hosting cost?</div>
+        <div class="qa-a">Baseline Render hosting configured for <span class="highlight">~$14/month</span> ($7 DB + $7 API under published 2026 pricing).</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-q">Q23: What evidence exists for disaster recovery?</div>
+        <div class="qa-a">In an isolated testing container, physical schema and data restoration across 29 tables was benchmarked in <span class="badge-test">~7.2 seconds</span> (Dossier 08).</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 9: Commercial Status & Acquisition -->
+  <div class="section-card">
+    <div class="section-title">9. Commercial Status &amp; Acquisition Scope</div>
+    <div class="grid-2col" style="margin-bottom: 0;">
+      <div>
+        <div class="qa-item">
+          <div class="qa-q">Q24: What are the commercial revenue &amp; customer metrics?</div>
+          <div class="qa-a">Revenue, paying customers, and active subscribers are <span class="badge-paper">NOT ESTABLISHED IN REPOSITORY</span>. Sold strictly as a completed pre-revenue technology asset.</div>
+        </div>
+        <div class="qa-item">
+          <div class="qa-q">Q25: What is the authoritative subscription pricing model?</div>
+          <div class="qa-a">Implemented in source code as: <span class="highlight">Free Sandbox ($0)</span>, <span class="highlight">Pro Trader ($99)</span>, <span class="highlight">Business Prop ($299)</span>, and <span class="highlight">Enterprise (Custom)</span>. Early $49/$149/$399 proposals were superseded.</div>
+        </div>
+      </div>
+      <div>
+        <div class="qa-item">
+          <div class="qa-q">Q26: What does the buyer receive upon closing?</div>
+          <div class="qa-a">Proposed acquisition scope includes 100% transfer of the Git repository, 4,260 automated test baseline, database models, 15 migrations, and 18 closing due diligence dossiers, subject to executed transaction agreements. External vendor accounts (Render, Stripe, TwelveData) are independently provisioned by the buyer.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer Page 2 -->
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 2 of 2</div>
+  </div>
+
+</body>
+</html>

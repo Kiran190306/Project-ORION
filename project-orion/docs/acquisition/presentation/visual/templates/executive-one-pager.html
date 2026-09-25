@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Executive Product Brief</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 8mm 10mm 6mm 10mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8pt;
+      line-height: 1.34;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 0;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 13.5pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 6.8pt;
+      color: #94A3B8;
+      line-height: 1.3;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 1.5px 6px;
+      border-radius: 3px;
+      font-size: 6.8pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-paper {
+      background: rgba(251, 191, 36, 0.15);
+      border: 1px solid #FBBF24;
+      color: #FBBF24;
+    }
+    .badge-tech {
+      background: rgba(2, 132, 199, 0.15);
+      border: 1px solid #0284C7;
+      color: #38BDF8;
+    }
+    .badge-test {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10B981;
+      color: #10B981;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 5px;
+    }
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 4px;
+      padding: 5px 8px;
+      margin-bottom: 5px;
+    }
+    .section-title {
+      font-size: 8pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 2px;
+    }
+    ul.feat-list {
+      list-style-type: none;
+    }
+    ul.feat-list li {
+      margin-bottom: 2px;
+      padding-left: 9px;
+      position: relative;
+      font-size: 7.4pt;
+      color: #E2E8F0;
+      line-height: 1.3;
+    }
+    ul.feat-list li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #0284C7;
+      font-weight: bold;
+    }
+    .highlight {
+      color: #F8FAFC;
+      font-weight: 600;
+    }
+    .muted {
+      color: #94A3B8;
+      font-size: 6.8pt;
+      line-height: 1.25;
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2px;
+      font-size: 7pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 2.5px 5px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 6.6pt;
+    }
+    table.data-table td {
+      padding: 2px 5px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .footer-bar {
+      margin-top: 4px;
+      padding-top: 3px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 6.6pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Executive Product Brief</div>
+      <div class="brand-subtitle">Quantitative FX Research, Deterministic Backtesting &amp; Paper-Trading SaaS</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/02-EXECUTIVE-PRODUCT-BRIEF.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <!-- Badges -->
+  <div class="badge-bar">
+    <span class="badge badge-paper">STRICT PAPER TRADING ONLY ($0.00 CAPITAL AT RISK)</span>
+    <span class="badge badge-tech">HEXAGONAL ARCHITECTURE (21 DOMAIN PACKAGES)</span>
+    <span class="badge badge-test">HISTORICAL TEST BASELINE: 4,260 TESTS (99.4% COVERAGE)</span>
+  </div>
+
+  <!-- Two Column Layout: Product Scope & Tech Stack -->
+  <div class="grid-2col">
+    <div class="section-card">
+      <div class="section-title">1. Product Identification &amp; Positioning</div>
+      <p style="font-size: 7.4pt; margin-bottom: 4px; color: #CBD5E1; line-height: 1.28;">
+        <span class="highlight">Project ORION</span> is a proprietary multi-tenant web application and REST API runtime designed for quantitative researchers, algorithmic prop desks, and institutional software evaluators.
+      </p>
+      <ul class="feat-list">
+        <li><span class="highlight">Core Value:</span> End-to-end quantitative pipeline taking strategies from mathematical formulation through walk-forward efficiency scoring to paper incubation.</li>
+        <li><span class="highlight">Mathematical Hygiene:</span> Validates algorithmic robustness via qualified <span style="color:#10B981;">LeakageGuard</span> temporal checks and programmatic quality gate hurdles.</li>
+        <li><span class="highlight">Asset Scope:</span> Proposed transferable software and intellectual property asset scope; clean corporate separation with zero customer liability.</li>
+      </ul>
+    </div>
+
+    <div class="section-card">
+      <div class="section-title">2. Modern Technology Stack</div>
+      <ul class="feat-list">
+        <li><span class="highlight">Backend Engine:</span> Python 3.11+, FastAPI (ASGI), Pydantic v2 schemas, SQLAlchemy 2.0 Async ORM (24 routers).</li>
+        <li><span class="highlight">Frontend SPA:</span> React 18, Vite, TypeScript, Tailwind CSS, TanStack Query, Lucide Icons (20 routes).</li>
+        <li><span class="highlight">Database:</span> PostgreSQL 16 with 15 linear Alembic migrations managing 29 relational tables.</li>
+        <li><span class="highlight">Cache &amp; Broker:</span> Redis 7 with graceful in-memory degraded fallback for sessions and rate-limits.</li>
+        <li><span class="highlight">PaaS Infrastructure:</span> Render PaaS blueprint (<span class="highlight">~$14/mo</span> baseline configuration hosting estimate).</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section: Core Capabilities (Full Width) -->
+  <div class="section-card">
+    <div class="section-title">3. Ten Implemented Core Capabilities</div>
+    <div class="grid-2col" style="margin-bottom: 0;">
+      <ul class="feat-list">
+        <li><span class="highlight">1. Deterministic Backtesting:</span> Sequential chronological bar traversal with trade-by-trade analytics and cent-level reproducibility.</li>
+        <li><span class="highlight">2. Temporal Leakage Protection:</span> <span style="color:#10B981;">LeakageGuard</span> enforces timestamp monotonicity; prevents indicator look-ahead bias.</li>
+        <li><span class="highlight">3. Multi-Parameter Optimization:</span> Grid search exploring parameter surfaces with metric-based ranking (Sharpe/Sortino).</li>
+        <li><span class="highlight">4. Walk-Forward Analysis (WFA):</span> Rolling In-Sample &amp; Out-Of-Sample slices computing Walk-Forward Efficiency (<span class="highlight">WFE</span>).</li>
+        <li><span class="highlight">5. Automated Quality Gates:</span> Programmatic hurdles (WFE &ge; 0.50, DD &le; 15%, parameter stability) governing promotion.</li>
+      </ul>
+      <ul class="feat-list">
+        <li><span class="highlight">6. Realistic Paper Execution:</span> <span class="highlight">PaperExecutionAdapter</span> models spread, adverse slippage, and position netting ($0 live risk).</li>
+        <li><span class="highlight">7. Pre-Trade Risk Engine:</span> Dynamic evaluation of margin, leverage ceilings (1:100 default), and drawdown limits.</li>
+        <li><span class="highlight">8. Multi-Tenancy &amp; RBAC:</span> 7 organizational roles governing 41 permissions; isolated database queries via TenantContext.</li>
+        <li><span class="highlight">9. Structured Audit Trail:</span> Immutable <span class="highlight">AuditLogModel</span> logging acting user IDs, timestamps, and JSON metadata.</li>
+        <li><span class="highlight">10. Declarative Cloud Blueprint:</span> Single-command 4-tier PaaS deployment via <span class="highlight">render.yaml</span> with preDeploy migrations.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Section: Commercial Model & Tiers -->
+  <div class="section-card">
+    <div class="section-title">4. Authoritative Implemented SaaS Subscription Model (Stripe Test Mode)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Tier Name</th>
+          <th>Monthly Price</th>
+          <th>Paper Accounts</th>
+          <th>Daily Order Limit</th>
+          <th>Trading Workers</th>
+          <th>FX Pairs &amp; Retention</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">Free Sandbox</span></td>
+          <td>$0 / month</td>
+          <td>1 Paper Account</td>
+          <td>100 orders / day</td>
+          <td>0 Workers</td>
+          <td>4 Major Pairs │ 30-Day Retention</td>
+        </tr>
+        <tr>
+          <td><span class="highlight" style="color:#38BDF8;">Pro Trader</span></td>
+          <td>$99 / month</td>
+          <td>3 Paper Accounts</td>
+          <td>2,500 orders / day</td>
+          <td>1 Worker</td>
+          <td>12 Liquid Pairs │ 365-Day Retention</td>
+        </tr>
+        <tr>
+          <td><span class="highlight" style="color:#10B981;">Business Prop</span></td>
+          <td>$299 / month</td>
+          <td>10 Paper Accounts</td>
+          <td>50,000 orders / day</td>
+          <td>5 Workers</td>
+          <td>All Pairs │ 5-Year Data Retention</td>
+        </tr>
+        <tr>
+          <td><span class="highlight" style="color:#FBBF24;">Enterprise</span></td>
+          <td>Custom Contract</td>
+          <td>Unlimited</td>
+          <td>Unlimited Capacity</td>
+          <td>Custom Allocation</td>
+          <td>Full Cross-Asset │ 7-Year Retention</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="muted" style="margin-top: 3px;">
+      * Commercial status: Pre-revenue technology asset. Paying customers, subscribers, and recurring revenue are <span style="color:#FBBF24; font-weight:600;">NOT ESTABLISHED IN REPOSITORY</span>. Stripe integration operates in Test Mode.
+    </div>
+  </div>
+
+  <!-- Two Column Layout: Acquisition Scope & Boundaries -->
+  <div class="grid-2col" style="margin-bottom: 0;">
+    <div class="section-card" style="margin-bottom: 0;">
+      <div class="section-title">5. Proposed Transferable Software Scope</div>
+      <ul class="feat-list">
+        <li><span class="highlight">Complete Source Code:</span> Full Git repository with clean linear commit history and zero credentials.</li>
+        <li><span class="highlight">Automated Test Harness:</span> Documented historical baseline of 4,260 automated tests with 99.4% line coverage.</li>
+        <li><span class="highlight">Database Architecture:</span> 15 linear Alembic migrations managing 29 tables; ~7.2s DR restore historical benchmark.</li>
+        <li><span class="highlight">18 Closing Dossiers:</span> Master due diligence data room under <span class="highlight">docs/acquisition/</span>.</li>
+      </ul>
+    </div>
+
+    <div class="section-card" style="margin-bottom: 0;">
+      <div class="section-title">6. Boundaries &amp; Buyer Responsibilities</div>
+      <ul class="feat-list">
+        <li><span class="highlight">Paper Invariant:</span> Strictly paper simulation; exactly $0.00 live financial capital at risk.</li>
+        <li><span class="highlight">Worker Loop:</span> Autonomous worker disabled by default in cloud (<span class="highlight">WORKER_ENABLED=false</span>).</li>
+        <li><span class="highlight">Buyer-Provisioned Accounts:</span> Buyer independently provisions Render PaaS, Stripe, TwelveData API key, and custom domain DNS.</li>
+        <li><span class="highlight">REST Architecture:</span> Stateless HTTP polling; no WebSocket push streaming endpoints.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 1</div>
+  </div>
+
+</body>
+</html>

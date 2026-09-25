@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Acquisition Scope &amp; IP Deliverables</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 9mm 11mm 8mm 11mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.2pt;
+      line-height: 1.38;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 0;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 5px;
+      margin-bottom: 7px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.2pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 1px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7pt;
+      color: #94A3B8;
+      line-height: 1.3;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 7px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 7pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-ip { background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #10B981; }
+    .badge-buyer { background: rgba(2, 132, 199, 0.15); border: 1px solid #0284C7; color: #38BDF8; }
+    .badge-clean { background: rgba(251, 191, 36, 0.15); border: 1px solid #FBBF24; color: #FBBF24; }
+
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 5px;
+      padding: 7px 10px;
+      margin-bottom: 7px;
+    }
+    .section-title {
+      font-size: 8.4pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 3px;
+    }
+    .highlight { color: #F8FAFC; font-weight: 600; }
+    .muted { color: #94A3B8; font-size: 7.2pt; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 3px;
+      font-size: 7.3pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 3.5px 6px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 7pt;
+    }
+    table.data-table td {
+      padding: 3px 6px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 7px;
+      margin-bottom: 7px;
+    }
+
+    .step-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 3px;
+    }
+    .step-box {
+      background: #090D16;
+      border: 1px solid #1E293B;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-family: Consolas, monospace;
+      font-size: 7.1pt;
+      line-height: 1.32;
+      color: #CBD5E1;
+    }
+    .step-title { color: #38BDF8; font-weight: bold; }
+
+    .footer-bar {
+      margin-top: 7px;
+      padding-top: 4px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 6.8pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+
+    .page-break {
+      page-break-before: always;
+      break-before: page;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== PAGE 1 ==================== -->
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Acquisition Scope &amp; IP Deliverables</div>
+      <div class="brand-subtitle">Proposed Software Asset &amp; Intellectual Property Transfer Specification</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/04-ACQUISITION-IP-SCOPE.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="badge-bar">
+    <span class="badge badge-ip">PROPOSED TRANSFERABLE SOFTWARE / IP SCOPE</span>
+    <span class="badge badge-buyer">SUBJECT TO EXECUTED TRANSACTION AGREEMENTS</span>
+    <span class="badge badge-clean">STRICT PAPER TRADING ($0.00 CAPITAL RISK)</span>
+  </div>
+
+  <!-- Section 1: Executive Scope Overview -->
+  <div class="section-card">
+    <div class="section-title">1. Executive Transaction Scope Overview</div>
+    <p style="font-size: 7.8pt; color: #CBD5E1; line-height: 1.38;">
+      The proposed transaction is structured as a software and intellectual property asset acquisition, subject to executed definitive transaction agreements. Under the proposed transferable software/IP scope, the acquiring entity would receive proprietary source codebases, quantitative algorithms, automated test harnesses, database schemas, and closing due diligence dossiers. To eliminate third-party account transfer friction and ensure clean corporate separation, cloud hosting instances, payment processor accounts, and external market data keys are independently provisioned by the buyer under their corporate entity.
+    </p>
+  </div>
+
+  <!-- Section 2: Transferable Assets vs Buyer Obligations Table -->
+  <div class="section-card">
+    <div class="section-title">2. Proposed Transferable Assets vs. Buyer-Provisioned Obligations</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">Asset / Subsystem</th>
+          <th style="width: 46%;">Proposed Transferable Software / IP Scope</th>
+          <th style="width: 34%;">Buyer-Provisioned External Obligations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">Application Source Code</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Complete Git repository (React SPA, FastAPI backend, CLI tooling).</td>
+          <td>None. Transferred via Git repository transfer or mirror.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Domain Logic Layer</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> 21 pure internal domain packages (strategies, backtesting, risk).</td>
+          <td>None. Self-contained in repository with zero external framework imports.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Automated Test Harness</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Documented baseline of 4,260 tests across 103 suites (99.4% coverage).</td>
+          <td>None. Executes locally or in CI/CD with Python 3.11+.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Database Architecture</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> SQLAlchemy 2.0 Async models and 15 linear Alembic migrations (29 tables).</td>
+          <td>Buyer provisions target PostgreSQL 16 database (Docker or cloud PaaS).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Disaster Recovery Scripts</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Tested restore runbooks and shell scripts (~7.2s historical benchmark).</td>
+          <td>Buyer configures automated backup snapshot schedules on cloud database.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Due Diligence Dossiers</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> All 18 closing dossiers under <code>docs/acquisition/</code>.</td>
+          <td>None. Stored directly within repository markdown tree.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">PaaS Cloud Blueprint</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Declarative <code>render.yaml</code> blueprint and Docker container specs.</td>
+          <td><span style="color:#38BDF8; font-weight:600;">Buyer-Provisioned:</span> Buyer creates Render account (~$14/mo baseline hosting config estimate).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Commercial Billing Engine</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Stripe webhook listeners, subscription tiers, and checkout routers.</td>
+          <td><span style="color:#38BDF8; font-weight:600;">Buyer-Provisioned:</span> Buyer establishes Stripe merchant account &amp; supplies live API keys.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Market Data Ingestion</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> <code>MockMarketDataProvider</code> and <code>TwelveDataMarketDataProvider</code> adapters.</td>
+          <td><span style="color:#38BDF8; font-weight:600;">Buyer-Provisioned:</span> Buyer secures TwelveData API key if live market quotes desired.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Broker Sandbox Layer</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> <code>PaperExecutionAdapter</code> matching engine and <code>OandaBrokerAdapter</code>.</td>
+          <td><span style="color:#38BDF8; font-weight:600;">Buyer-Provisioned:</span> Buyer registers OANDA Practice sandbox account for external testing.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Web Domain &amp; SSL</span></td>
+          <td><span style="color:#10B981; font-weight:600;">Proposed Transferable:</span> Reverse proxy routing, CSP security policies, and SPA build configuration.</td>
+          <td><span style="color:#38BDF8; font-weight:600;">Buyer-Provisioned:</span> Buyer registers proprietary custom domain and configures DNS routing.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Page 1 Footer -->
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 2</div>
+  </div>
+
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page-break"></div>
+
+  <!-- Page 2 Header -->
+  <div class="header-bar" style="margin-top: 2px;">
+    <div>
+      <div class="brand-title" style="font-size: 13pt;">Project ORION — Acquisition Scope &amp; IP Deliverables (Cont.)</div>
+      <div class="brand-subtitle">Transition Protocol, Permissive Licensing Audit &amp; Technical Warranties Baseline</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/04-ACQUISITION-IP-SCOPE.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <!-- Section 3: Transition Protocol -->
+  <div class="section-card">
+    <div class="section-title">3. Independent Account Provisioning Protocol (5 Steps)</div>
+    <div class="step-grid">
+      <div class="step-box">
+        <span class="step-title">Step 1: Code Repository Transfer</span><br>
+        • Transfer GitHub repository or clean git bundle to buyer organization.<br>
+        • Verification of commit signature chain and linear history through baseline commit d5908d0a.
+      </div>
+      <div class="step-box">
+        <span class="step-title">Step 2: Cloud Infrastructure Initialization</span><br>
+        • Buyer creates organization on Render PaaS and connects repository.<br>
+        • Deploys <code>render.yaml</code> blueprint (~$14/mo baseline hosting config estimate).
+      </div>
+      <div class="step-box">
+        <span class="step-title">Step 3: Environment Secret Injection</span><br>
+        • Render generates <code>ORION_JWT_SECRET_KEY</code> &amp; internal PostgreSQL/Redis URLs.<br>
+        • Buyer injects optional external vendor API keys (TwelveData, Stripe).
+      </div>
+      <div class="step-box">
+        <span class="step-title">Step 4: Database Schema Initialization</span><br>
+        • Automated <code>preDeployCommand</code> executes <code>python scripts/deploy/migrate.py</code>.<br>
+        • Applies 15 linear Alembic migrations across 29 tables; verified ~7.2s DR restore benchmark.
+      </div>
+    </div>
+    <div class="step-box" style="margin-top: 5px;">
+      <span class="step-title">Step 5: Custom Domain Association &amp; TLS Edge Routing</span><br>
+      • Buyer registers corporate custom domain and configures DNS CNAME records pointing to Render edge.<br>
+      • Automated Let's Encrypt TLS certificate provisioning and security header enforcement (HSTS, CSP, X-Frame DENY).
+    </div>
+  </div>
+
+  <!-- Section 4: Permissive Open-Source Licensing Audit (Dossier 12) -->
+  <div class="section-card">
+    <div class="section-title">4. Permissive Open-Source Licensing Audit &amp; Dependency Governance (Dossier 12)</div>
+    <div class="grid-2col" style="margin-bottom: 0;">
+      <div>
+        <ul style="list-style: none; font-size: 7.5pt; color: #CBD5E1; line-height: 1.35;">
+          <li><span class="highlight" style="color:#10B981;">• Backend Stack:</span> Python 3.11+, FastAPI (MIT), Pydantic v2 (MIT), SQLAlchemy 2.0 (MIT), Alembic (MIT), Uvicorn (BSD-3-Clause).</li>
+          <li><span class="highlight" style="color:#10B981;">• Frontend Stack:</span> React 18 (MIT), Vite (MIT), TypeScript (Apache-2.0), Tailwind CSS (MIT), TanStack Query (MIT), Lucide (ISC).</li>
+        </ul>
+      </div>
+      <div>
+        <ul style="list-style: none; font-size: 7.5pt; color: #CBD5E1; line-height: 1.35;">
+          <li><span class="highlight" style="color:#10B981;">• Zero Copyleft Contamination:</span> Audit confirms zero GPL, AGPL, or viral copyleft licenses across all 21 domain packages.</li>
+          <li><span class="highlight" style="color:#10B981;">• Full Commercial Usability:</span> All libraries permit commercial distribution, private modification, and SaaS hosting without reciprocity.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Technical Provenance, Verification Baselines & Warranties -->
+  <div class="section-card">
+    <div class="section-title">5. Technical IP Provenance &amp; Verification Baseline</div>
+    <ul style="list-style: none; font-size: 7.6pt; color: #CBD5E1; line-height: 1.35;">
+      <li style="margin-bottom: 3px;">
+        <span class="highlight" style="color:#10B981;">• Clean Git Provenance:</span> Linear commit history originating from initial architectural assembly through baseline commit <code>d5908d0a</code> with unbroken commit provenance.
+      </li>
+      <li style="margin-bottom: 3px;">
+        <span class="highlight" style="color:#10B981;">• Zero Secrets in Repository:</span> Dynamic Pydantic Settings ingestion. Comprehensive audit confirms zero active credentials, API keys, or production passwords in Git history.
+      </li>
+      <li>
+        <span class="highlight" style="color:#10B981;">• Automated Verification Suite:</span> Documented historical baseline of 4,260 automated tests across 103 test suites with 99.4% line coverage across core domain logic.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Section 6: Commercial & Transaction Terms Framework -->
+  <div class="section-card" style="margin-bottom: 0;">
+    <div class="section-title">6. Commercial Status &amp; Transaction Terms Framework</div>
+    <ul style="list-style: none; font-size: 7.5pt; color: #CBD5E1; line-height: 1.35;">
+      <li style="margin-bottom: 3px;">
+        <span class="highlight" style="color:#FBBF24;">• Proposed Transferable Scope:</span> Deliverables are proposed for transfer subject to executed definitive transaction agreements. Ownership does not transfer prior to transaction execution and closing.
+      </li>
+      <li style="margin-bottom: 3px;">
+        <span class="highlight" style="color:#FBBF24;">• Pre-Revenue Asset:</span> Revenue, paying customers, and subscribers are <span style="font-weight:600;">NOT ESTABLISHED IN REPOSITORY</span>. Stripe operates strictly in Test Mode with test webhooks.
+      </li>
+      <li>
+        <span class="highlight" style="color:#FBBF24;">• Paper Safety Invariant:</span> Platform operates with exactly $0.00 live financial capital at risk under all demonstrated execution paths.
+      </li>
+    </ul>
+  </div>
+
+  <!-- Page 2 Footer -->
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 2 of 2</div>
+  </div>
+
+</body>
+</html>

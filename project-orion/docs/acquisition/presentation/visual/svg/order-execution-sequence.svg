@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680" width="1200" height="680">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="680" fill="url(#bgGrad3)" />
+
+  <!-- Title -->
+  <text x="60" y="45" font-family="Inter, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#F8FAFC">Project ORION — Paper Order Execution Sequence &amp; Safety Checks</text>
+  <text x="60" y="70" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Synchronous Pre-Trade Risk Evaluation, Simulated Execution &amp; Immutable Audit Trail ($0.00 Live Risk)</text>
+
+  <!-- Lifeline Columns -->
+  <!-- 1. Trader / Client (x=120) -->
+  <!-- 2. FastAPI Router (x=280) -->
+  <!-- 3. OrderService (x=450) -->
+  <!-- 4. EntitlementService (x=620) -->
+  <!-- 5. RiskService (x=790) -->
+  <!-- 6. PaperExecutionAdapter (x=950) -->
+  <!-- 7. Database & Audit (x=1100) -->
+
+  <!-- Lifeline Headers -->
+  <g id="lifelines">
+    <!-- Col 1 -->
+    <rect x="50" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="115" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#38BDF8" text-anchor="middle">Trader / Client</text>
+    <line x1="115" y1="135" x2="115" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 2 -->
+    <rect x="220" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="285" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#38BDF8" text-anchor="middle">FastAPI Router</text>
+    <line x1="285" y1="135" x2="285" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 3 -->
+    <rect x="385" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="450" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#38BDF8" text-anchor="middle">OrderService</text>
+    <line x1="450" y1="135" x2="450" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 4 -->
+    <rect x="555" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="620" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#38BDF8" text-anchor="middle">EntitlementService</text>
+    <line x1="620" y1="135" x2="620" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 5 -->
+    <rect x="725" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="790" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#10B981" text-anchor="middle">RiskService</text>
+    <line x1="790" y1="135" x2="790" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 6 -->
+    <rect x="885" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#FBBF24" stroke-width="1.5" />
+    <text x="950" y="120" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#FBBF24" text-anchor="middle">PaperAdapter</text>
+    <line x1="950" y1="135" x2="950" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+
+    <!-- Col 7 -->
+    <rect x="1035" y="95" width="130" height="40" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1.5" />
+    <text x="1100" y="120" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#38BDF8" text-anchor="middle">PostgreSQL / Audit</text>
+    <line x1="1100" y1="135" x2="1100" y2="580" stroke="#1E293B" stroke-width="1.5" stroke-dasharray="4,4" />
+  </g>
+
+  <!-- Step 1: POST /api/v1/orders/ -->
+  <g transform="translate(0, 160)">
+    <line x1="115" y1="0" x2="280" y2="0" stroke="#38BDF8" stroke-width="1.5" />
+    <polygon points="280,-4 285,0 280,4" fill="#38BDF8" />
+    <text x="200" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#F8FAFC" text-anchor="middle">1. POST /api/v1/orders/ (CreateOrderRequest + JWT)</text>
+  </g>
+
+  <!-- Step 2: Validate JWT & TenantContext -->
+  <g transform="translate(0, 210)">
+    <line x1="285" y1="0" x2="445" y2="0" stroke="#38BDF8" stroke-width="1.5" />
+    <polygon points="445,-4 450,0 445,4" fill="#38BDF8" />
+    <text x="365" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#F8FAFC" text-anchor="middle">2. Resolve TenantContext &amp; verify TRADER role</text>
+  </g>
+
+  <!-- Step 3: Quota Guard Check -->
+  <g transform="translate(0, 260)">
+    <line x1="450" y1="0" x2="615" y2="0" stroke="#38BDF8" stroke-width="1.5" />
+    <polygon points="615,-4 620,0 615,4" fill="#38BDF8" />
+    <text x="535" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#F8FAFC" text-anchor="middle">3. Check daily order quota for subscription tier</text>
+  </g>
+
+  <!-- Step 4: Pre-Trade Risk Evaluation -->
+  <g transform="translate(0, 310)">
+    <line x1="450" y1="0" x2="785" y2="0" stroke="#10B981" stroke-width="1.5" />
+    <polygon points="785,-4 790,0 785,4" fill="#10B981" />
+    <text x="615" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#10B981" text-anchor="middle">4. Evaluate leverage cap (1:100), required margin &amp; daily drawdown</text>
+  </g>
+
+  <!-- Step 5: Risk Approved Callback -->
+  <g transform="translate(0, 355)">
+    <line x1="790" y1="0" x2="455" y2="0" stroke="#10B981" stroke-width="1.5" stroke-dasharray="3,3" />
+    <polygon points="455,-4 450,0 455,4" fill="#10B981" />
+    <text x="615" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#94A3B8" text-anchor="middle">Risk Checks Passed (Fail-closed evaluation)</text>
+  </g>
+
+  <!-- Step 6: Submit Order to PaperExecutionAdapter -->
+  <g transform="translate(0, 405)">
+    <line x1="450" y1="0" x2="945" y2="0" stroke="#FBBF24" stroke-width="1.5" />
+    <polygon points="945,-4 950,0 945,4" fill="#FBBF24" />
+    <text x="700" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#FBBF24" text-anchor="middle">5. submit_order() with spread, slippage &amp; position netting (is_paper=True)</text>
+  </g>
+
+  <!-- Step 7: Persist Models & Write Audit Log -->
+  <g transform="translate(0, 460)">
+    <line x1="450" y1="0" x2="1095" y2="0" stroke="#38BDF8" stroke-width="1.5" />
+    <polygon points="1095,-4 1100,0 1095,4" fill="#38BDF8" />
+    <text x="770" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#F8FAFC" text-anchor="middle">6. Persist OrderModel, FillModel, PositionModel &amp; write ORDER_CREATE audit log</text>
+  </g>
+
+  <!-- Step 8: Return HTTP 201 Response -->
+  <g transform="translate(0, 520)">
+    <line x1="450" y1="0" x2="120" y2="0" stroke="#10B981" stroke-width="1.5" />
+    <polygon points="120,-4 115,0 120,4" fill="#10B981" />
+    <text x="280" y="-8" font-family="Inter, -apple-system, sans-serif" font-size="11" fill="#10B981" text-anchor="middle">7. HTTP 201 Created (OrderResponse with is_paper=True, $0.00 capital risk)</text>
+  </g>
+
+  <!-- Bottom Invariant Footer -->
+  <g transform="translate(60, 605)">
+    <rect width="1080" height="50" rx="6" fill="#141E33" stroke="#1E293B" stroke-width="1" />
+    <text x="24" y="30" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#FBBF24">EXECUTION INVARIANT:</text>
+    <text x="180" y="30" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#F8FAFC">Orders are permanently stamped is_paper=True. All calculations use Decimal math. Zero live money accounts exist.</text>
+  </g>
+</svg>

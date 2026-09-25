@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Demo Preflight &amp; Operator Runbook</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 10px 15px;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-op { background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #10B981; }
+    .badge-safety { background: rgba(251, 191, 36, 0.15); border: 1px solid #FBBF24; color: #FBBF24; }
+
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 6px;
+      padding: 8px 11px;
+      margin-bottom: 8px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 3px;
+    }
+    .highlight { color: #F8FAFC; font-weight: 600; }
+    .muted { color: #94A3B8; font-size: 8pt; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 7.6pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 4px 6px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 7.2pt;
+    }
+    table.data-table td {
+      padding: 3.5px 6px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .timeline-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .time-card {
+      background: #090D16;
+      border: 1px solid #1E293B;
+      border-radius: 4px;
+      padding: 6px 8px;
+      font-size: 7.5pt;
+    }
+    .time-hdr {
+      font-family: Consolas, monospace;
+      font-size: 8pt;
+      font-weight: bold;
+      color: #38BDF8;
+      margin-bottom: 4px;
+    }
+
+    .script-item {
+      display: flex;
+      margin-bottom: 5px;
+      font-size: 7.8pt;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.5);
+      padding-bottom: 4px;
+    }
+    .script-time {
+      font-family: Consolas, monospace;
+      width: 85px;
+      color: #38BDF8;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .script-body {
+      flex-grow: 1;
+    }
+    .script-route {
+      color: #94A3B8;
+      font-family: Consolas, monospace;
+      font-size: 7.2pt;
+    }
+    .script-spoken {
+      color: #CBD5E1;
+      font-style: italic;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Page 1 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Demo Preflight &amp; Operator Runbook</div>
+      <div class="brand-subtitle">8-Minute Live Buyer Demonstration Protocol, Verification Timeline &amp; Script</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/06-DEMO-PREFLIGHT-CHECKLIST.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="badge-bar">
+    <span class="badge badge-op">LIVE DEMONSTRATION RUNBOOK</span>
+    <span class="badge badge-safety">STRICT $0.00 CAPITAL RISK INVARIANT</span>
+    <span class="badge badge-op">DYNAMIC CREDENTIAL GENERATION MANDATE</span>
+  </div>
+
+  <!-- Section 1: Operator Safety Invariants -->
+  <div class="section-card">
+    <div class="section-title">1. Operator Safety Invariants</div>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 8pt;">
+      <div>
+        <span class="highlight" style="color:#10B981;">1. Dynamic Credentials:</span> NEVER use hardcoded passwords. Generate fresh temporary password immediately prior to walkthrough.<br>
+        <span class="highlight" style="color:#10B981;">2. Fresh Tenant Registration:</span> Do not use pre-seeded accounts. Register new user (<code>evaluator-${Date.now()}@demo.internal</code>) to prove live dynamic tenant provisioning.
+      </div>
+      <div>
+        <span class="highlight" style="color:#FBBF24;">3. Paper Safety Invariant:</span> Capital at risk is strictly $0.00. Point out <code>is_paper=True</code> stamping on all created orders.<br>
+        <span class="highlight" style="color:#38BDF8;">4. Historical Test Wording:</span> State: <em>"Documented historical test baseline of 4,260 automated tests with 99.4% coverage."</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 2: Preflight Verification Timeline -->
+  <div class="section-card">
+    <div class="section-title">2. Preflight Verification Timeline</div>
+    <div class="timeline-grid">
+      <div class="time-card">
+        <div class="time-hdr">T-24 HOURS</div>
+        • Verify Git HEAD: <code>d5908d0a</code><br>
+        • Run tests: <code>pytest -m "not slow"</code><br>
+        • Verify migrations: <code>alembic current</code> (15 linear revisions)<br>
+        • Confirm clean working tree
+      </div>
+      <div class="time-card">
+        <div class="time-hdr">T-1 HOUR</div>
+        • Start Postgres 16 &amp; Redis 7<br>
+        • Launch API: <code>uvicorn apps.trading-engine.src.main:app :8000</code><br>
+        • Launch SPA: <code>npm run dev</code> (:5173)<br>
+        • Probe: <code>/health/live</code> &amp; <code>/health/ready</code>
+      </div>
+      <div class="time-card">
+        <div class="time-hdr">T-15 MINUTES</div>
+        • Generate dynamic password<br>
+        • Prepare dynamic registration email<br>
+        • Clear browser storage &amp; cookies<br>
+        • Smoke test EUR/USD H1 backtest
+      </div>
+      <div class="time-card">
+        <div class="time-hdr">T-5 MINUTES</div>
+        • Set screen to 1080p (1920x1080)<br>
+        • Tab 1: Terminal (:5173)<br>
+        • Tab 2: Swagger (/docs)<br>
+        • Tab 3: Data room dossiers (18 files)<br>
+        • Check audio &amp; window sharing
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: Live Demonstration Script (Page 1) -->
+  <div class="section-card">
+    <div class="section-title">3. Live Demonstration Protocol (00:00 — 08:00)</div>
+    
+    <div class="script-item">
+      <div class="script-time">00:00 - 00:40</div>
+      <div class="script-body">
+        <div class="highlight">Marketing Landing Page &amp; Legal Disclaimers <span class="script-route">(/ and /risk-disclosure)</span></div>
+        <div class="script-spoken">"Project ORION is a quantitative research and paper-trading platform. The demo operates with deterministic market data and $0.00 capital at risk."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">00:40 - 01:20</div>
+      <div class="script-body">
+        <div class="highlight">Self-Service Registration &amp; Tenant Provisioning <span class="script-route">(/register)</span></div>
+        <div class="script-spoken">"Submitting creates an isolated organization tenant, assigns the OWNER role, and initializes a default $100,000 simulated paper trading account."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">01:20 - 02:00</div>
+      <div class="script-body">
+        <div class="highlight">Trading Terminal &amp; Paper Balance Overview <span class="script-route">(/dashboard)</span></div>
+        <div class="script-spoken">"The terminal displays our simulated hundred thousand dollar paper balance. Every financial metric is explicitly badged as paper mode."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">02:00 - 03:00</div>
+      <div class="script-body">
+        <div class="highlight">Strategy Lab &amp; Deterministic Backtesting <span class="script-route">(/research)</span></div>
+        <div class="script-spoken">"The engine processes historical bars sequentially using LeakageGuard to prevent look-ahead bias, producing deterministic backtest results."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">03:00 - 04:00</div>
+      <div class="script-body">
+        <div class="highlight">Optimization Studio &amp; Walk-Forward Analysis <span class="script-route">(/optimization)</span></div>
+        <div class="script-spoken">"Optimization evaluates parameter sensitivity. Rolling walk-forward windows compute Walk-Forward Efficiency to detect curve-fitting."</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 2</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Header Page 2 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Demo Preflight &amp; Operator Runbook (Cont.)</div>
+      <div class="brand-subtitle">Script Steps 04:00 — 08:00 &amp; Real-Time Failure Recovery Protocols</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/06-DEMO-PREFLIGHT-CHECKLIST.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>PAGE 2 OF 2</div>
+    </div>
+  </div>
+
+  <!-- Script Steps Part 2 -->
+  <div class="section-card">
+    <div class="section-title">3. Live Demonstration Protocol (Continued)</div>
+
+    <div class="script-item">
+      <div class="script-time">04:00 - 04:40</div>
+      <div class="script-body">
+        <div class="highlight">Strategy Deployment Pipeline &amp; Quality Gates <span class="script-route">(/deployments)</span></div>
+        <div class="script-spoken">"Strategies must pass automated quantitative quality gates before entering incubation, terminating strictly at paper validation."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">04:40 - 05:40</div>
+      <div class="script-body">
+        <div class="highlight">Paper Order Execution <span class="script-route">(/orders)</span></div>
+        <div class="script-spoken">"The demonstrated execution path uses simulated paper capital only, with $0.00 live financial capital at risk."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">05:40 - 06:20</div>
+      <div class="script-body">
+        <div class="highlight">Mark-to-Market Positions &amp; Risk Monitoring <span class="script-route">(/positions &amp; /risk)</span></div>
+        <div class="script-spoken">"The position updates with simulated mark-to-market values. The risk engine monitors leverage caps and account drawdown thresholds."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">06:20 - 07:00</div>
+      <div class="script-body">
+        <div class="highlight">Organization Governance &amp; Immutable Audit Log <span class="script-route">(/organization &amp; /audit)</span></div>
+        <div class="script-spoken">"ORION enforces seven organizational roles across forty-one permissions. Every action is recorded in an immutable audit log with JSON details."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">07:00 - 07:30</div>
+      <div class="script-body">
+        <div class="highlight">Architecture &amp; OpenAPI Specifications <span class="script-route">(/docs)</span></div>
+        <div class="script-spoken">"The platform comprises twenty-four FastAPI routers, typed Pydantic v2 schemas, and twenty-one internal domain modules."</div>
+      </div>
+    </div>
+
+    <div class="script-item">
+      <div class="script-time">07:30 - 08:00</div>
+      <div class="script-body">
+        <div class="highlight">Acquisition Handover &amp; Data Room Review <span class="script-route">(docs/acquisition/)</span></div>
+        <div class="script-spoken">"The proposed acquisition scope includes complete source code, four thousand two hundred automated tests, and eighteen closing dossiers."</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 4: Failure Recovery Protocols -->
+  <div class="section-card">
+    <div class="section-title">4. Real-Time Failure Recovery Protocols</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Failure Event</th>
+          <th>Immediate Operator Action</th>
+          <th>Spoken Buyer Explanation</th>
+          <th>Fallback Screen</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">API Disconnection</span></td>
+          <td>Switch seamlessly to local mirrored instance (<code>http://127.0.0.1:8000</code>).</td>
+          <td><em>"Switching to our local mirrored test harness."</em></td>
+          <td>Localhost Dashboard (:5173)</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Registration Conflict</span></td>
+          <td>Append millisecond timestamp to email (<code>evaluator-&lt;ts&gt;@demo.internal</code>).</td>
+          <td><em>"Registering a second tenant to demonstrate organizational isolation."</em></td>
+          <td>Direct registration retry</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Optimization Delay</span></td>
+          <td>Select smaller 2x2 parameter grid slice (fast EMA 8-12, slow 21-26).</td>
+          <td><em>"Running a targeted parameter slice for rapid demonstration."</em></td>
+          <td>Studio parameter form</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Order Validation Error</span></td>
+          <td>Reduce order lot size to 1,000 units to comfortably clear simulated margin limits.</td>
+          <td><em>"Pre-trade risk engine enforcing available margin boundaries."</em></td>
+          <td>Order entry modal</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 2 of 2</div>
+  </div>
+
+</body>
+</html>

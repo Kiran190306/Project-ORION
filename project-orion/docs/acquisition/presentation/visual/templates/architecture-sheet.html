@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Technical Architecture Sheet</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 9pt;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 10px 15px;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-internal { background: rgba(2, 132, 199, 0.15); border: 1px solid #0284C7; color: #38BDF8; }
+    .badge-simulated { background: rgba(251, 191, 36, 0.15); border: 1px solid #FBBF24; color: #FBBF24; }
+    .badge-external { background: rgba(100, 116, 139, 0.2); border: 1px solid #64748B; color: #94A3B8; }
+    .badge-disabled { background: rgba(244, 63, 94, 0.15); border: 1px solid #F43F5E; color: #F43F5E; }
+    .badge-optional { background: rgba(148, 163, 184, 0.15); border: 1px solid #475569; color: #94A3B8; }
+
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 6px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 4px;
+    }
+    .highlight { color: #F8FAFC; font-weight: 600; }
+    .muted { color: #94A3B8; font-size: 8pt; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 7.8pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 4.5px 6px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 7.2pt;
+    }
+    table.data-table td {
+      padding: 4px 6px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .seq-box {
+      background: #090D16;
+      border: 1px solid #1E293B;
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      line-height: 1.4;
+      color: #CBD5E1;
+      margin-top: 4px;
+    }
+    .seq-arrow { color: #38BDF8; font-weight: bold; }
+    .seq-step { color: #10B981; font-weight: bold; }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Technical Architecture Sheet</div>
+      <div class="brand-subtitle">Hexagonal Modular Monorepo (Ports &amp; Adapters) Component Classification &amp; Flows</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/03-TECHNICAL-ARCHITECTURE-SHEET.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="badge-bar">
+    <span class="badge badge-internal">24 FASTAPI ROUTERS [INTERNAL]</span>
+    <span class="badge badge-internal">21 DOMAIN PACKAGES [INTERNAL]</span>
+    <span class="badge badge-simulated">PAPER EXECUTION ADAPTER [SIMULATED]</span>
+    <span class="badge badge-disabled">WORKER COORDINATOR [DISABLED BY DEFAULT]</span>
+  </div>
+
+  <!-- Section 1: Component Classification Table -->
+  <div class="section-card">
+    <div class="section-title">1. Component Classification &amp; Operational Status</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Component Name</th>
+          <th>Subsystem Location</th>
+          <th>Classification</th>
+          <th>Implementation Status &amp; Constraints</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">React Dashboard SPA</span></td>
+          <td><code>apps/dashboard/</code></td>
+          <td><span class="badge badge-internal">INTERNAL</span></td>
+          <td>Complete React 18, Vite &amp; TypeScript SPA across 20 distinct client routes.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">FastAPI Trading Engine</span></td>
+          <td><code>apps/trading-engine/</code></td>
+          <td><span class="badge badge-internal">INTERNAL</span></td>
+          <td>ASGI web application factory assembling 24 modular routers and Pydantic v2 schemas.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Application Services</span></td>
+          <td><code>src/services/</code></td>
+          <td><span class="badge badge-internal">INTERNAL</span></td>
+          <td>Orchestrates orders, backtesting, walk-forward analysis, deployments &amp; quotas.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">21 Domain Packages</span></td>
+          <td><code>libraries/domain/</code></td>
+          <td><span class="badge badge-internal">INTERNAL</span></td>
+          <td>Pure domain logic with zero database/web imports; portable quantitative IP core.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">SQLAlchemy Persistence</span></td>
+          <td><code>libraries/infrastructure/</code></td>
+          <td><span class="badge badge-internal">INTERNAL</span></td>
+          <td>Async ORM repositories managing 29 database tables across 15 linear Alembic migrations.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">PostgreSQL 16 Database</span></td>
+          <td>Relational Database</td>
+          <td><span class="badge badge-internal">INTERNAL / HOSTED</span></td>
+          <td>PostgreSQL relational target (Docker container locally; Render basic-1gb in cloud).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">PaperExecutionAdapter</span></td>
+          <td>Execution Matching</td>
+          <td><span class="badge badge-simulated">SIMULATED</span></td>
+          <td>Simulates spread, adverse slippage, latency &amp; netting; stamped <code>is_paper=True</code> ($0 risk).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">MockMarketDataProvider</span></td>
+          <td>Market Data Ingestion</td>
+          <td><span class="badge badge-simulated">SIMULATED</span></td>
+          <td>Offline synthetic market data generator producing deterministic historical candle bars.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Redis 7 Client</span></td>
+          <td>Cache &amp; Session Store</td>
+          <td><span class="badge badge-optional">OPTIONAL</span></td>
+          <td>Session &amp; rate limit caching; includes graceful in-memory degraded fallback if offline.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">TwelveData Provider</span></td>
+          <td>Market Data Feed</td>
+          <td><span class="badge badge-external">EXTERNAL</span></td>
+          <td>External REST client implemented in source; requires operator <code>TWELVE_DATA_API_KEY</code>.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">OandaBrokerAdapter</span></td>
+          <td>Broker Sandbox</td>
+          <td><span class="badge badge-external">EXTERNAL</span></td>
+          <td>External sandbox adapter connecting to OANDA Practice environment (practice only).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Autonomous Worker</span></td>
+          <td>Strategy Automation</td>
+          <td><span class="badge badge-disabled">DISABLED BY DESIGN</span></td>
+          <td>Source implemented with manual trigger (<code>POST /worker/run-once</code>); loop disabled.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Section 2: Major Data Flow Sequences -->
+  <div class="section-card">
+    <div class="section-title">2. Major Data Flow &amp; Interface Sequences</div>
+
+    <div style="font-size: 8.5pt; font-weight:600; color:#38BDF8; margin-bottom: 2px;">Flow A: Order Submission &amp; Simulated Execution</div>
+    <div class="seq-box">
+      Trader (Client) <span class="seq-arrow">──></span> <span class="seq-step">POST /api/v1/orders/</span> (CreateOrderRequest + JWT)<br>
+      FastAPI Router <span class="seq-arrow">──></span> Validates JWT &amp; resolves <span class="seq-step">TenantContext</span><br>
+      OrderService <span class="seq-arrow">──></span> Resolves active paper account &amp; dispatches to EntitlementService<br>
+      EntitlementService <span class="seq-arrow">──></span> Verifies daily order quota for subscription tier (e.g. 2,500/day)<br>
+      RiskService <span class="seq-arrow">──></span> Evaluates simulated margin, leverage cap (1:100 default) &amp; account drawdown<br>
+      PaperExecutionAdapter <span class="seq-arrow">──></span> Models spread, adverse slippage &amp; position netting (<span class="highlight" style="color:#FBBF24;">is_paper=True</span>)<br>
+      SQLAlchemy Session <span class="seq-arrow">──></span> Persists OrderModel, FillModel, PositionModel &amp; writes <span class="seq-step">ORDER_CREATE</span> audit log<br>
+      FastAPI Delivery <span class="seq-arrow">──></span> <span class="seq-step">HTTP 201 Created</span> (OrderResponse with is_paper=True, $0.00 capital at risk)
+    </div>
+
+    <div style="font-size: 8.5pt; font-weight:600; color:#38BDF8; margin-top: 8px; margin-bottom: 2px;">Flow B: Deterministic Backtesting with LeakageGuard</div>
+    <div class="seq-box">
+      Quant User (Browser) <span class="seq-arrow">──></span> <span class="seq-step">POST /api/v1/research/experiments</span> (ExperimentRunRequest)<br>
+      ResearchService <span class="seq-arrow">──></span> Resolves StrategyRegistry class &amp; loads historical candles from provider<br>
+      DeterministicBacktestEngine <span class="seq-arrow">──></span> Sequential chronological bar traversal (t[0] <span class="seq-arrow">──></span> t[N])<br>
+      LeakageGuard <span class="seq-arrow">──></span> <span class="seq-step">validate_slice()</span> verifies temporal monotonicity: timestamp[i] &lt;= timestamp[i+1]<br>
+      PerformanceCalculator <span class="seq-arrow">──></span> Computes Sharpe, Sortino, Max Drawdown, Win Rate &amp; Profit Factor<br>
+      FastAPI Delivery <span class="seq-arrow">──></span> <span class="seq-step">HTTP 201 Created</span> (ExperimentSummaryResponse with cent-level identical curves)
+    </div>
+
+    <div style="font-size: 8.5pt; font-weight:600; color:#38BDF8; margin-top: 8px; margin-bottom: 2px;">Flow C: Walk-Forward Analysis &amp; Robustness Scoring</div>
+    <div class="seq-box">
+      Quant User (Browser) <span class="seq-arrow">──></span> <span class="seq-step">POST /api/v1/optimization/walk-forward</span> (WalkForwardRunRequest)<br>
+      OptimizationService <span class="seq-arrow">──></span> Slices dataset into rolling In-Sample (IS) &amp; Out-Of-Sample (OOS) windows<br>
+      WalkForwardEngine <span class="seq-arrow">──></span> Optimizes on IS; evaluates best candidate on unseen OOS window<br>
+      RobustnessAnalyzer <span class="seq-arrow">──></span> Calculates <span class="seq-step">WFE = (Annualized OOS Return / Annualized IS Return)</span><br>
+      FastAPI Delivery <span class="seq-arrow">──></span> <span class="seq-step">HTTP 201 Created</span> (Classifies verdict: ROBUST, MODERATE, or OVERFITTED)
+    </div>
+  </div>
+
+  <!-- Section 3: Invariants & Boundaries -->
+  <div class="grid-2col">
+    <div class="section-card" style="margin-bottom: 0;">
+      <div class="section-title">3. Multi-Tenant Query Binding</div>
+      <p style="font-size: 8.2pt; color: #CBD5E1; line-height: 1.4;">
+        Every database query across accounts, orders, positions, trades, strategies, and deployments executes within a dependency-injected session context enforcing <span class="highlight">WHERE organization_id = :org_id</span>. Cross-tenant data leakage is mitigated at the ORM layer.
+      </p>
+    </div>
+
+    <div class="section-card" style="margin-bottom: 0;">
+      <div class="section-title">4. Precision Math &amp; Safety Invariants</div>
+      <p style="font-size: 8.2pt; color: #CBD5E1; line-height: 1.4;">
+        All balances, lots, pip values, execution prices, and P&amp;L measurements strictly use Python <span class="highlight">Decimal</span> arithmetic. The execution layer contains zero code pathways to live brokerage clearing APIs. Live financial capital at risk is strictly <span class="highlight" style="color:#FBBF24;">$0.00</span>.
+      </p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 1</div>
+  </div>
+
+</body>
+</html>

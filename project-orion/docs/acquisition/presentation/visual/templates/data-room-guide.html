@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Buyer Due Diligence Data Room Guide</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 10px 15px;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-t1 { background: rgba(2, 132, 199, 0.15); border: 1px solid #0284C7; color: #38BDF8; }
+    .badge-t2 { background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #10B981; }
+    .badge-t3 { background: rgba(245, 158, 11, 0.15); border: 1px solid #F59E0B; color: #F59E0B; }
+    .badge-t4 { background: rgba(251, 191, 36, 0.15); border: 1px solid #FBBF24; color: #FBBF24; }
+
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 6px;
+      padding: 8px 11px;
+      margin-bottom: 8px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 3px;
+    }
+    .highlight { color: #F8FAFC; font-weight: 600; }
+    .muted { color: #94A3B8; font-size: 8pt; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 7.6pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 4px 6px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 7.2pt;
+    }
+    table.data-table td {
+      padding: 3.5px 6px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Page 1 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Due Diligence Data Room Guide</div>
+      <div class="brand-subtitle">Structured 4-Tier Due Diligence Navigation Model Across 18 Closing Dossiers</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/07-BUYER-DATA-ROOM-GUIDE.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="badge-bar">
+    <span class="badge badge-t1">TIER 1: ORIENTATION (01–03)</span>
+    <span class="badge badge-t2">TIER 2: TECHNICAL DEEP-DIVE (04–10)</span>
+    <span class="badge badge-t3">TIER 3: SRE &amp; OPS (11–14)</span>
+    <span class="badge badge-t4">TIER 4: TRANSACTION &amp; IP (15–18)</span>
+  </div>
+
+  <!-- Tier 1 Section -->
+  <div class="section-card">
+    <div class="section-title" style="color:#38BDF8;">Tier 1: Executive &amp; Architectural Orientation (Initial Review)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Dossier File</th>
+          <th style="width: 25%;">Target Evaluators</th>
+          <th style="width: 50%;">Core Due Diligence Contents</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">01-EXECUTIVE-BRIEF.md</span></td>
+          <td>Sponsors, CEOs, M&amp;A Leads</td>
+          <td>Platform identity, pure software asset positioning, paper-only $0 risk invariant, high-level tech summary.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">02-PRODUCT-OVERVIEW.md</span></td>
+          <td>Product Leads, Quants, PMs</td>
+          <td>5-stage research workflow, strategy catalogue profiles, walk-forward analysis, quality gate hurdles, paper execution.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">03-ARCHITECTURE-OVERVIEW.md</span></td>
+          <td>CTOs, Architects, Tech Leads</td>
+          <td>Hexagonal architecture (ports &amp; adapters), 24 routers, 21 domain packages, order execution sequences.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tier 2 Section -->
+  <div class="section-card">
+    <div class="section-title" style="color:#10B981;">Tier 2: Technical Deep-Dive &amp; Harness Audit (Engineering Leadership)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Dossier File</th>
+          <th style="width: 25%;">Target Evaluators</th>
+          <th style="width: 50%;">Core Due Diligence Contents</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">04-TECHNICAL-HANDOVER-GUIDE.md</span></td>
+          <td>Onboarding Leads, Developers</td>
+          <td>Local workstation assembly, virtualenv setup, pytest runner, 4,260 automated test baseline (99.4% coverage).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">05-DEPLOYMENT-HANDOVER.md</span></td>
+          <td>DevOps Engineers, SRE Leads</td>
+          <td>Render PaaS deployment, Docker container builds, preDeployCommand hooks, environment secret injection.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">06-OPERATIONS-RUNBOOK.md</span></td>
+          <td>SRE Teams, SysAdmins</td>
+          <td>Day-two operations, liveness/readiness health probes (<code>/health/live</code>, <code>/health/ready</code>), log analysis.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">07-SECURITY-OVERVIEW.md</span></td>
+          <td>CISOs, Security Engineers</td>
+          <td>Stateless JWT HS256 auth, bcrypt hashing, security headers (HSTS, CSP, X-Frame DENY), 7-role RBAC matrix.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">08-BACKUP-RESTORE-RUNBOOK.md</span></td>
+          <td>DBAs, Continuity Leads</td>
+          <td>Physical database restore runbook, documented historical test restore benchmark (~7.2s across 29 tables).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">09-API-DOCUMENTATION.md</span></td>
+          <td>Integration Engineers</td>
+          <td>Full REST API catalog across all 24 modular FastAPI routers with typed Pydantic v2 request/response schemas.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">10-DATABASE-MIGRATION-GUIDE.md</span></td>
+          <td>Data Engineers, Backends</td>
+          <td>Alembic revision graph, 15 linear migrations managing 29 tables, safe schema evolution patterns.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 2</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Header Page 2 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Due Diligence Data Room Guide (Cont.)</div>
+      <div class="brand-subtitle">Tier 3 (Operational &amp; Dependency Audit) &amp; Tier 4 (Transaction, IP &amp; Account Transfer)</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/07-BUYER-DATA-ROOM-GUIDE.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>PAGE 2 OF 2</div>
+    </div>
+  </div>
+
+  <!-- Tier 3 Section -->
+  <div class="section-card">
+    <div class="section-title" style="color:#F59E0B;">Tier 3: Operational &amp; Dependency Audit (SRE, Security &amp; Infrastructure)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Dossier File</th>
+          <th style="width: 25%;">Target Evaluators</th>
+          <th style="width: 50%;">Core Due Diligence Contents</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">11-ENVIRONMENT-VARIABLE-REFERENCE.md</span></td>
+          <td>DevOps, Security Officers</td>
+          <td>Complete environment configuration reference, default values, secret categorization, Pydantic Settings.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">12-DEPENDENCY-SBOM.md</span></td>
+          <td>Compliance Officers, Counsel</td>
+          <td>Software Bill of Materials (SBOM), 100% commercially permissive licensing (MIT, Apache 2.0, BSD-3-Clause).</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">13-KNOWN-LIMITATIONS.md</span></td>
+          <td>Due Diligence Evaluators</td>
+          <td>Transparent engineering boundaries: stateless REST polling, single worker loop, paper-only execution model.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">14-INFRASTRUCTURE-TOPOLOGY-MAP.md</span></td>
+          <td>Cloud Architects, SREs</td>
+          <td>PaaS architecture on Render, resource tiers (starter API, basic-1gb DB), ~$14/mo base configuration estimate.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Tier 4 Section -->
+  <div class="section-card">
+    <div class="section-title" style="color:#FBBF24;">Tier 4: Transaction, IP &amp; Account Transfer (Legal Counsel &amp; Corporate Dev)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 25%;">Dossier File</th>
+          <th style="width: 25%;">Target Evaluators</th>
+          <th style="width: 50%;">Core Due Diligence Contents</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">15-IP-ASSIGNMENT-CHECKLIST.md</span></td>
+          <td>M&amp;A Counsel, IP Attorneys</td>
+          <td>Proprietary copyright, patent, trademark, and trade secret assignment verification; clean contributor provenance.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">16-ACCOUNT-OWNERSHIP-TRANSFER.md</span></td>
+          <td>Corporate Development</td>
+          <td>Third-party vendor account inventory; step-by-step Independent Account Provisioning Path for buyer accounts.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">17-DOMAIN-TRANSFER-CHECKLIST.md</span></td>
+          <td>IT Operations, NetOps</td>
+          <td>Custom domain DNS transition runbook, DNS CNAME mapping to Render edge, and SSL/TLS certificate steps.</td>
+        </tr>
+        <tr>
+          <td><span class="highlight">18-DUE-DILIGENCE-DATA-ROOM-INDEX.md</span></td>
+          <td>All Due Diligence Evaluators</td>
+          <td>Master verification matrix and artifact cross-reference index across all 18 dossiers and repository files.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Access Instructions Box -->
+  <div class="section-card">
+    <div class="section-title">Data Room Access &amp; Navigation Protocol</div>
+    <p style="font-size: 8pt; color: #CBD5E1; line-height: 1.45;">
+      All 18 dossiers are maintained directly within the Git repository under <code>docs/acquisition/</code>. Prospective buyers and evaluation teams can review dossiers locally using standard Markdown viewers or through the technical presentation package located under <code>docs/acquisition/presentation/</code>.
+    </p>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 2 of 2</div>
+  </div>
+
+</body>
+</html>

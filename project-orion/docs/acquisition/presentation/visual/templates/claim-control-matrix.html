@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project ORION — Claim Control &amp; Lexicon Matrix</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      background-color: #090D16;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 8.5pt;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 10px 15px;
+    }
+    .header-bar {
+      border-bottom: 2px solid #0284C7;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .brand-title {
+      font-size: 15pt;
+      font-weight: 700;
+      color: #F8FAFC;
+      letter-spacing: -0.3px;
+    }
+    .brand-subtitle {
+      font-size: 8.5pt;
+      color: #38BDF8;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+    .doc-meta {
+      text-align: right;
+      font-family: Consolas, monospace;
+      font-size: 7.5pt;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+    .badge-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 7.5pt;
+      font-weight: 600;
+      font-family: Consolas, monospace;
+      text-transform: uppercase;
+    }
+    .badge-gov { background: rgba(2, 132, 199, 0.15); border: 1px solid #0284C7; color: #38BDF8; }
+    .badge-rule { background: rgba(244, 63, 94, 0.15); border: 1px solid #F43F5E; color: #F43F5E; }
+
+    .section-card {
+      background: #141E33;
+      border: 1px solid #1E293B;
+      border-radius: 6px;
+      padding: 8px 11px;
+      margin-bottom: 8px;
+      page-break-inside: avoid;
+    }
+    .section-title {
+      font-size: 9pt;
+      font-weight: 700;
+      color: #38BDF8;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 5px;
+      border-bottom: 1px solid #1E293B;
+      padding-bottom: 3px;
+    }
+    .highlight { color: #F8FAFC; font-weight: 600; }
+    .muted { color: #94A3B8; font-size: 8pt; }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      font-size: 7.4pt;
+    }
+    table.data-table th {
+      background: #0F172A;
+      color: #38BDF8;
+      text-align: left;
+      padding: 4px 6px;
+      font-weight: 600;
+      border: 1px solid #1E293B;
+      font-family: Consolas, monospace;
+      font-size: 7pt;
+    }
+    table.data-table td {
+      padding: 3.5px 6px;
+      border: 1px solid #1E293B;
+      color: #F8FAFC;
+    }
+    table.data-table tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.5);
+    }
+
+    .safe-txt { color: #10B981; font-weight: 600; }
+    .proh-txt { color: #F43F5E; text-decoration: line-through; }
+
+    .page-break {
+      page-break-before: always;
+    }
+
+    .footer-bar {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 1px solid #1E293B;
+      display: flex;
+      justify-content: space-between;
+      font-size: 7pt;
+      color: #64748B;
+      font-family: Consolas, monospace;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header Page 1 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Claim Control &amp; Lexicon Matrix</div>
+      <div class="brand-subtitle">Mandatory Wording, Evidence Classification &amp; Prohibited Phrasing Standards</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/08-CLAIM-CONTROL-MATRIX.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>CLASSIFICATION: Confidential — Technical Due Diligence</div>
+    </div>
+  </div>
+
+  <div class="badge-bar">
+    <span class="badge badge-gov">GOVERNANCE &amp; CLAIM ACCURACY STANDARD</span>
+    <span class="badge badge-rule">STRICTLY PROHIBITED PHRASING ENFORCEMENT</span>
+  </div>
+
+  <!-- Claim Table Page 1 -->
+  <div class="section-card">
+    <div class="section-title">Core Claim Control Matrix (Part 1)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Feature / Metric</th>
+          <th style="width: 18%;">Evidence Classification</th>
+          <th style="width: 38%;">Mandatory Safe Buyer Wording</th>
+          <th style="width: 30%;">Strictly Prohibited Phrasing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">4,260 Tests</span></td>
+          <td>Historical Evidence</td>
+          <td><span class="safe-txt">"Documented historical test baseline of 4,260 automated tests across 103 suites."</span></td>
+          <td><span class="proh-txt">"100% bug-free", "zero defect codebase", "currently passing"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">99.4% Coverage</span></td>
+          <td>Historical Evidence</td>
+          <td><span class="safe-txt">"Documented historical test coverage of 99.4% across domain modules."</span></td>
+          <td><span class="proh-txt">"Universal test coverage", "flawlessly tested"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">~7.2s Restore</span></td>
+          <td>Historical Evidence</td>
+          <td><span class="safe-txt">"Demonstrated restoration benchmark of ~7 seconds across 29 tables in test container."</span></td>
+          <td><span class="proh-txt">"Certified disaster recovery", "guaranteed 24h RPO"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">$100,000 Balance</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"Initial virtual paper trading balance provisioned at $100,000."</span></td>
+          <td><span class="proh-txt">"Real deposited cash balance", "custodial bank funds"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">4 Concrete Strategies</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"4 concrete backtesting algorithmic strategy classes in StrategyRegistry."</span></td>
+          <td><span class="proh-txt">"9 fully implemented algorithmic execution engines"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">9 Strategy Profiles</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"9 strategy parameter schemas defined in API catalogue specification."</span></td>
+          <td><span class="proh-txt">"9 running automated trading robots"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">7 RBAC Roles</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"7 distinct organization-level RBAC roles."</span></td>
+          <td><span class="proh-txt">"Banking governance certification", "statutory roles"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">41 Permissions</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"41 granular domain permissions across 14 functional domains."</span></td>
+          <td><span class="proh-txt">"Universal security guarantee"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">24 API Routers</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"24 modular routers assembled in FastAPI application factory."</span></td>
+          <td><span class="proh-txt">"Microservice cluster"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">21 Domain Packages</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"21 internal domain packages in modular hexagonal architecture."</span></td>
+          <td><span class="proh-txt">"21 standalone external PyPI libraries"</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 1 of 2</div>
+  </div>
+
+  <div class="page-break"></div>
+
+  <!-- Header Page 2 -->
+  <div class="header-bar">
+    <div>
+      <div class="brand-title">Project ORION — Claim Control &amp; Lexicon Matrix (Cont.)</div>
+      <div class="brand-subtitle">Commercial Claims, Execution Boundaries &amp; Universal Statement Governance</div>
+    </div>
+    <div class="doc-meta">
+      <div>REF: docs/acquisition/presentation/08-CLAIM-CONTROL-MATRIX.md</div>
+      <div>BASELINE COMMIT: d5908d0a0cc2feff99fa02573adb12b8eea33782</div>
+      <div>PAGE 2 OF 2</div>
+    </div>
+  </div>
+
+  <!-- Claim Table Page 2 -->
+  <div class="section-card">
+    <div class="section-title">Core Claim Control Matrix (Part 2)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">Feature / Metric</th>
+          <th style="width: 18%;">Evidence Classification</th>
+          <th style="width: 38%;">Mandatory Safe Buyer Wording</th>
+          <th style="width: 30%;">Strictly Prohibited Phrasing</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="highlight">18 Dossiers</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"18 closing dossiers in technical due diligence data room."</span></td>
+          <td><span class="proh-txt">"Full legal transaction executed"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">~$14/mo Hosting</span></td>
+          <td>Configuration Estimate</td>
+          <td><span class="safe-txt">"Base cloud hosting configured on Render for approximately $14/month."</span></td>
+          <td><span class="proh-txt">"Runs reliably in all workloads for $14", "guaranteed fixed price"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">$0 Capital Risk</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"Demonstrated execution path uses simulated paper capital only, with $0.00 live risk."</span></td>
+          <td><span class="proh-txt">"Zero financial liability", "risk-free live trading"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Mock Market Data</span></td>
+          <td>Simulated Invariant</td>
+          <td><span class="safe-txt">"Deterministic synthetic market data generated offline by default."</span></td>
+          <td><span class="proh-txt">"Live institutional market feed", "real-time broker feeds"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">OANDA Practice</span></td>
+          <td>External Sandbox</td>
+          <td><span class="safe-txt">"External broker sandbox adapter supporting OANDA Practice environments."</span></td>
+          <td><span class="proh-txt">"Live real-money broker execution clearing"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">TwelveData Feed</span></td>
+          <td>External Provider</td>
+          <td><span class="safe-txt">"External market data provider adapter requiring buyer-provisioned API key."</span></td>
+          <td><span class="proh-txt">"Built-in active real-time data subscription"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Trading Worker</span></td>
+          <td>Disabled by Design</td>
+          <td><span class="safe-txt">"Autonomous worker coordinator implemented with manual trigger, disabled by default."</span></td>
+          <td><span class="proh-txt">"100% automated trading robot active in cloud"</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Subscription Pricing</span></td>
+          <td>Current Invariant</td>
+          <td><span class="safe-txt">"Implemented tiers: Free Sandbox ($0), Pro ($99), Business ($299), Enterprise (Custom)."</span></td>
+          <td><span class="proh-txt">Preliminary legacy tiers ($49 / $149 / $399)</span></td>
+        </tr>
+        <tr>
+          <td><span class="highlight">Commercial Revenue</span></td>
+          <td>Not Established</td>
+          <td><span class="safe-txt">"Revenue, paying customers, and active subscribers are NOT ESTABLISHED IN REPOSITORY."</span></td>
+          <td><span class="proh-txt">Any invented ARR, MRR, customer counts, or valuation metrics</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Universal Statement Rules -->
+  <div class="section-card">
+    <div class="section-title">Universal Statement Rules</div>
+    <div style="font-size: 8pt; line-height: 1.45; color: #CBD5E1;">
+      <p style="margin-bottom: 5px;">
+        <span class="highlight" style="color:#38BDF8;">1. Avoid Unqualified Absolutes:</span> Never claim "100% ready", "flawless", "zero defect", or "certified" unless citing a specific historical benchmark qualified in text.
+      </p>
+      <p style="margin-bottom: 5px;">
+        <span class="highlight" style="color:#38BDF8;">2. Preserve Simulation Truth:</span> Distinguish internal simulation (<code>PaperExecutionAdapter</code>, <code>MockMarketDataProvider</code>) from external integrations (<code>TwelveData</code>, <code>OandaBrokerAdapter</code>).
+      </p>
+      <p style="margin-bottom: 5px;">
+        <span class="highlight" style="color:#38BDF8;">3. No Financial Guarantees:</span> Past backtest or optimization results must never be represented as live market performance guarantees.
+      </p>
+      <p>
+        <span class="highlight" style="color:#38BDF8;">4. Clean Transaction Boundaries:</span> Describe the asset as a proposed software and intellectual property transfer, subject to executed agreements.
+      </p>
+    </div>
+  </div>
+
+  <div class="footer-bar">
+    <div>Project ORION — Confidential Technical Due Diligence Asset Presentation</div>
+    <div>Strictly Paper Trading Only │ $0.00 Live Financial Capital at Risk</div>
+    <div>Page 2 of 2</div>
+  </div>
+
+</body>
+</html>

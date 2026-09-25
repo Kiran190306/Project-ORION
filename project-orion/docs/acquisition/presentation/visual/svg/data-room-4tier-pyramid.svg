@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760">
+  <defs>
+    <linearGradient id="bgGrad5" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="760" fill="url(#bgGrad5)" />
+
+  <!-- Title -->
+  <text x="60" y="45" font-family="Inter, -apple-system, sans-serif" font-size="22" font-weight="700" fill="#F8FAFC">Project ORION — Due Diligence Data Room Navigation Pyramid</text>
+  <text x="60" y="70" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Structured 4-Tier Due Diligence Architecture for Technical, Operational, SRE &amp; Legal Evaluators (18 Dossiers)</text>
+
+  <!-- TIER 1: EXECUTIVE & ARCHITECTURAL ORIENTATION -->
+  <g transform="translate(240, 100)">
+    <rect width="720" height="110" rx="8" fill="#141E33" stroke="#0284C7" stroke-width="2" />
+    <rect x="2" y="2" width="716" height="4" rx="2" fill="#0284C7" />
+    <text x="24" y="30" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38BDF8" letter-spacing="1">TIER 1: EXECUTIVE &amp; ARCHITECTURAL ORIENTATION (Dossiers 01–03)</text>
+    <text x="680" y="30" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" text-anchor="end">Sponsors, CEOs &amp; M&amp;A Leads</text>
+    
+    <g transform="translate(24, 50)">
+      <text x="0" y="16" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">01-EXECUTIVE-BRIEF.md <tspan font-weight="400" fill="#94A3B8">— Software positioning, paper-only $0 risk invariant</tspan></text>
+      <text x="0" y="36" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">02-PRODUCT-OVERVIEW.md <tspan font-weight="400" fill="#94A3B8">— 5-stage research workflow, strategy catalogue profiles</tspan></text>
+      <text x="0" y="56" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">03-ARCHITECTURE-OVERVIEW.md <tspan font-weight="400" fill="#94A3B8">— Hexagonal architecture, 21 domain packages, ports/adapters</tspan></text>
+    </g>
+  </g>
+
+  <!-- TIER 2: TECHNICAL DEEP-DIVE & HARNESS AUDIT -->
+  <g transform="translate(160, 230)">
+    <rect width="880" height="155" rx="8" fill="#141E33" stroke="#10B981" stroke-width="2" />
+    <rect x="2" y="2" width="876" height="4" rx="2" fill="#10B981" />
+    <text x="24" y="28" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#10B981" letter-spacing="1">TIER 2: TECHNICAL DEEP-DIVE &amp; HARNESS AUDIT (Dossiers 04–10)</text>
+    <text x="840" y="28" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" text-anchor="end">CTOs, Tech Leads &amp; Engineers</text>
+    
+    <g transform="translate(24, 46)">
+      <text x="0" y="16" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">04-TECHNICAL-HANDOVER-GUIDE.md <tspan font-weight="400" fill="#94A3B8">— Local dev, pytest harness (4,260 tests, 99.4% coverage)</tspan></text>
+      <text x="0" y="36" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">05-DEPLOYMENT-HANDOVER.md <tspan font-weight="400" fill="#94A3B8">— Render PaaS deployment, container builds, secret injection</tspan></text>
+      <text x="0" y="56" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">06-OPERATIONS-RUNBOOK.md <tspan font-weight="400" fill="#94A3B8">— Day-two procedures, health probes (/health/live, /health/ready)</tspan></text>
+      <text x="0" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">07-SECURITY-OVERVIEW.md <tspan font-weight="400" fill="#94A3B8">— JWT HS256 auth, bcrypt, security headers, 7-role RBAC matrix</tspan></text>
+      <text x="0" y="96" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">08-BACKUP-RESTORE-RUNBOOK.md <tspan font-weight="400" fill="#94A3B8">— Database restore runbook, ~7.2s historical benchmark across 29 tables</tspan></text>
+      <text x="460" y="16" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">09-API-DOCUMENTATION.md <tspan font-weight="400" fill="#94A3B8">— 24 routers, Pydantic v2 schemas</tspan></text>
+      <text x="460" y="36" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">10-DATABASE-MIGRATION-GUIDE.md <tspan font-weight="400" fill="#94A3B8">— 15 Alembic migrations, 29 tables</tspan></text>
+    </g>
+  </g>
+
+  <!-- TIER 3: OPERATIONAL & DEPENDENCY AUDIT -->
+  <g transform="translate(100, 405)">
+    <rect width="1000" height="135" rx="8" fill="#141E33" stroke="#F59E0B" stroke-width="2" />
+    <rect x="2" y="2" width="996" height="4" rx="2" fill="#F59E0B" />
+    <text x="24" y="28" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#F59E0B" letter-spacing="1">TIER 3: OPERATIONAL &amp; DEPENDENCY AUDIT (Dossiers 11–14)</text>
+    <text x="960" y="28" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" text-anchor="end">SRE, DevOps &amp; Security Evaluators</text>
+    
+    <g transform="translate(24, 46)">
+      <text x="0" y="16" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">11-ENVIRONMENT-VARIABLE-REFERENCE.md <tspan font-weight="400" fill="#94A3B8">— Pydantic Settings, environment reference, secret handling</tspan></text>
+      <text x="0" y="36" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">12-DEPENDENCY-SBOM.md <tspan font-weight="400" fill="#94A3B8">— Software Bill of Materials, MIT/Apache/BSD open-source license audit</tspan></text>
+      <text x="0" y="56" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">13-KNOWN-LIMITATIONS.md <tspan font-weight="400" fill="#94A3B8">— Transparent limits: REST polling, single-process worker, paper-only mode</tspan></text>
+      <text x="0" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">14-INFRASTRUCTURE-TOPOLOGY-MAP.md <tspan font-weight="400" fill="#94A3B8">— PaaS architecture, Render resources (~$14/mo config estimate)</tspan></text>
+    </g>
+  </g>
+
+  <!-- TIER 4: TRANSACTION, IP & ACCOUNT TRANSFER -->
+  <g transform="translate(60, 560)">
+    <rect width="1080" height="135" rx="8" fill="#141E33" stroke="#38BDF8" stroke-width="2" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#38BDF8" />
+    <text x="24" y="28" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38BDF8" letter-spacing="1">TIER 4: TRANSACTION, IP &amp; ACCOUNT TRANSFER (Dossiers 15–18)</text>
+    <text x="1040" y="28" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="600" fill="#94A3B8" text-anchor="end">Legal Counsel &amp; Corporate Development</text>
+    
+    <g transform="translate(24, 46)">
+      <text x="0" y="16" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">15-IP-ASSIGNMENT-CHECKLIST.md <tspan font-weight="400" fill="#94A3B8">— Copyright, patent, trade secret transfer verification</tspan></text>
+      <text x="0" y="36" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">16-ACCOUNT-OWNERSHIP-TRANSFER.md <tspan font-weight="400" fill="#94A3B8">— Vendor accounts, Independent Account Provisioning Path</tspan></text>
+      <text x="0" y="56" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">17-DOMAIN-TRANSFER-CHECKLIST.md <tspan font-weight="400" fill="#94A3B8">— Domain DNS transition runbook and SSL/TLS certificate steps</tspan></text>
+      <text x="0" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">18-DUE-DILIGENCE-DATA-ROOM-INDEX.md <tspan font-weight="400" fill="#94A3B8">— Master verification matrix and artifact cross-reference index</tspan></text>
+    </g>
+  </g>
+
+  <!-- Footer note -->
+  <text x="600" y="730" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#64748B" text-anchor="middle">Project ORION Due Diligence Data Room — All 18 dossiers available under docs/acquisition/</text>
+</svg>

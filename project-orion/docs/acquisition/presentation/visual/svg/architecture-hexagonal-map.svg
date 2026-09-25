@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 860" width="1200" height="860">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090D16" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141E33" />
+      <stop offset="100%" stop-color="#0E1626" />
+    </linearGradient>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.4" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="860" fill="url(#bgGrad)" />
+
+  <!-- Header -->
+  <text x="60" y="50" font-family="Inter, -apple-system, sans-serif" font-size="24" font-weight="700" fill="#F8FAFC">Project ORION — Hexagonal Architecture &amp; Component Map</text>
+  <text x="60" y="78" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="400" fill="#94A3B8">Strict Layer Separation: Presentation, API Delivery, Application Services, 21 Domain Packages, Infrastructure Adapters</text>
+
+  <!-- LAYER 1: PRESENTATION LAYER -->
+  <g transform="translate(60, 110)">
+    <rect width="1080" height="90" rx="8" fill="url(#cardGrad)" stroke="#1E293B" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#0284C7" />
+    <text x="24" y="32" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38BDF8" letter-spacing="1">1. PRESENTATION LAYER — REACT SINGLE-PAGE APPLICATION</text>
+    <rect x="980" y="18" width="76" height="20" rx="4" fill="#0284C7" fill-opacity="0.2" stroke="#0284C7" stroke-width="1" />
+    <text x="1018" y="32" font-family="Inter, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#38BDF8" text-anchor="middle">INTERNAL</text>
+    
+    <text x="24" y="58" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#F8FAFC">React 18 + Vite SPA (TypeScript, Tailwind CSS, TanStack Query, Lucide Icons)</text>
+    <text x="24" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#94A3B8">20 Routes: Marketing, Auth, Trading Terminal, Research Lab, Optimization Studio, Strategy Deployments, Org Admin</text>
+  </g>
+
+  <!-- Arrow 1 -> 2 -->
+  <path d="M 600 200 L 600 225" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4,4" />
+  <polygon points="596,225 604,225 600,233" fill="#38BDF8" />
+  <text x="615" y="220" font-family="JetBrains Mono, Consolas, monospace" font-size="11" fill="#64748B">HTTPS / JSON REST</text>
+
+  <!-- LAYER 2: API & DELIVERY LAYER -->
+  <g transform="translate(60, 235)">
+    <rect width="1080" height="95" rx="8" fill="url(#cardGrad)" stroke="#1E293B" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#0284C7" />
+    <text x="24" y="30" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38BDF8" letter-spacing="1">2. API &amp; DELIVERY LAYER — FASTAPI ASGI APPLICATION FACTORY</text>
+    <rect x="980" y="16" width="76" height="20" rx="4" fill="#0284C7" fill-opacity="0.2" stroke="#0284C7" stroke-width="1" />
+    <text x="1018" y="30" font-family="Inter, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#38BDF8" text-anchor="middle">INTERNAL</text>
+    
+    <text x="24" y="56" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#F8FAFC">24 Modular Routers (FastAPI, Python 3.11+, Pydantic v2 Schemas)</text>
+    <text x="24" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#94A3B8">Security Headers (HSTS, CSP, X-Frame DENY) │ Request Correlation Tracing │ Dependency Injection (TenantContext, QuotaGuards)</text>
+  </g>
+
+  <!-- Arrow 2 -> 3 -->
+  <path d="M 600 330 L 600 355" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4,4" />
+  <polygon points="596,355 604,355 600,363" fill="#38BDF8" />
+  <text x="615" y="350" font-family="JetBrains Mono, Consolas, monospace" font-size="11" fill="#64748B">Application Dispatch</text>
+
+  <!-- LAYER 3: APPLICATION SERVICES LAYER -->
+  <g transform="translate(60, 365)">
+    <rect width="1080" height="95" rx="8" fill="url(#cardGrad)" stroke="#1E293B" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#0284C7" />
+    <text x="24" y="30" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#38BDF8" letter-spacing="1">3. APPLICATION SERVICES LAYER — ORCHESTRATION &amp; WORKFLOWS</text>
+    <rect x="980" y="16" width="76" height="20" rx="4" fill="#0284C7" fill-opacity="0.2" stroke="#0284C7" stroke-width="1" />
+    <text x="1018" y="30" font-family="Inter, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#38BDF8" text-anchor="middle">INTERNAL</text>
+    
+    <text x="24" y="56" font-family="Inter, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#F8FAFC">OrderService │ ResearchService │ OptimizationService │ DeploymentPipelineService</text>
+    <text x="24" y="76" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="400" fill="#94A3B8">EntitlementService (4-Tier Quotas) │ SubscriptionService (Stripe Test Mode) │ AuditService (Immutable Logs)</text>
+  </g>
+
+  <!-- Arrow 3 -> 4 -->
+  <path d="M 600 460 L 600 485" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4,4" />
+  <polygon points="596,485 604,485 600,493" fill="#38BDF8" />
+  <text x="615" y="480" font-family="JetBrains Mono, Consolas, monospace" font-size="11" fill="#64748B">Pure Domain Logic (Zero DB/Web Imports)</text>
+
+  <!-- LAYER 4: DOMAIN LOGIC LAYER -->
+  <g transform="translate(60, 495)">
+    <rect width="1080" height="115" rx="8" fill="url(#cardGrad)" stroke="#1E293B" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#10B981" />
+    <text x="24" y="28" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#10B981" letter-spacing="1">4. DOMAIN LOGIC LAYER — 21 PURE INTERNAL PACKAGES (libraries/domain/)</text>
+    <rect x="980" y="14" width="76" height="20" rx="4" fill="#10B981" fill-opacity="0.2" stroke="#10B981" stroke-width="1" />
+    <text x="1018" y="28" font-family="Inter, -apple-system, sans-serif" font-size="10" font-weight="600" fill="#10B981" text-anchor="middle">INTERNAL</text>
+    
+    <g transform="translate(24, 45)">
+      <text x="0" y="14" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">strategy: <tspan font-weight="400" fill="#94A3B8">StrategyRegistry (4 concrete classes, 9 API profiles)</tspan></text>
+      <text x="540" y="14" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">research: <tspan font-weight="400" fill="#94A3B8">DeterministicBacktestEngine, LeakageGuard</tspan></text>
+      
+      <text x="0" y="36" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">optimization: <tspan font-weight="400" fill="#94A3B8">OptimizationEngine, WalkForwardEngine (WFE)</tspan></text>
+      <text x="540" y="36" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">deployment: <tspan font-weight="400" fill="#94A3B8">DeploymentLifecycle, QualityGates (WFE ≥ 0.50, DD ≤ 15%)</tspan></text>
+      
+      <text x="0" y="58" font-family="Inter, -apple-system, sans-serif" font-size="13" font-weight="600" fill="#F8FAFC">risk &amp; org: <tspan font-weight="400" fill="#94A3B8">RiskEngine (pre-trade leverage/margin), 7 RBAC Roles, 41 Permissions, Decimal Math</tspan></text>
+    </g>
+  </g>
+
+  <!-- Arrow 4 -> 5 -->
+  <path d="M 600 610 L 600 635" stroke="#38BDF8" stroke-width="2" stroke-dasharray="4,4" />
+  <polygon points="596,635 604,635 600,643" fill="#38BDF8" />
+  <text x="615" y="630" font-family="JetBrains Mono, Consolas, monospace" font-size="11" fill="#64748B">Ports &amp; Adapters</text>
+
+  <!-- LAYER 5: INFRASTRUCTURE & ADAPTER LAYER -->
+  <g transform="translate(60, 645)">
+    <rect width="1080" height="175" rx="8" fill="url(#cardGrad)" stroke="#1E293B" stroke-width="1.5" filter="url(#cardShadow)" />
+    <rect x="2" y="2" width="1076" height="4" rx="2" fill="#F59E0B" />
+    <text x="24" y="26" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="700" fill="#F59E0B" letter-spacing="1">5. INFRASTRUCTURE &amp; ADAPTER LAYER — HARDWARE, PERSISTENCE &amp; ADAPTERS</text>
+
+    <!-- Adapter Cards Grid -->
+    <!-- Col 1: DB & Redis -->
+    <g transform="translate(24, 40)">
+      <rect width="320" height="52" rx="6" fill="#090D16" stroke="#1E293B" stroke-width="1" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">PostgreSQL 16 (SQLAlchemy Async)</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">29 tables, 15 migrations, TenantContext</text>
+      <rect x="238" y="10" width="70" height="18" rx="3" fill="#0284C7" fill-opacity="0.2" stroke="#0284C7" stroke-width="1" />
+      <text x="273" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#38BDF8" text-anchor="middle">INTERNAL</text>
+    </g>
+
+    <g transform="translate(24, 102)">
+      <rect width="320" height="52" rx="6" fill="#090D16" stroke="#1E293B" stroke-width="1" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">Redis 7 (Session &amp; Rate Limit)</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">In-memory degraded fallback active</text>
+      <rect x="238" y="10" width="70" height="18" rx="3" fill="#64748B" fill-opacity="0.2" stroke="#64748B" stroke-width="1" />
+      <text x="273" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#94A3B8" text-anchor="middle">OPTIONAL</text>
+    </g>
+
+    <!-- Col 2: Execution & Mock Data -->
+    <g transform="translate(370, 40)">
+      <rect width="330" height="52" rx="6" fill="#090D16" stroke="#FBBF24" stroke-width="1" stroke-opacity="0.4" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">PaperExecutionAdapter</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#FBBF24">Spread, slippage, netting ($0.00 capital)</text>
+      <rect x="240" y="10" width="76" height="18" rx="3" fill="#FBBF24" fill-opacity="0.2" stroke="#FBBF24" stroke-width="1" />
+      <text x="278" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#FBBF24" text-anchor="middle">SIMULATED</text>
+    </g>
+
+    <g transform="translate(370, 102)">
+      <rect width="330" height="52" rx="6" fill="#090D16" stroke="#FBBF24" stroke-width="1" stroke-opacity="0.4" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">MockMarketDataProvider</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">Deterministic synthetic candle generator</text>
+      <rect x="240" y="10" width="76" height="18" rx="3" fill="#FBBF24" fill-opacity="0.2" stroke="#FBBF24" stroke-width="1" />
+      <text x="278" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#FBBF24" text-anchor="middle">SIMULATED</text>
+    </g>
+
+    <!-- Col 3: External & Worker -->
+    <g transform="translate(726, 40)">
+      <rect width="330" height="52" rx="6" fill="#090D16" stroke="#1E293B" stroke-width="1" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">TwelveData &amp; OANDA Practice</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#94A3B8">Live quotes / practice sandbox adapters</text>
+      <rect x="240" y="10" width="76" height="18" rx="3" fill="#64748B" fill-opacity="0.2" stroke="#64748B" stroke-width="1" />
+      <text x="278" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#38BDF8" text-anchor="middle">EXTERNAL</text>
+    </g>
+
+    <g transform="translate(726, 102)">
+      <rect width="330" height="52" rx="6" fill="#090D16" stroke="#F43F5E" stroke-width="1" stroke-opacity="0.4" />
+      <text x="14" y="22" font-family="Inter, -apple-system, sans-serif" font-size="12" font-weight="600" fill="#F8FAFC">AutonomousWorkerCoordinator</text>
+      <text x="14" y="40" font-family="Inter, -apple-system, sans-serif" font-size="11" font-weight="400" fill="#F43F5E">Loop disabled by design (WORKER_ENABLED=false)</text>
+      <rect x="240" y="10" width="76" height="18" rx="3" fill="#F43F5E" fill-opacity="0.2" stroke="#F43F5E" stroke-width="1" />
+      <text x="278" y="23" font-family="Inter, -apple-system, sans-serif" font-size="9" font-weight="600" fill="#F43F5E" text-anchor="middle">DISABLED</text>
+    </g>
+  </g>
+</svg>
