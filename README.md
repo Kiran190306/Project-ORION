@@ -2,31 +2,60 @@
 
 ### Quantitative FX Research & Paper-Trading SaaS Platform
 
-> **Acquisition Due Diligence Notice**: Project ORION is a pre-revenue quantitative software and intellectual property asset. This directory contains the complete production-grade source code, algorithmic research engines, automated testing suites, infrastructure blueprints, and formal acquisition diligence materials.
+> **Acquisition Due Diligence Notice**: Project ORION is a pre-revenue quantitative software and intellectual property asset. This repository contains the complete source code, algorithmic research engines, automated testing suites, infrastructure blueprints, and formal acquisition diligence materials.
 >
-> **Financial & Execution Boundary**: Project ORION operates strictly in **Paper-Trading Simulation Mode**. The platform enforces **$0.00 live financial capital at risk**, provisions an initial **$100,000 virtual paper balance**, and executes orders exclusively through internal simulated order books (`PaperExecutionAdapter`, `is_paper=True`) and external practice sandboxes (OANDA Practice). The platform does **not** provide live broker execution, client money custody, or fund administration.
+> **Financial & Execution Boundary**: Project ORION operates strictly in **Paper-Trading Simulation Mode**. The software maintains **$0.00 live financial capital at risk**, enforces a **$100,000 virtual paper balance**, and executes orders exclusively through internal simulated order books (`PaperExecutionAdapter`, `is_paper=True`) and external practice sandboxes (OANDA Practice). The platform does **not** provide live broker execution, client money custody, or fund administration.
+
+---
+
+## Repository Structure & Navigation
+
+The active, maintained software platform and diligence package reside entirely inside the [`project-orion/`](project-orion/) directory. Root-level legacy artifacts in this repository reflect historical engineering milestones and architecture freezes from early development cycles.
+
+```text
+.
+├── project-orion/                  # Active software platform & acquisition package
+│   ├── apps/                       # Applications (FastAPI backend & React dashboard)
+│   │   ├── trading-engine/         # Core ASGI REST API & domain services
+│   │   └── dashboard/              # React 19 / TypeScript web interface
+│   ├── libraries/                  # Domain-driven packages & infrastructure adapters
+│   │   ├── domain/                 # Pure business logic (research, risk, execution, etc.)
+│   │   ├── infrastructure/         # External integrations (persistence, market data, broker)
+│   │   └── observability/          # Structured logging, metrics, and tracing
+│   ├── database/                   # Relational persistence & Alembic migrations
+│   ├── tests/                      # Automated test suites (unit, integration, e2e)
+│   ├── backup/                     # Database and cache backup/restore shell automation
+│   ├── docker/                     # Multi-stage production container definitions
+│   ├── render.yaml                 # Render PaaS infrastructure blueprint
+│   └── docs/                       # Complete engineering & diligence documentation
+│       └── acquisition/            # Formal buyer acquisition packages (Dossiers, Visuals, Launch)
+│           ├── 01-18               # 18 canonical due diligence dossiers
+│           ├── presentation/       # Buyer presentation source docs & visual assets
+│           └── launch/             # 7 acquisition launch & closing runbooks
+└── README.md                       # Repository root overview (this document)
+```
 
 ---
 
 ## Acquisition & Due Diligence
 
-A comprehensive, structured technical diligence and transaction package is prepared and maintained under [`docs/acquisition/`](docs/acquisition/). The package consists of **18 canonical acquisition dossiers**, **8 presentation source documents**, **24 visual presentation assets**, and **7 acquisition launch documents**:
+A comprehensive, structured technical diligence and transaction package is prepared and maintained under [`project-orion/docs/acquisition/`](project-orion/docs/acquisition/). The package consists of **18 canonical acquisition dossiers**, **8 presentation source documents**, **24 visual presentation assets**, and **7 acquisition launch documents**:
 
-### Primary Diligence Resources
-* **[Buyer Pitch Memo](docs/acquisition/launch/02-BUYER-PITCH-MEMO.md)** — Executive investment thesis, architectural highlights, monetization model, and operational cost profile.
-* **[Executive Product Brief](docs/acquisition/presentation/02-EXECUTIVE-PRODUCT-BRIEF.md)** — Core product overview, target markets, user personas, and feature matrix.
-* **[Technical Architecture Sheet](docs/acquisition/presentation/03-TECHNICAL-ARCHITECTURE-SHEET.md)** — Hexagonal domain architecture, component boundaries, data flows, and infrastructure specifications.
-* **[Acquisition Listing](docs/acquisition/launch/01-ACQUISITION-LISTING.md)** — Asset sale summary, technical stack specifications, operational requirements, and transaction boundaries.
-* **[Due Diligence Data Room Index](docs/acquisition/18-DUE-DILIGENCE-DATA-ROOM-INDEX.md)** — Four-tier due diligence taxonomy mapping all repository evidence across 18 canonical dossiers.
-* **[Buyer FAQ](docs/acquisition/presentation/05-BUYER-FAQ.md)** — Direct answers to common technical, architectural, operational, and commercial buyer questions.
-* **[Demo Environment Runbook](docs/acquisition/launch/06-DEMO-ENVIRONMENT-RUNBOOK.md)** — 15-minute standardized walkthrough script for technical and commercial evaluation.
-* **[Handover & Closing Checklist](docs/acquisition/launch/07-HANDOVER-CLOSING-CHECKLIST.md)** — Day-1 technical transfer, credential rotation, DNS cutover, and escrow release protocol.
-* **[Presentation Source Package](docs/acquisition/presentation/)** — Complete collection of buyer slide decks, operator guides, and claim control frameworks.
-* **[Visual Presentation Package](docs/acquisition/presentation/visual/)** — Generated PDF briefing sheets, PowerPoint deck (`.pptx`), and standalone SVG architecture diagrams.
+### Primary Buyer Resources
+* **[Buyer Pitch Memo](project-orion/docs/acquisition/launch/02-BUYER-PITCH-MEMO.md)** — Executive investment thesis, architectural highlights, monetization model, and operational cost profile.
+* **[Executive Product Brief](project-orion/docs/acquisition/presentation/02-EXECUTIVE-PRODUCT-BRIEF.md)** — Core product overview, target markets, user personas, and feature matrix.
+* **[Technical Architecture Sheet](project-orion/docs/acquisition/presentation/03-TECHNICAL-ARCHITECTURE-SHEET.md)** — Hexagonal domain architecture, component boundaries, data flows, and infrastructure specifications.
+* **[Acquisition Listing](project-orion/docs/acquisition/launch/01-ACQUISITION-LISTING.md)** — Asset sale summary, technical stack specifications, operational requirements, and transaction boundaries.
+* **[Due Diligence Data Room Index](project-orion/docs/acquisition/18-DUE-DILIGENCE-DATA-ROOM-INDEX.md)** — Four-tier due diligence taxonomy mapping all repository evidence across 18 canonical dossiers.
+* **[Buyer FAQ](project-orion/docs/acquisition/presentation/05-BUYER-FAQ.md)** — Direct answers to common technical, architectural, operational, and commercial buyer questions.
+* **[Demo Environment Runbook](project-orion/docs/acquisition/launch/06-DEMO-ENVIRONMENT-RUNBOOK.md)** — 15-minute standardized walkthrough script for technical and commercial evaluation.
+* **[Handover & Closing Checklist](project-orion/docs/acquisition/launch/07-HANDOVER-CLOSING-CHECKLIST.md)** — Day-1 technical transfer, credential rotation, DNS cutover, and escrow release protocol.
+* **[Presentation Source Package](project-orion/docs/acquisition/presentation/)** — Complete collection of buyer slide decks, operator guides, and claim control frameworks.
+* **[Visual Presentation Package](project-orion/docs/acquisition/presentation/visual/)** — Generated PDF briefing sheets, PowerPoint deck (`.pptx`), and standalone SVG architecture diagrams.
 
 ---
 
-## Product Overview & Capabilities
+## Product Capabilities
 
 Project ORION is structured around an event-driven, domain-centric model delivering quantitative research and simulated paper trading:
 
@@ -61,7 +90,7 @@ The platform is designed under Clean Architecture and Domain-Driven Design (DDD)
 
 * **Backend Framework:** Python 3.11 with FastAPI (ASGI, asynchronous event loop, Pydantic v2 schemas).
 * **Frontend Application:** React 19, TypeScript, Vite, Tailwind CSS, Lucide icons.
-* **Database & Persistence:** Managed PostgreSQL 16 relational store utilizing async SQLAlchemy 2.0 with asyncpg driver; 15 Alembic schema migrations across 29 relational tables.
+* **Database & Persistence:** PostgreSQL 16 managed relational store utilizing async SQLAlchemy 2.0 with asyncpg driver; 15 Alembic schema migrations across 29 relational tables.
 * **Cache & Coordination:** Redis 7 in-memory cache supporting sliding-window API rate limiting, real-time market data caching, and distributed synchronization.
 * **Containerization:** Multi-stage Docker container builds with non-root security execution.
 * **Cloud Infrastructure:** Infrastructure-as-Code blueprint (`render.yaml`) targeting Render PaaS with automated pre-deploy migrations.
@@ -125,98 +154,9 @@ Project ORION is engineered with strict safeguards to isolate simulated trading 
 
 ---
 
-## Repository Structure
-
-```text
-project-orion/
-├── apps/
-│   ├── trading-engine/             # FastAPI REST API, services, and routes
-│   └── dashboard/                  # React 19 / TypeScript / Vite frontend application
-├── libraries/
-│   ├── domain/                     # Pure business entities, value objects, domain logic
-│   ├── infrastructure/             # Persistence, market data adapters, execution adapters
-│   └── observability/              # Structured logging, Prometheus metrics, tracing
-├── database/
-│   ├── migrations/                 # Alembic migration revisions (15 versions)
-│   └── seeds/                      # Seed data for development and initial provisioning
-├── backup/                         # Database and cache backup/restore shell automation
-├── docker/                         # Dockerfile definitions for services
-├── tests/                          # 4,260 automated test cases (unit, integration, e2e)
-├── scripts/                        # Operational scripts (deployment, migration, verification)
-├── render.yaml                     # Render PaaS infrastructure blueprint
-└── docs/                           # Architecture, operations, and acquisition documentation
-    └── acquisition/                # Formal buyer acquisition packages (Dossiers, Visuals, Launch)
-        ├── 01-18                   # 18 canonical due diligence dossiers
-        ├── presentation/           # Buyer presentation source docs & visual assets
-        └── launch/                 # 7 acquisition launch & closing runbooks
-```
-
----
-
-## Getting Started (Local Development)
-
-### Prerequisites
-* Python 3.11+
-* Poetry (Python package & environment management)
-* Node.js 20+ & npm
-* Docker & Docker Compose (optional for local database & cache)
-
-### 1. Installation
-```bash
-# Install Python backend dependencies
-poetry install
-
-# Install frontend dashboard dependencies
-cd apps/dashboard
-npm install
-cd ../..
-```
-
-### 2. Environment Configuration
-```bash
-# Copy development environment template
-cp .env.example .env
-
-# Configure local PostgreSQL and Redis URLs if running locally
-```
-
-### 3. Start Local Infrastructure (Optional)
-```bash
-# Start local PostgreSQL and Redis containers via Docker Compose
-docker compose -f docker-compose.dev.yml up -d
-```
-
-### 4. Database Migrations
-```bash
-# Apply Alembic schema migrations
-poetry run alembic upgrade head
-```
-
-### 5. Running the Applications
-```bash
-# Terminal 1: Start Trading Engine ASGI API server
-poetry run uvicorn apps.trading_engine.src.main:app --host 0.0.0.0 --port 8000
-
-# Terminal 2: Start Dashboard UI development server
-cd apps/dashboard
-npm run dev
-```
-
-### 6. Running Tests
-```bash
-# Execute Python backend test suite
-poetry run pytest
-
-# Execute React frontend tests
-cd apps/dashboard
-npm test
-```
-
----
-
 ## Known Limitations & Transaction Boundaries
 
-Prospective buyers should review the following transparent operational boundaries (documented fully in [`docs/acquisition/13-KNOWN-LIMITATIONS.md`](docs/acquisition/13-KNOWN-LIMITATIONS.md)):
+Prospective buyers should review the following transparent operational boundaries (documented fully in [`project-orion/docs/acquisition/13-KNOWN-LIMITATIONS.md`](project-orion/docs/acquisition/13-KNOWN-LIMITATIONS.md)):
 
 * **Simulated Execution Only:** No live trading broker gateway or FIX protocol adapter is implemented.
 * **External Provider Provisioning:** Third-party vendor accounts (TwelveData API, OANDA Practice, Stripe, transactional SMTP, Render cloud hosting) must be provisioned independently by the acquiring entity.
@@ -231,5 +171,5 @@ Prospective buyers should review the following transparent operational boundarie
 Proposed transferable software and intellectual property scope is documented in the acquisition materials and remains subject to executed transaction agreements. 
 
 The software utilizes standard open-source libraries (e.g., FastAPI, SQLAlchemy, React, Tailwind CSS) governed by permissive licenses (MIT, Apache 2.0, BSD). Full dependency manifests and transfer checklists are available in:
-* **[Dependency SBOM Dossier](docs/acquisition/12-DEPENDENCY-SBOM.md)**
-* **[IP Assignment Checklist](docs/acquisition/15-IP-ASSIGNMENT-CHECKLIST.md)**
+* **[Dependency SBOM Dossier](project-orion/docs/acquisition/12-DEPENDENCY-SBOM.md)**
+* **[IP Assignment Checklist](project-orion/docs/acquisition/15-IP-ASSIGNMENT-CHECKLIST.md)**
