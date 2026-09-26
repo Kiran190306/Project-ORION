@@ -1,0 +1,22 @@
+{
+  "production_url": "https://orion-dashboard-6d3z.onrender.com",
+  "deployed_css_asset": "/assets/index-Dr8rKb4s.css",
+  "deployed_css_size": 51165,
+  "results": {
+    "landing": {
+      "url": "https://orion-dashboard-6d3z.onrender.com/",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\production\\prod_landing_page.png"
+    },
+    "login": {
+      "url": "https://orion-dashboard-6d3z.onrender.com/login",
+      "body_bg": "rgb(9, 13, 22)",
+      "blue_links": 0,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\production\\prod_login_page.png"
+    }
+  },
+  "console_logs": [],
+  "failed_requests": []
+}
