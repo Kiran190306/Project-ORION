@@ -21,10 +21,10 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={`rounded-xl border border-slate-800 bg-slate-900/80 shadow-md backdrop-blur-sm overflow-hidden flex flex-col ${className}`}
+      className={`rounded-xl border border-slate-800 bg-[#141E33] shadow-md backdrop-blur-sm overflow-hidden flex flex-col transition-colors duration-150 ${className}`}
       style={{
-        backgroundColor: '#111927',
-        borderColor: '#1e293b',
+        backgroundColor: '#141E33',
+        borderColor: '#1E293B',
         ...style,
       }}
       {...rest}

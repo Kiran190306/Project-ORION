@@ -258,6 +258,17 @@ export const OrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Paper Trading Safety Banner */}
+      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl font-mono text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-amber-300 font-bold">
+          <PaperTradingBadge size="sm" />
+          <span>PAPER TRADING ONLY &bull; $0 REAL CAPITAL AT RISK</span>
+        </div>
+        <div className="text-[11px] text-amber-400/80">
+          Simulated order fills &bull; Zero live broker capital risk
+        </div>
+      </div>
+
       {/* Filters Bar */}
       <Card className="p-3">
         <div className="flex flex-col sm:flex-row items-center gap-3 font-mono text-xs">
@@ -335,7 +346,7 @@ export const OrdersPage: React.FC = () => {
       >
         <form onSubmit={handleCreateOrder} noValidate className="space-y-4 font-mono text-xs">
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-[11px] leading-relaxed">
-            <strong>NOTICE:</strong> This order executes in <strong>PAPER TRADING MODE</strong>. No real-world funds or live broker connections are used.
+            <strong>PAPER TRADING ONLY &bull; $0 REAL CAPITAL AT RISK:</strong> This simulated order executes strictly in the internal Project ORION paper execution adapter. No real-world funds or live broker connections are accessed.
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

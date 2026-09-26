@@ -1,0 +1,168 @@
+{
+  "results": [
+    {
+      "route": "1. Landing / Marketing",
+      "path": "/",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\landing_page.png"
+    },
+    {
+      "route": "2. Login",
+      "path": "/login",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\login_page.png"
+    },
+    {
+      "route": "3. Registration",
+      "path": "/register",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\register_page.png"
+    },
+    {
+      "route": "4. Dashboard (Overview)",
+      "path": "/dashboard",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\dashboard_overview.png"
+    },
+    {
+      "route": "5. Markets / Terminal",
+      "path": "/dashboard",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\market_terminal.png"
+    },
+    {
+      "route": "6. Research (Lab)",
+      "path": "/research",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\research_lab.png"
+    },
+    {
+      "route": "7. Backtesting",
+      "path": "/research",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\backtest_workspace.png"
+    },
+    {
+      "route": "8. Optimization Studio",
+      "path": "/optimization",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\optimization_studio.png"
+    },
+    {
+      "route": "9. Paper Trading",
+      "path": "/orders",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\paper_trading_terminal.png"
+    },
+    {
+      "route": "10. Orders Management",
+      "path": "/orders",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\orders_management.png"
+    },
+    {
+      "route": "11. Positions",
+      "path": "/positions",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\positions_inventory.png"
+    },
+    {
+      "route": "12. Trade Journal",
+      "path": "/trades",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\trade_journal.png"
+    },
+    {
+      "route": "13. Risk Controls",
+      "path": "/risk",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\risk_controls.png"
+    },
+    {
+      "route": "14. Pricing",
+      "path": "/pricing",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\pricing_page.png"
+    },
+    {
+      "route": "15. Security / Trust",
+      "path": "/security",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\security_trust_page.png"
+    },
+    {
+      "route": "16. Onboarding Wizard",
+      "path": "/dashboard",
+      "status": "PASS",
+      "body_bg": "rgb(9, 13, 22)",
+      "body_font": "Inter, system-ui, -apple-syste",
+      "blue_links": 0,
+      "horiz_overflow": false,
+      "screenshot": "C:\\Users\\Shree\\CascadeProjects\\forex-trading-platform-architecture\\project-orion\\docs\\qa\\screenshots\\onboarding_wizard.png"
+    }
+  ],
+  "console_logs": [],
+  "network_errors": [],
+  "tablet_overflow": true,
+  "mobile_overflow": false
+}

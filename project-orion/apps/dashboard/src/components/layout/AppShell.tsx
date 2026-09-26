@@ -18,13 +18,13 @@ export const AppShell: React.FC = () => {
   } = useOnboarding();
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col lg:flex-row text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+    <div className="min-h-screen bg-[#090D16] flex flex-col lg:flex-row text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 bg-[#090D16]">
         <Topbar onToggleSidebar={() => setSidebarOpen((prev) => !prev)} />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-5 lg:p-6 max-w-[1720px] w-full mx-auto overflow-y-auto">
           {isOnboardingLoading ? (
             <div
               role="status"
@@ -61,9 +61,11 @@ export const AppShell: React.FC = () => {
           )}
         </main>
 
-        <footer className="py-3 px-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
-          <div>
-            Project ORION v0.1.0 &bull; Paper Simulation Mode Active &bull; <span className="text-amber-400 font-semibold">$0.00 Capital at Risk</span>
+        <footer className="py-2.5 px-6 border-t border-[#1E293B] bg-[#0B101D] flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-slate-500 font-mono">
+          <div className="flex items-center gap-2">
+            <span>Project ORION Terminal v0.1.0</span>
+            <span>&bull;</span>
+            <span className="text-amber-400 font-semibold uppercase">Paper Simulation Mode Active ($0 Real Capital at Risk)</span>
           </div>
           <div className="flex items-center gap-4">
             <Link to="/terms" className="hover:text-slate-300 transition-colors">Terms</Link>
