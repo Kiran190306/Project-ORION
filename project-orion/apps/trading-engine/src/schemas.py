@@ -278,15 +278,19 @@ class RiskStatusResponse(BaseModel):
     status: str
     position_count: int = 0
     total_exposure: Decimal = Decimal(0)
+    gross_exposure: Decimal = Decimal(0)
+    net_exposure: Decimal = Decimal(0)
     used_margin: Decimal = Decimal(0)
     free_margin: Decimal = Decimal(0)
     margin_level: float = 0.0
     drawdown: float = 0.0
     daily_pnl: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
     daily_loss_rate: float = 0.0
     consecutive_losses: int = 0
     emergency_stop_active: bool = False
     recovery_mode_active: bool = False
+    circuit_breaker_state: str = "NORMAL"
     updated_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
@@ -588,6 +592,8 @@ class PositionResponse(BaseModel):
     is_open: bool = True
     opened_at: datetime
     closed_at: datetime | None = None
+    strategy_id: str | None = None
+    order_id: str | None = None
 
 
 class ClosePositionResponse(BaseModel):
@@ -602,6 +608,116 @@ class ClosePositionResponse(BaseModel):
     realized_pnl: Decimal
     closed_at: datetime
     message: str = "Position closed successfully"
+
+
+# ─── Position Sizing Models ───────────────────────────────────────────────────
+
+
+class PositionSizingMethodEnum(StrEnum):
+    """Supported position sizing methodologies."""
+
+    FIXED = "fixed"
+    RISK_PERCENT = "risk_percent"
+    ATR = "atr"
+    KELLY = "kelly"
+    VOLATILITY_BASED = "volatility_based"
+
+
+class PositionSizingRequest(BaseModel):
+    """Request body for calculating position sizing."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    symbol: str = Field(..., min_length=3, max_length=16, description="Instrument symbol, e.g. EUR/USD")
+    method: PositionSizingMethodEnum = Field(
+        default=PositionSizingMethodEnum.RISK_PERCENT,
+        description="Position sizing methodology",
+    )
+    risk_percent: float = Field(
+        default=1.0,
+        gt=0.0,
+        le=100.0,
+        description="Account risk percentage (e.g. 1.0 for 1% of account)",
+    )
+    entry_price: Decimal | None = Field(
+        None,
+        gt=Decimal(0),
+        description="Estimated or targeted entry price; if omitted, current market price is used",
+    )
+    stop_loss: Decimal | None = Field(
+        None,
+        gt=Decimal(0),
+        description="Target stop loss price; required for RISK_PERCENT and KELLY sizing",
+    )
+    atr: Decimal | None = Field(
+        None,
+        gt=Decimal(0),
+        description="Average True Range value if using ATR sizing or fallback",
+    )
+    atr_multiplier: float = Field(
+        default=2.0,
+        gt=0.0,
+        description="Multiplier for ATR stop distance calculation",
+    )
+    confidence: float = Field(
+        default=100.0,
+        ge=0.0,
+        le=100.0,
+        description="Signal or trade setup confidence score (0-100)",
+    )
+    kelly_fraction: float = Field(
+        default=0.25,
+        gt=0.0,
+        le=1.0,
+        description="Fractional Kelly scale factor (e.g. 0.25 for quarter-Kelly)",
+    )
+    volatility: float = Field(
+        default=0.0,
+        ge=0.0,
+        description="Market volatility factor for volatility-based sizing",
+    )
+    fixed_notional: Decimal | None = Field(
+        None,
+        gt=Decimal(0),
+        description="Target notional value if method is FIXED",
+    )
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, v: str) -> str:
+        """Normalize symbol format."""
+        s = v.upper().strip()
+        if "/" not in s and len(s) == 6:
+            return f"{s[:3]}/{s[3:]}"
+        return s
+
+
+class PositionSizingResponse(BaseModel):
+    """Structured calculation result for position sizing."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    method: str
+    account_balance: Decimal
+    account_equity: Decimal
+    requested_risk_pct: float
+    confidence: float
+    entry_price: Decimal
+    stop_loss: Decimal | None = None
+    stop_distance: Decimal | None = None
+    calculated_units: Decimal
+    notional_value: Decimal
+    monetary_risk: Decimal
+    account_risk_pct: float
+    required_margin: Decimal
+    available_margin: Decimal
+    max_allowed_units: Decimal | None = None
+    market_data_status: str  # REALTIME | FALLBACK | UNAVAILABLE
+    constraints_applied: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    is_valid: bool = True
+    validation_errors: list[str] = Field(default_factory=list)
 
 
 # ─── Trade / Fill Models ─────────────────────────────────────────────────────
@@ -703,6 +819,41 @@ class ExposureResponse(BaseModel):
     updated_at: datetime
 
 
+class StrategyPortfolioItem(BaseModel):
+    """Portfolio breakdown metrics for a single quantitative trading strategy."""
+
+    model_config = ConfigDict(frozen=True)
+
+    strategy_id: str
+    strategy_name: str
+    is_active: bool
+    deployment_status: str | None = None
+    timeframe: str = "M15"
+    symbols: list[str] = Field(default_factory=list)
+    open_positions_count: int = 0
+    total_orders_count: int = 0
+    gross_exposure: Decimal = Decimal(0)
+    unrealized_pnl: Decimal = Decimal(0)
+    realized_pnl: Decimal = Decimal(0)
+    win_rate: float | None = None
+    last_activity_at: datetime | None = None
+
+
+class MultiStrategyPortfolioResponse(BaseModel):
+    """Consolidated multi-strategy execution and allocation breakdown."""
+
+    model_config = ConfigDict(frozen=True)
+
+    strategies: list[StrategyPortfolioItem] = Field(default_factory=list)
+    total_active_strategies: int = 0
+    total_open_positions: int = 0
+    total_unrealized_pnl: Decimal = Decimal(0)
+    total_realized_pnl: Decimal = Decimal(0)
+    currency: str = "USD"
+    is_paper: bool = True
+    updated_at: datetime
+
+
 # ─── Strategy Control Models ─────────────────────────────────────────────────
 
 
@@ -742,6 +893,8 @@ class AccountStrategyConfigResponse(BaseModel):
     symbols: list[str] = Field(default_factory=list)
     parameters: dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
+    name: str | None = None
+    deployment_status: str | None = None
     updated_at: datetime
 
 
@@ -783,6 +936,10 @@ class DashboardPerformance(BaseModel):
     unrealized_pnl: Decimal
     daily_pnl: Decimal
     drawdown_pct: float
+    win_rate: float | None = None
+    profit_factor: float | None = None
+    sharpe_ratio: float | None = None
+    sortino_ratio: float | None = None
 
 
 class DashboardTrading(BaseModel):
@@ -1247,7 +1404,111 @@ class LegalAcceptanceResponse(BaseModel):
     acceptance_method: str = Field(..., description="Method by which consent was captured")
 
 
+# ─── User Profile & Settings ──────────────────────────────────────────────────
+
+
+class ChangePasswordRequest(BaseModel):
+    """Request body for POST /api/v1/auth/change-password."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    current_password: str = Field(..., min_length=1, max_length=128, description="Current password")
+    new_password: str = Field(..., min_length=8, max_length=72, description="New secure password")
+    confirm_password: str = Field(..., min_length=8, max_length=72, description="Confirmation of new password")
+
+
+class UpdateProfileRequest(BaseModel):
+    """Request body for PATCH /api/v1/users/me."""
+
+    model_config = ConfigDict(frozen=True, str_strip_whitespace=True)
+
+    full_name: str | None = Field(None, max_length=255, description="Full display name")
+    timezone: str | None = Field(None, max_length=64, description="Preferred timezone name (e.g. UTC, America/New_York)")
+
+
+class NotificationPreferences(BaseModel):
+    """User notification preference settings."""
+
+    model_config = ConfigDict(frozen=True)
+
+    trade_events: bool = Field(True, description="Notify on paper order fills and cancellations")
+    risk_alerts: bool = Field(True, description="Notify on margin warnings and circuit breakers")
+    strategy_events: bool = Field(True, description="Notify on strategy signals and deployment changes")
+    security_alerts: bool = Field(True, description="Notify on password changes and security logins")
+
+
+class UpdateNotificationPreferencesRequest(BaseModel):
+    """Request body for updating notification preferences."""
+
+    model_config = ConfigDict(frozen=True)
+
+    trade_events: bool | None = None
+    risk_alerts: bool | None = None
+    strategy_events: bool | None = None
+    security_alerts: bool | None = None
+
+
+class UserProfileResponse(BaseModel):
+    """Detailed profile response for GET /api/v1/users/me."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    username: str
+    email: str
+    full_name: str | None = None
+    is_active: bool
+    is_superuser: bool
+    status: str = "ACTIVE"
+    email_verified: bool = False
+    password_changed_at: datetime | None = None
+    timezone: str = "UTC"
+    notification_preferences: NotificationPreferences = Field(default_factory=NotificationPreferences)
+    created_at: datetime
+    updated_at: datetime
+
+
+# ─── Notifications ────────────────────────────────────────────────────────────
+
+
+class NotificationResponse(BaseModel):
+    """Single notification item response."""
+
+    model_config = ConfigDict(frozen=True)
+
+    id: str
+    channel: str = "in_app"
+    severity: str = "info"
+    notification_type: str
+    title: str
+    body: str
+    status: str = "unread"
+    recipient: str | None = None
+    is_read: bool = False
+    read_at: datetime | None = None
+    meta_data: dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime
+
+
+class UnreadCountResponse(BaseModel):
+    """Response containing count of unread notifications."""
+
+    model_config = ConfigDict(frozen=True)
+
+    unread_count: int
+
+
+class MarkAllReadResponse(BaseModel):
+    """Response returned when marking all notifications as read."""
+
+    model_config = ConfigDict(frozen=True)
+
+    marked_count: int
+    message: str = "All notifications marked as read"
+
+
 # Re-export research and optimization schemas for unified schema access
 from .schemas_broker_sandbox import *
 from .schemas_optimization import *
 from .schemas_research import *
+

@@ -22,6 +22,7 @@ from ..dependencies import (
 from ..schemas import (
     EquityCurveResponse,
     ExposureResponse,
+    MultiStrategyPortfolioResponse,
     PnLBreakdownResponse,
     PortfolioOverviewResponse,
 )
@@ -30,6 +31,25 @@ from ..services.portfolio_service import PortfolioService
 logger = logging.getLogger("trading_engine.routes.portfolio")
 
 router = APIRouter(prefix="/api/v1/portfolio", tags=["Portfolio"])
+
+
+@router.get(
+    "/strategies",
+    response_model=MultiStrategyPortfolioResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Multi-Strategy Portfolio Breakdown",
+    description="Returns consolidated execution metrics, exposure, and deployment states per strategy.",
+)
+async def get_multi_strategy_portfolio(
+    account: Annotated[AccountModel, Depends(get_user_account)],
+    adapter: Annotated[PaperExecutionAdapter, Depends(get_paper_adapter)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.ACCOUNT_READ))],
+) -> MultiStrategyPortfolioResponse:
+    """Get multi-strategy portfolio allocation and execution breakdown."""
+    service = PortfolioService(adapter=adapter, session=session, account=account)
+    return await service.get_strategy_breakdown()
 
 
 @router.get(

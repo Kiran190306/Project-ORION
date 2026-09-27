@@ -253,6 +253,8 @@ export interface PositionResponse {
   is_open: boolean;
   opened_at: string;
   closed_at?: string | null;
+  strategy_id?: string | null;
+  order_id?: string | null;
 }
 
 export interface ClosePositionResponse {
@@ -263,6 +265,54 @@ export interface ClosePositionResponse {
   realized_pnl: string | number;
   closed_at: string;
   message: string;
+}
+
+// ─── Position Sizing ─────────────────────────────────────────────────────────
+
+export type PositionSizingMethod =
+  | 'fixed'
+  | 'risk_percent'
+  | 'atr'
+  | 'kelly'
+  | 'volatility_based';
+
+export interface PositionSizingRequest {
+  symbol: string;
+  method?: PositionSizingMethod;
+  risk_percent?: number;
+  entry_price?: string | number | null;
+  stop_loss?: string | number | null;
+  atr?: string | number | null;
+  atr_multiplier?: number;
+  confidence?: number;
+  kelly_fraction?: number;
+  volatility?: number;
+  fixed_notional?: string | number | null;
+}
+
+export interface PositionSizingResponse {
+  symbol: string;
+  method: PositionSizingMethod | string;
+  account_balance: string | number;
+  account_equity: string | number;
+  requested_risk_pct: number;
+  confidence: number;
+  entry_price: string | number;
+  stop_loss?: string | number | null;
+  stop_distance?: string | number | null;
+  calculated_units: string | number;
+  notional_value: string | number;
+  monetary_risk: string | number;
+  account_risk_pct: number;
+  required_margin: string | number;
+  available_margin: string | number;
+  max_allowed_units?: string | number | null;
+  market_data_status: 'REALTIME' | 'FALLBACK' | 'UNAVAILABLE';
+  market_data_source?: 'REALTIME' | 'FALLBACK' | 'UNAVAILABLE';
+  constraints_applied: string[];
+  warnings: string[];
+  is_valid: boolean;
+  validation_errors: string[];
 }
 
 // ─── Trades (Fills) ──────────────────────────────────────────────────────────
@@ -338,6 +388,36 @@ export interface ExposureResponse {
   updated_at: string;
 }
 
+export interface StrategyPortfolioItem {
+  strategy_id: string;
+  strategy_name: string;
+  name?: string;
+  is_active: boolean;
+  deployment_status?: string | null;
+  timeframe: string;
+  symbols: string[];
+  open_positions_count: number;
+  total_orders_count: number;
+  orders_count?: number;
+  gross_exposure: string | number;
+  unrealized_pnl: string | number;
+  realized_pnl: string | number;
+  win_rate?: number | null;
+  last_activity_at?: string | null;
+}
+
+export interface MultiStrategyPortfolioResponse {
+  strategies: StrategyPortfolioItem[];
+  total_active_strategies: number;
+  total_open_positions: number;
+  total_gross_exposure?: string | number;
+  total_unrealized_pnl: string | number;
+  total_realized_pnl: string | number;
+  currency: string;
+  is_paper: boolean;
+  updated_at: string;
+}
+
 // ─── Strategies ──────────────────────────────────────────────────────────────
 
 export interface StrategyInfo {
@@ -380,6 +460,9 @@ export interface AccountStrategyConfigResponse {
   symbols: string[];
   parameters: Record<string, unknown>;
   is_active: boolean;
+  enabled?: boolean;
+  name?: string | null;
+  deployment_status?: string | null;
   updated_at: string;
 }
 
@@ -397,15 +480,19 @@ export interface RiskStatusResponse {
   status: string;
   position_count: number;
   total_exposure: string | number;
+  gross_exposure?: string | number;
+  net_exposure?: string | number;
   used_margin: string | number;
   free_margin: string | number;
   margin_level: number;
   drawdown: number;
   daily_pnl: string | number;
+  unrealized_pnl?: string | number;
   daily_loss_rate: number;
   consecutive_losses: number;
   emergency_stop_active: boolean;
   recovery_mode_active: boolean;
+  circuit_breaker_state?: string;
   updated_at: string;
 }
 
@@ -466,6 +553,10 @@ export interface DashboardPerformance {
   unrealized_pnl: string | number;
   daily_pnl: string | number;
   drawdown_pct: number;
+  win_rate?: number | null;
+  profit_factor?: number | null;
+  sharpe_ratio?: number | null;
+  sortino_ratio?: number | null;
 }
 
 export interface DashboardTrading {
@@ -1326,5 +1417,74 @@ export interface BrokerSandboxReconciliationResponse {
   resolution_policy: string;
   manual_review_required: boolean;
   internal_state_preserved: boolean;
+}
+
+// ─── Notification Models ────────────────────────────────────────────────────
+
+export interface NotificationItem {
+  id: string;
+  channel: string;
+  severity: 'info' | 'warning' | 'critical' | 'debug' | string;
+  notification_type: string;
+  title: string;
+  body: string;
+  status: 'read' | 'unread' | string;
+  recipient?: string | null;
+  is_read: boolean;
+  read_at?: string | null;
+  meta_data?: Record<string, any>;
+  created_at: string;
+}
+
+export interface UnreadCountResponse {
+  unread_count: number;
+}
+
+export interface MarkAllReadResponse {
+  marked_count: number;
+  message: string;
+}
+
+// ─── User Profile & Settings Models ──────────────────────────────────────────
+
+export interface NotificationPreferences {
+  trade_events: boolean;
+  risk_alerts: boolean;
+  strategy_events: boolean;
+  security_alerts: boolean;
+}
+
+export interface UpdateNotificationPreferencesRequest {
+  trade_events?: boolean;
+  risk_alerts?: boolean;
+  strategy_events?: boolean;
+  security_alerts?: boolean;
+}
+
+export interface UserProfileResponse {
+  id: string;
+  username: string;
+  email: string;
+  full_name?: string | null;
+  is_active: boolean;
+  is_superuser: boolean;
+  status: string;
+  email_verified: boolean;
+  password_changed_at?: string | null;
+  timezone: string;
+  notification_preferences: NotificationPreferences;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface UpdateProfileRequest {
+  full_name?: string | null;
+  timezone?: string | null;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+  confirm_password: string;
 }
 

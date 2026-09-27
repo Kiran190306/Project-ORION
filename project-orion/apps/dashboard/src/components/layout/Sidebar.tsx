@@ -18,6 +18,7 @@ import {
   Rocket,
   Server,
   ShieldCheck,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useOrganization } from '../../auth/OrganizationContext';
@@ -68,6 +69,7 @@ const navGroups: NavGroup[] = [
       { path: '/organization', label: 'Organization', icon: Users },
       { path: '/audit', label: 'Audit Trail', icon: FileText, permission: Permission.AUDIT_READ },
       { path: '/security', label: 'Security & Trust', icon: ShieldCheck },
+      { path: '/settings', label: 'Settings', icon: Settings },
     ],
   },
 ];

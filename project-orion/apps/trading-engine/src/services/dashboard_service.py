@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import statistics
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Any
@@ -10,6 +11,7 @@ from typing import Any
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from libraries.domain.risk.analytics.ratios import PerformanceMetricsEngine
 from libraries.infrastructure.execution.paper_execution import PaperExecutionAdapter
 from libraries.infrastructure.persistence.models import (
     AccountModel,
@@ -121,6 +123,68 @@ class DashboardService:
             ((peak_equity - equity) / peak_equity * 100) if peak_equity > Decimal(0) else 0.0
         )
 
+        # Performance ratios calculation from closed positions
+        closed_positions = [p for p in all_positions if not p.is_open]
+        total_closed = len(closed_positions)
+
+        win_rate: float | None = None
+        profit_factor: float | None = None
+        sharpe_ratio: float | None = None
+        sortino_ratio: float | None = None
+
+        if total_closed > 0:
+            winning_trades = sum(
+                1 for p in closed_positions if (p.realized_pnl or Decimal(0)) > Decimal(0)
+            )
+            win_rate = round((winning_trades / total_closed) * 100.0, 2)
+
+            gross_profits = sum(
+                (p.realized_pnl for p in closed_positions if (p.realized_pnl or Decimal(0)) > Decimal(0)),
+                Decimal(0),
+            )
+            gross_losses = abs(
+                sum(
+                    (p.realized_pnl for p in closed_positions if (p.realized_pnl or Decimal(0)) < Decimal(0)),
+                    Decimal(0),
+                )
+            )
+
+            if gross_losses > Decimal(0):
+                profit_factor = round(float(gross_profits / gross_losses), 2)
+            else:
+                profit_factor = None
+
+            # Sharpe & Sortino ratios (threshold: >= 5 closed trades)
+            if total_closed >= 5:
+                sorted_trades = sorted(
+                    closed_positions,
+                    key=lambda p: (
+                        p.closed_at
+                        if p.closed_at is not None
+                        else (p.opened_at if p.opened_at is not None else datetime.min.replace(tzinfo=timezone.utc))
+                    ),
+                )
+                returns: list[float] = []
+                for p in sorted_trades:
+                    pnl = float(p.realized_pnl or Decimal(0))
+                    notional = float((p.quantity or Decimal(0)) * (p.open_price or Decimal(0)))
+                    if notional > 0:
+                        returns.append(pnl / notional)
+                    elif balance > Decimal(0):
+                        returns.append(pnl / float(balance))
+                    else:
+                        returns.append(0.0)
+
+                vol = statistics.pstdev(returns) if len(returns) >= 2 else 0.0
+                if vol > 1e-12:
+                    try:
+                        metrics = await PerformanceMetricsEngine().calculate(returns)
+                        sharpe_ratio = round(metrics.sharpe_ratio, 2)
+                        if metrics.downside_deviation > 1e-12:
+                            sortino_ratio = round(metrics.sortino_ratio, 2)
+                    except Exception as e:
+                        logger.warning(f"Error calculating performance metrics: {e}")
+
         # 5. Query active strategy config
         strat_query = select(StrategyConfigModel).where(StrategyConfigModel.is_active == True)
         if self.account.organization_id is not None:
@@ -172,6 +236,10 @@ class DashboardService:
                 unrealized_pnl=unrealized_pnl,
                 daily_pnl=realized_pnl + unrealized_pnl,
                 drawdown_pct=round(drawdown_pct, 2),
+                win_rate=win_rate,
+                profit_factor=profit_factor,
+                sharpe_ratio=sharpe_ratio,
+                sortino_ratio=sortino_ratio,
             ),
             trading=DashboardTrading(
                 open_positions=[

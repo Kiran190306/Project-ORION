@@ -49,6 +49,7 @@ class PositionService:
         pagination: PaginationParams,
         symbol: str | None = None,
         is_open: bool | None = None,
+        strategy_id: str | None = None,
     ) -> PaginatedResponse[PositionResponse]:
         """List positions with optional filtering and pagination."""
         query = select(PositionModel).where(PositionModel.account_id == self.account.id)
@@ -63,6 +64,9 @@ class PositionService:
         if is_open is not None:
             query = query.where(PositionModel.is_open == is_open)
             count_query = count_query.where(PositionModel.is_open == is_open)
+        if strategy_id:
+            query = query.where(func.json_extract(PositionModel.meta_data, "$.strategy_id") == strategy_id)
+            count_query = count_query.where(func.json_extract(PositionModel.meta_data, "$.strategy_id") == strategy_id)
         if pagination.date_from:
             query = query.where(PositionModel.opened_at >= pagination.date_from)
             count_query = count_query.where(PositionModel.opened_at >= pagination.date_from)
@@ -95,6 +99,7 @@ class PositionService:
                 else:
                     unrealized = (p.open_price - curr_price) * p.quantity - p.commission - p.swap
 
+            meta = p.meta_data if isinstance(p.meta_data, dict) else {}
             items.append(
                 PositionResponse(
                     id=p.id,
@@ -113,6 +118,8 @@ class PositionService:
                     is_open=p.is_open,
                     opened_at=p.opened_at,
                     closed_at=p.closed_at,
+                    strategy_id=meta.get("strategy_id"),
+                    order_id=meta.get("order_id"),
                 )
             )
 
@@ -156,6 +163,7 @@ class PositionService:
             else:
                 unrealized = (pos.open_price - curr_price) * pos.quantity - pos.commission - pos.swap
 
+        meta = pos.meta_data if isinstance(pos.meta_data, dict) else {}
         return PositionResponse(
             id=pos.id,
             account_id=pos.account_id,
@@ -173,6 +181,8 @@ class PositionService:
             is_open=pos.is_open,
             opened_at=pos.opened_at,
             closed_at=pos.closed_at,
+            strategy_id=meta.get("strategy_id"),
+            order_id=meta.get("order_id"),
         )
 
     async def close_position(self, position_id: str) -> ClosePositionResponse:

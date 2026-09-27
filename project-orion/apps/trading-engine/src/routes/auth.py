@@ -24,8 +24,9 @@ from libraries.infrastructure.persistence.models import (
     UserStatus,
 )
 
-from ..dependencies import get_current_user, get_db_session, rate_limit
+from ..dependencies import get_current_active_user, get_current_user, get_db_session, rate_limit
 from ..schemas import (
+    ChangePasswordRequest,
     DeactivateAccountRequest,
     ForgotPasswordRequest,
     GenericMessageResponse,
@@ -729,6 +730,83 @@ async def reactivate_account(
     except Exception as exc:
         await session.rollback()
         logger.error("Error reactivating account: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Authentication service error",
+        ) from exc
+
+
+@router.post(
+    "/change-password",
+    response_model=GenericMessageResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Change Password",
+    description="Update password for authenticated user and revoke prior sessions.",
+)
+async def change_password(
+    request: ChangePasswordRequest,
+    current_user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+) -> GenericMessageResponse:
+    """Change user password, verifying current password and enforcing policy."""
+    try:
+        user_id = str(current_user["id"])
+        res = await session.execute(select(UserModel).where(UserModel.id == user_id))
+        user = res.scalar_one_or_none()
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        # Verify current password
+        if not verify_password(request.current_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Current password is incorrect",
+            )
+
+        # Confirm matching
+        if request.new_password != request.confirm_password:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="New passwords do not match",
+            )
+
+        # Validate password policy
+        is_valid, error_msg = validate_password_strength(request.new_password)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=error_msg or "Password does not meet institutional security requirements",
+            )
+
+        now = datetime.now(timezone.utc)
+        user.hashed_password = get_password_hash(request.new_password)
+        user.password_changed_at = now
+
+        audit = AuditLogModel(
+            id=f"aud_{uuid.uuid4().hex[:12]}",
+            event_type="AUTH_PASSWORD_CHANGED",
+            component="auth",
+            actor=user.id,
+            details={"username": user.username},
+            timestamp=now,
+        )
+        session.add(audit)
+        await session.commit()
+
+        logger.info("Password changed and sessions invalidated for user=%s", user.username)
+        return GenericMessageResponse(
+            message="Password has been successfully updated. Prior sessions have been revoked."
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        await session.rollback()
+        logger.error("Error changing password: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Authentication service error",

@@ -31,8 +31,8 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
             ORION Intelligence
           </h3>
         </div>
-        <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded font-bold uppercase">
-          LIVE MODEL
+        <span className="text-[10px] font-mono text-slate-400 bg-slate-800/60 border border-slate-700/60 px-1.5 py-0.5 rounded font-bold uppercase">
+          TELEMETRY IDLE
         </span>
       </div>
 
@@ -44,8 +44,8 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
               <Activity className="w-3 h-3 text-sky-400" />
               <span>Market Regime</span>
             </div>
-            <div className="font-bold text-slate-100 text-xs">BULLISH TREND</div>
-            <div className="text-[10px] text-sky-400 mt-0.5">High Volatility (92.4%)</div>
+            <div className="font-bold text-slate-300 text-xs">Awaiting Analysis</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Regime Detector: Idle</div>
           </div>
 
           <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B]">
@@ -53,11 +53,11 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
               <Zap className="w-3 h-3 text-amber-400" />
               <span>Strategy Signal</span>
             </div>
-            <div className="font-bold text-emerald-400 text-xs flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              BUY {selectedSymbol}
+            <div className="font-bold text-slate-300 text-xs flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+              No Active Signal
             </div>
-            <div className="text-[10px] text-emerald-400/90 mt-0.5 font-bold">87% Conviction</div>
+            <div className="text-[10px] text-slate-500 mt-0.5">Awaiting live signal ({selectedSymbol})</div>
           </div>
         </div>
 
@@ -65,10 +65,10 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
         <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B] space-y-1.5">
           <div className="flex justify-between items-center text-[10px]">
             <span className="text-slate-400 uppercase font-semibold">Signal Confidence</span>
-            <span className="text-sky-400 font-bold">87.4% High Conviction</span>
+            <span className="text-slate-500 font-bold">N/A (No active signal)</span>
           </div>
           <div className="w-full h-1.5 bg-[#141E33] rounded-full overflow-hidden border border-[#1E293B]">
-            <div className="h-full bg-gradient-to-r from-sky-500 to-emerald-400 rounded-full w-[87.4%]" />
+            <div className="h-full bg-slate-700 rounded-full w-0" />
           </div>
         </div>
 
@@ -77,40 +77,41 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
           <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B]">
             <span className="text-[10px] text-slate-500 uppercase block mb-1">Risk State</span>
             <span className="text-xs font-bold text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-1.5 py-0.5 rounded inline-block">
-              NOMINAL (Risk-On)
+              NOMINAL
             </span>
+            <div className="text-[10px] text-slate-500 mt-1">Paper Guard Active</div>
           </div>
           <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B]">
             <span className="text-[10px] text-slate-500 uppercase block mb-1">Position Sizing</span>
-            <span className="text-xs font-bold text-slate-200">10,000 units</span>
-            <div className="text-[10px] text-slate-500 mt-0.5">0.10 Lots (Fractional Kelly)</div>
+            <span className="text-xs font-bold text-slate-200">Standard Lot Model</span>
+            <div className="text-[10px] text-slate-500 mt-0.5">Risk-Adjusted Sizing: Not Configured</div>
           </div>
         </div>
 
-        {/* Suggested Stop Loss & Take Profit Plan */}
+        {/* Dynamic Exit Plan */}
         <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B] space-y-2">
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-slate-400 uppercase font-semibold flex items-center gap-1">
               <Target className="w-3 h-3 text-sky-400" />
               Dynamic Exit Plan
             </span>
-            <span className="text-slate-400 font-bold">R:R 1 : 2.0</span>
+            <span className="text-slate-500 font-bold">R:R Dynamic (ATR)</span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="p-1.5 rounded bg-rose-950/30 border border-rose-900/40">
-              <div className="text-[9px] text-rose-400 uppercase">Stop Loss</div>
-              <div className="font-bold text-rose-300">1.08200</div>
-              <div className="text-[9px] text-slate-500">-30.2 pips</div>
+            <div className="p-1.5 rounded bg-[#141E33]/60 border border-[#1E293B]">
+              <div className="text-[9px] text-slate-400 uppercase">Stop Loss</div>
+              <div className="font-bold text-slate-300">Dynamic ATR</div>
+              <div className="text-[9px] text-slate-500">Trailing limit</div>
             </div>
-            <div className="p-1.5 rounded bg-emerald-950/30 border border-emerald-900/40">
-              <div className="text-[9px] text-emerald-400 uppercase">Take Profit</div>
-              <div className="font-bold text-emerald-300">1.09100</div>
-              <div className="text-[9px] text-slate-500">+60.4 pips</div>
+            <div className="p-1.5 rounded bg-[#141E33]/60 border border-[#1E293B]">
+              <div className="text-[9px] text-slate-400 uppercase">Take Profit</div>
+              <div className="font-bold text-slate-300">Dynamic ATR</div>
+              <div className="text-[9px] text-slate-500">Target limit</div>
             </div>
           </div>
           <div className="text-[10px] text-slate-400 flex justify-between pt-1 border-t border-[#1E293B]">
             <span>Expected Capital at Risk:</span>
-            <span className="text-rose-400 font-bold">$150.00 (1.50% Paper Eq)</span>
+            <span className="text-slate-300 font-medium">Calculated at order placement</span>
           </div>
         </div>
 
@@ -118,27 +119,27 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
         <div className="p-2.5 rounded-lg bg-[#090D16] border border-[#1E293B] space-y-2">
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-slate-400 uppercase font-semibold">Backtest & Walk-Forward</span>
-            <span className="text-emerald-400 font-bold bg-emerald-950/40 px-1 rounded border border-emerald-800/40">
-              ROBUST
+            <span className="text-slate-400 font-bold bg-slate-800/60 px-1 rounded border border-slate-700/60">
+              UNVALIDATED
             </span>
           </div>
           <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
             <div className="p-1.5 rounded bg-[#141E33] border border-[#1E293B]">
               <div className="text-[9px] text-slate-500">Sharpe</div>
-              <div className="font-bold text-sky-400">1.92</div>
+              <div className="font-bold text-slate-400">N/A</div>
             </div>
             <div className="p-1.5 rounded bg-[#141E33] border border-[#1E293B]">
               <div className="text-[9px] text-slate-500">Win Rate</div>
-              <div className="font-bold text-emerald-400">64.8%</div>
+              <div className="font-bold text-slate-400">N/A</div>
             </div>
             <div className="p-1.5 rounded bg-[#141E33] border border-[#1E293B]">
               <div className="text-[9px] text-slate-500">Profit Fac</div>
-              <div className="font-bold text-slate-200">2.14</div>
+              <div className="font-bold text-slate-400">N/A</div>
             </div>
           </div>
           <div className="text-[10px] text-slate-400 flex justify-between pt-1 border-t border-[#1E293B]">
-            <span>WFA Out-of-Sample Efficiency:</span>
-            <span className="text-sky-300 font-bold">88.4% Passed</span>
+            <span>WFA Validation:</span>
+            <span className="text-slate-400">Run backtest in Strategy Lab</span>
           </div>
         </div>
 
@@ -149,21 +150,10 @@ export const OrionIntelligencePanel: React.FC<OrionIntelligencePanelProps> = ({
               <Clock className="w-3 h-3 text-slate-500" />
               Recent Strategy Events
             </span>
-            <span className="text-[9px] text-sky-400">Telemetry Feed</span>
+            <span className="text-[9px] text-slate-500">Telemetry Feed</span>
           </div>
-          <div className="space-y-1.5">
-            <div className="text-[10px] flex items-center justify-between text-slate-300 p-1 rounded bg-[#141E33]/60 border border-[#1E293B]/60">
-              <span className="text-emerald-400 font-semibold">▲ EMA_20_CROSS_UP</span>
-              <span className="text-slate-500 text-[9px]">14:32:10 UTC</span>
-            </div>
-            <div className="text-[10px] flex items-center justify-between text-slate-300 p-1 rounded bg-[#141E33]/60 border border-[#1E293B]/60">
-              <span className="text-sky-400 font-semibold">✓ MOMENTUM_FILTER_OK</span>
-              <span className="text-slate-500 text-[9px]">14:30:00 UTC</span>
-            </div>
-            <div className="text-[10px] flex items-center justify-between text-slate-300 p-1 rounded bg-[#141E33]/60 border border-[#1E293B]/60">
-              <span className="text-amber-400 font-semibold">⚡ VOLATILITY_EXPANSION</span>
-              <span className="text-slate-500 text-[9px]">14:15:00 UTC</span>
-            </div>
+          <div className="p-2 rounded bg-[#141E33]/40 border border-[#1E293B]/60 text-[10px] text-slate-400 text-center">
+            No active strategy events dispatched. Autonomous worker cycle awaiting trigger.
           </div>
         </div>
       </div>

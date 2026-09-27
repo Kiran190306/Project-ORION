@@ -1,7 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Plus, RefreshCw, Search, Filter } from 'lucide-react';
-import { ordersApi } from '../api/endpoints';
-import type { OrderResponse, CreateOrderRequest, OrderSide, OrderType } from '../api/types';
+import {
+  Plus,
+  RefreshCw,
+  Search,
+  Filter,
+  Calculator,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  CheckCircle2,
+  AlertTriangle,
+} from 'lucide-react';
+import { ordersApi, positionsApi, strategiesApi } from '../api/endpoints';
+import type {
+  OrderResponse,
+  CreateOrderRequest,
+  OrderSide,
+  OrderType,
+  AccountStrategyConfigResponse,
+  PositionSizingMethod,
+  PositionSizingResponse,
+} from '../api/types';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge, PaperTradingBadge } from '../components/common/Badge';
@@ -19,6 +38,8 @@ export const OrdersPage: React.FC = () => {
   const [offset, setOffset] = useState(0);
   const [symbolFilter, setSymbolFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [strategyFilter, setStrategyFilter] = useState('');
+  const [availableStrategies, setAvailableStrategies] = useState<AccountStrategyConfigResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +48,16 @@ export const OrdersPage: React.FC = () => {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Position Sizing Calculator State
+  const [showSizer, setShowSizer] = useState(false);
+  const [sizingMethod, setSizingMethod] = useState<PositionSizingMethod>('risk_percent');
+  const [sizingRiskPct, setSizingRiskPct] = useState('1.0');
+  const [sizingAtr, setSizingAtr] = useState('');
+  const [sizingKellyFraction, setSizingKellyFraction] = useState('0.25');
+  const [sizingFixedNotional, setSizingFixedNotional] = useState('10000');
+  const [isCalculatingSizing, setIsCalculatingSizing] = useState(false);
+  const [sizingResult, setSizingResult] = useState<PositionSizingResponse | null>(null);
 
   // Create Order Form State
   const [formData, setFormData] = useState<{
@@ -39,6 +70,7 @@ export const OrdersPage: React.FC = () => {
     stop_loss: string;
     take_profit: string;
     trailing_distance: string;
+    strategy_id: string;
   }>({
     symbol: 'EUR/USD',
     side: 'BUY',
@@ -49,9 +81,27 @@ export const OrdersPage: React.FC = () => {
     stop_loss: '',
     take_profit: '',
     trailing_distance: '',
+    strategy_id: '',
   });
 
   const toast = useToast();
+
+  const fetchStrategies = useCallback(async () => {
+    try {
+      const configs = await strategiesApi.listAccountConfigs();
+      if (Array.isArray(configs)) {
+        setAvailableStrategies(configs);
+      } else {
+        setAvailableStrategies([]);
+      }
+    } catch {
+      setAvailableStrategies([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStrategies();
+  }, [fetchStrategies]);
 
   const fetchOrders = useCallback(async () => {
     setIsLoading(true);
@@ -61,6 +111,7 @@ export const OrdersPage: React.FC = () => {
         offset,
         symbol: symbolFilter.trim() || undefined,
         status: statusFilter || undefined,
+        strategy_id: strategyFilter || undefined,
       });
       setOrders(res.items);
       setTotal(res.total);
@@ -70,11 +121,47 @@ export const OrdersPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [limit, offset, symbolFilter, statusFilter]);
+  }, [limit, offset, symbolFilter, statusFilter, strategyFilter]);
 
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  const handleCalculateSizing = async () => {
+    setIsCalculatingSizing(true);
+    try {
+      const res = await positionsApi.calculateSizing({
+        symbol: formData.symbol.trim().toUpperCase(),
+        method: sizingMethod,
+        risk_percent: parseFloat(sizingRiskPct) || 1.0,
+        entry_price: formData.price ? parseFloat(formData.price) : undefined,
+        stop_loss: formData.stop_loss ? parseFloat(formData.stop_loss) : undefined,
+        atr: sizingAtr ? parseFloat(sizingAtr) : undefined,
+        kelly_fraction: parseFloat(sizingKellyFraction) || 0.25,
+        fixed_notional: sizingFixedNotional ? parseFloat(sizingFixedNotional) : undefined,
+      });
+      setSizingResult(res);
+      if (res.is_valid) {
+        toast.success(`Calculated size: ${res.calculated_units} units ($${res.monetary_risk} risk)`);
+      } else if (res.validation_errors.length > 0) {
+        toast.error(res.validation_errors[0]);
+      }
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsCalculatingSizing(false);
+    }
+  };
+
+  const handleApplySizing = () => {
+    if (sizingResult && sizingResult.is_valid && Number(sizingResult.calculated_units) > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        quantity: String(sizingResult.calculated_units),
+      }));
+      toast.success(`Applied ${sizingResult.calculated_units} units to Order Volume.`);
+    }
+  };
 
   const handleCreateOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +198,7 @@ export const OrdersPage: React.FC = () => {
         stop_loss: formData.stop_loss ? parseFloat(formData.stop_loss) : undefined,
         take_profit: formData.take_profit ? parseFloat(formData.take_profit) : undefined,
         trailing_distance: formData.trailing_distance ? parseFloat(formData.trailing_distance) : undefined,
+        strategy_id: formData.strategy_id || undefined,
       };
 
       const res = await ordersApi.create(payload);
@@ -127,7 +215,9 @@ export const OrdersPage: React.FC = () => {
         stop_loss: '',
         take_profit: '',
         trailing_distance: '',
+        strategy_id: '',
       });
+      setSizingResult(null);
       fetchOrders();
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -165,6 +255,15 @@ export const OrdersPage: React.FC = () => {
       header: 'Symbol',
       accessor: 'symbol',
       className: 'font-bold font-mono text-slate-100',
+    },
+    {
+      header: 'Strategy',
+      render: (item) =>
+        item.strategy_id ? (
+          <Badge variant="info">{item.strategy_id}</Badge>
+        ) : (
+          <span className="text-slate-500 font-mono text-xs">Manual</span>
+        ),
     },
     {
       header: 'Side',
@@ -304,6 +403,25 @@ export const OrdersPage: React.FC = () => {
               <option value="REJECTED">REJECTED</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Layers className="w-3.5 h-3.5 text-slate-500" />
+            <select
+              value={strategyFilter}
+              onChange={(e) => {
+                setStrategyFilter(e.target.value);
+                setOffset(0);
+              }}
+              className="w-full sm:w-auto px-3 py-1.5 rounded-md bg-slate-950 border border-slate-800 text-slate-200 focus:border-sky-500 focus:outline-none"
+            >
+              <option value="">All Strategies</option>
+              {(availableStrategies || []).map((s) => (
+                <option key={s.strategy_id} value={s.strategy_id}>
+                  {s.strategy_id} ({s.deployment_status || (s.is_active ? 'ACTIVE' : 'INACTIVE')})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </Card>
 
@@ -349,6 +467,26 @@ export const OrdersPage: React.FC = () => {
             <strong>PAPER TRADING ONLY &bull; $0 REAL CAPITAL AT RISK:</strong> This simulated order executes strictly in the internal Project ORION paper execution adapter. No real-world funds or live broker connections are accessed.
           </div>
 
+          {/* Executing Strategy Selection */}
+          <div>
+            <label className="block uppercase text-slate-400 mb-1">Executing Strategy (Optional)</label>
+            <select
+              value={formData.strategy_id}
+              onChange={(e) => setFormData({ ...formData, strategy_id: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+            >
+              <option value="">Manual Execution (No Strategy)</option>
+              {(availableStrategies || []).map((s) => (
+                <option key={s.strategy_id} value={s.strategy_id}>
+                  {s.strategy_id} — {s.deployment_status || (s.is_active ? 'ACTIVE' : 'INACTIVE')}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-slate-500 mt-1">
+              Links order, fill, and position to institutional multi-strategy attribution tracking.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block uppercase text-slate-400 mb-1">Currency Pair</label>
@@ -389,6 +527,211 @@ export const OrdersPage: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+
+          {/* Quantitative Position Sizer Accordion */}
+          <div className="border border-sky-900/40 bg-sky-950/20 rounded-lg p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4 text-sky-400" />
+                <span className="font-bold text-sky-200">Quantitative Position Sizer</span>
+                <span className="text-[10px] bg-sky-900/60 text-sky-300 px-1.5 py-0.5 rounded font-mono">
+                  Domain Sizer API
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSizer(!showSizer)}
+                className="text-xs text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer font-mono"
+              >
+                {showSizer ? (
+                  <>Hide Calculator <ChevronUp className="w-3.5 h-3.5" /></>
+                ) : (
+                  <>Open Calculator <ChevronDown className="w-3.5 h-3.5" /></>
+                )}
+              </button>
+            </div>
+
+            {showSizer && (
+              <div className="space-y-3 pt-2 border-t border-sky-900/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-400 mb-1">Sizing Model</label>
+                    <select
+                      value={sizingMethod}
+                      onChange={(e) => setSizingMethod(e.target.value as PositionSizingMethod)}
+                      className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                    >
+                      <option value="risk_percent">Risk % (Fixed Account Risk)</option>
+                      <option value="atr">ATR Volatility (2.0x ATR)</option>
+                      <option value="kelly">Kelly Criterion (Fractional)</option>
+                      <option value="volatility">Volatility Target (Annualized)</option>
+                      <option value="fixed">Fixed Notional Amount</option>
+                    </select>
+                  </div>
+
+                  {sizingMethod === 'risk_percent' && (
+                    <div>
+                      <label className="block text-slate-400 mb-1">Risk Percentage (%)</label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.01"
+                        max="10.0"
+                        value={sizingRiskPct}
+                        onChange={(e) => setSizingRiskPct(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                        placeholder="1.0"
+                      />
+                    </div>
+                  )}
+
+                  {sizingMethod === 'atr' && (
+                    <div>
+                      <label className="block text-slate-400 mb-1">ATR Distance (Price)</label>
+                      <input
+                        type="number"
+                        step="0.0001"
+                        min="0.00001"
+                        value={sizingAtr}
+                        onChange={(e) => setSizingAtr(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                        placeholder="e.g. 0.0015"
+                      />
+                    </div>
+                  )}
+
+                  {sizingMethod === 'kelly' && (
+                    <div>
+                      <label className="block text-slate-400 mb-1">Kelly Fraction</label>
+                      <input
+                        type="number"
+                        step="0.05"
+                        min="0.05"
+                        max="1.0"
+                        value={sizingKellyFraction}
+                        onChange={(e) => setSizingKellyFraction(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                        placeholder="0.25 (Quarter-Kelly)"
+                      />
+                    </div>
+                  )}
+
+                  {sizingMethod === 'fixed' && (
+                    <div>
+                      <label className="block text-slate-400 mb-1">Fixed Notional (USD)</label>
+                      <input
+                        type="number"
+                        step="1000"
+                        min="100"
+                        value={sizingFixedNotional}
+                        onChange={(e) => setSizingFixedNotional(e.target.value)}
+                        className="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-800 text-slate-100 focus:border-sky-500 focus:outline-none"
+                        placeholder="10000"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCalculateSizing}
+                    isLoading={isCalculatingSizing}
+                    className="border-sky-700 text-sky-300 hover:bg-sky-950"
+                  >
+                    Calculate Recommended Size
+                  </Button>
+                  <span className="text-[10px] text-slate-500">
+                    Uses live stop loss & account equity via backend domain sizer
+                  </span>
+                </div>
+
+                {sizingResult && (
+                  <div
+                    className={`p-3 rounded-lg border text-xs space-y-2 ${
+                      sizingResult.is_valid
+                        ? 'bg-slate-950 border-emerald-500/40 text-slate-200'
+                        : 'bg-rose-950/20 border-rose-500/40 text-rose-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {sizingResult.is_valid ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-rose-400" />
+                        )}
+                        <span className="font-bold">
+                          {sizingResult.is_valid
+                            ? `Recommended: ${formatUnits(sizingResult.calculated_units)} units`
+                            : 'Calculation Failed'}
+                        </span>
+                      </div>
+                      <Badge
+                        variant={
+                          sizingResult.market_data_status === 'REALTIME'
+                            ? 'success'
+                            : sizingResult.market_data_status === 'FALLBACK'
+                            ? 'warning'
+                            : 'default'
+                        }
+                      >
+                        {sizingResult.market_data_status} PRICE
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] pt-1 border-t border-slate-800">
+                      <div>
+                        <span className="text-slate-500 block">Monetary Risk:</span>
+                        <span className="font-mono font-semibold">${sizingResult.monetary_risk}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Stop Distance:</span>
+                        <span className="font-mono font-semibold">
+                          {sizingResult.stop_distance !== null ? sizingResult.stop_distance : 'N/A'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Req Margin:</span>
+                        <span className="font-mono font-semibold">${sizingResult.required_margin}</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block">Account Equity:</span>
+                        <span className="font-mono font-semibold">${sizingResult.account_equity}</span>
+                      </div>
+                    </div>
+
+                    {sizingResult.constraints_applied.length > 0 && (
+                      <div className="text-[10px] text-amber-400/90 bg-amber-950/20 p-1.5 rounded">
+                        <strong>Constraints:</strong> {sizingResult.constraints_applied.join(', ')}
+                      </div>
+                    )}
+
+                    {sizingResult.validation_errors.length > 0 && (
+                      <div className="text-[10px] text-rose-400 bg-rose-950/30 p-1.5 rounded">
+                        <strong>Validation Errors:</strong> {sizingResult.validation_errors.join('; ')}
+                      </div>
+                    )}
+
+                    {sizingResult.is_valid && Number(sizingResult.calculated_units) > 0 && (
+                      <div className="pt-1 flex justify-end">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          onClick={handleApplySizing}
+                        >
+                          Apply {formatUnits(sizingResult.calculated_units)} Units to Volume
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

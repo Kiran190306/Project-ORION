@@ -165,4 +165,35 @@ describe('DashboardPage', () => {
     await user.click(screen.getByRole('button', { name: /retry connection/i }));
     expect(await screen.findByText('TRADING DASHBOARD')).toBeInTheDocument();
   });
+
+  it('renders real performance ratios when calculated by backend', async () => {
+    const dataWithMetrics: DashboardResponse = {
+      ...mockDashboardData,
+      performance: {
+        ...mockDashboardData.performance,
+        win_rate: 65.5,
+        profit_factor: 2.15,
+        sharpe_ratio: 1.85,
+        sortino_ratio: 2.45,
+      },
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve(dataWithMetrics),
+    });
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByText('1.85')).toBeInTheDocument();
+    expect(screen.getByText('Sortino: 2.45')).toBeInTheDocument();
+    expect(screen.getByText('65.5%')).toBeInTheDocument();
+    expect(screen.getByText('PF: 2.15')).toBeInTheDocument();
+  });
 });

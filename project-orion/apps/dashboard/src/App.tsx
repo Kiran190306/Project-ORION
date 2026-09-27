@@ -94,6 +94,9 @@ const OrganizationPage = lazy(() =>
 const AuditPage = lazy(() =>
   import('./pages/AuditPage').then((m) => ({ default: m.AuditPage }))
 );
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage }))
+);
 
 // ─── Accessible Loading Fallback ─────────────────────────────────────────────
 export const PageLoadingFallback: React.FC = () => (
@@ -154,6 +157,7 @@ export const AppRoutes: React.FC = () => {
           <Route path="billing" element={<BillingPage />} />
           <Route path="organization" element={<OrganizationPage />} />
           <Route path="audit" element={<AuditPage />} />
+          <Route path="settings" element={<SettingsPage />} />
         </Route>
 
         {/* Fallback Catch-All */}

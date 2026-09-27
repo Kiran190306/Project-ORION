@@ -73,6 +73,7 @@ async def list_orders(
     _perm: Annotated[Any, Depends(require_permission(Permission.ORDER_READ))],
     symbol: str | None = Query(None, description="Filter by instrument symbol"),
     status_filter: str | None = Query(None, alias="status", description="Filter by order status"),
+    strategy_id: str | None = Query(None, description="Filter by originating strategy ID"),
 ) -> PaginatedResponse[OrderResponse]:
     """List orders with pagination and filtering."""
     service = OrderService(adapter=adapter, session=session, account=account)
@@ -80,6 +81,7 @@ async def list_orders(
         pagination=pagination,
         symbol=symbol,
         status_filter=status_filter,
+        strategy_id=strategy_id,
     )
 
 

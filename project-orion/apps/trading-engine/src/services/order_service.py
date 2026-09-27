@@ -27,6 +27,7 @@ from libraries.domain.subscription.exceptions import (
 from libraries.infrastructure.execution.paper_execution import PaperExecutionAdapter
 from libraries.infrastructure.persistence.models import (
     AccountModel,
+    AuditLogModel,
     ExecutionReportModel,
     FillModel,
     OrderModel,
@@ -41,6 +42,7 @@ from ..schemas import (
     PaginationParams,
 )
 from .entitlement_service import EntitlementService
+from .notification_service import NotificationService
 
 logger = logging.getLogger("trading_engine.services.order")
 
@@ -233,6 +235,26 @@ class OrderService:
         )
         self.session.add(exec_report)
 
+        # Record platform audit log entry
+        audit_entry = AuditLogModel(
+            id=f"aud_{uuid.uuid4().hex[:16]}",
+            organization_id=self.account.organization_id,
+            event_type="order.created",
+            component="trading_engine.order_service",
+            actor=str(self.account.user_id) if self.account.user_id else None,
+            details={
+                "order_id": order_id_str,
+                "symbol": request.symbol,
+                "side": request.side.value.upper(),
+                "quantity": str(request.quantity),
+                "order_type": request.order_type.value.upper(),
+                "status": status_val,
+                "strategy_id": request.strategy_id,
+            },
+            timestamp=now,
+        )
+        self.session.add(audit_entry)
+
         # Position netting & balance accounting when fills occur
         if exec_info.filled_quantity > Decimal(0):
             fill_price = exec_info.average_fill_price or Decimal("1.20000")
@@ -275,6 +297,7 @@ class OrderService:
                     opened_at=now,
                     meta_data={
                         "order_id": order_id_str,
+                        "strategy_id": request.strategy_id,
                         "trailing_distance": str(request.trailing_distance) if getattr(request, "trailing_distance", None) else None,
                     },
                 )
@@ -364,7 +387,7 @@ class OrderService:
                         swap=Decimal(0),
                         is_open=True,
                         opened_at=now,
-                        meta_data={"order_id": order_id_str},
+                        meta_data={"order_id": order_id_str, "strategy_id": request.strategy_id},
                     )
                     self.session.add(position_model)
                     new_margin = (residual_qty * fill_price) / leverage
@@ -376,6 +399,26 @@ class OrderService:
                 self.account.margin_level = float((self.account.equity / self.account.margin) * Decimal(100))
 
         await self.session.flush()
+
+        # Dispatch real in-app notification when order fills
+        if self.account.user_id and exec_info.filled_quantity > Decimal(0):
+            try:
+                notif_svc = NotificationService(
+                    session=self.session,
+                    user_id=self.account.user_id,
+                    organization_id=self.account.organization_id,
+                )
+                fill_price_str = f"{exec_info.average_fill_price:.5f}" if exec_info.average_fill_price else "market"
+                await notif_svc.create_notification(
+                    notification_type="ORDER_FILLED",
+                    title=f"Order Filled: {request.side.value.upper()} {request.symbol}",
+                    body=f"Executed {exec_info.filled_quantity} units at {fill_price_str} (Paper)",
+                    severity="info",
+                    channel="in_app",
+                    metadata={"order_id": order_id_str, "symbol": request.symbol, "side": request.side.value.upper()},
+                )
+            except Exception as notif_err:  # noqa: BLE001
+                logger.warning("Could not dispatch order fill notification: %s", notif_err)
 
         return OrderResponse(
             id=order_id_str,
@@ -405,6 +448,7 @@ class OrderService:
         pagination: PaginationParams,
         symbol: str | None = None,
         status_filter: str | None = None,
+        strategy_id: str | None = None,
     ) -> PaginatedResponse[OrderResponse]:
         """List orders for the user's account with filtering and pagination."""
         query = select(OrderModel).where(OrderModel.account_id == self.account.id)
@@ -420,6 +464,9 @@ class OrderService:
             norm_status = status_filter.upper().strip()
             query = query.where(OrderModel.status == norm_status)
             count_query = count_query.where(OrderModel.status == norm_status)
+        if strategy_id:
+            query = query.where(OrderModel.strategy_id == strategy_id)
+            count_query = count_query.where(OrderModel.strategy_id == strategy_id)
         if pagination.date_from:
             query = query.where(OrderModel.created_at >= pagination.date_from)
             count_query = count_query.where(OrderModel.created_at >= pagination.date_from)
@@ -552,7 +599,25 @@ class OrderService:
                 logger.warning("Adapter order cancellation note: %s", exc)
 
         order.status = "CANCELLED"
-        order.updated_at = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc)
+        order.updated_at = now
+
+        # Record platform audit log entry
+        audit_entry = AuditLogModel(
+            id=f"aud_{uuid.uuid4().hex[:16]}",
+            organization_id=self.account.organization_id,
+            event_type="order.cancelled",
+            component="trading_engine.order_service",
+            actor=str(self.account.user_id) if self.account.user_id else None,
+            details={
+                "order_id": order.id,
+                "symbol": order.symbol,
+                "side": order.side,
+                "status": "CANCELLED",
+            },
+            timestamp=now,
+        )
+        self.session.add(audit_entry)
         await self.session.flush()
 
         return CancelOrderResponse(

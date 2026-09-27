@@ -188,23 +188,33 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* 6. Sharpe Ratio */}
-        <div className="p-2.5 rounded-xl bg-[#141E33] border border-[#1E293B] border-l-2 border-l-sky-400">
+        <div className={`p-2.5 rounded-xl bg-[#141E33] border border-[#1E293B] border-l-2 ${performance.sharpe_ratio != null ? 'border-l-indigo-400' : 'border-l-slate-600'}`}>
           <div className="text-[10px] text-slate-400 uppercase font-semibold flex items-center justify-between">
             <span>SHARPE</span>
-            <BarChart2 className="w-3 h-3 text-sky-400" />
+            <BarChart2 className={`w-3 h-3 ${performance.sharpe_ratio != null ? 'text-indigo-400' : 'text-slate-400'}`} />
           </div>
-          <div className="text-sm font-bold text-sky-300 mt-1 tabular-nums">1.84</div>
-          <div className="text-[9px] text-slate-500 mt-0.5">Sortino: 2.12</div>
+          <div className={`text-sm font-bold mt-1 tabular-nums ${performance.sharpe_ratio != null ? (performance.sharpe_ratio >= 1.0 ? 'text-emerald-400' : 'text-slate-100') : 'text-slate-400'}`}>
+            {performance.sharpe_ratio != null ? performance.sharpe_ratio.toFixed(2) : 'N/A'}
+          </div>
+          <div className="text-[9px] text-slate-500 mt-0.5">
+            {performance.sharpe_ratio != null
+              ? `Sortino: ${performance.sortino_ratio != null ? performance.sortino_ratio.toFixed(2) : 'N/A'}`
+              : 'History: < 30 trades'}
+          </div>
         </div>
 
         {/* 7. Win Rate */}
-        <div className="p-2.5 rounded-xl bg-[#141E33] border border-[#1E293B] border-l-2 border-l-emerald-400">
+        <div className={`p-2.5 rounded-xl bg-[#141E33] border border-[#1E293B] border-l-2 ${performance.win_rate != null ? 'border-l-teal-400' : 'border-l-slate-600'}`}>
           <div className="text-[10px] text-slate-400 uppercase font-semibold flex items-center justify-between">
             <span>WIN RATE</span>
-            <TrendingUp className="w-3 h-3 text-emerald-400" />
+            <TrendingUp className={`w-3 h-3 ${performance.win_rate != null ? 'text-teal-400' : 'text-slate-400'}`} />
           </div>
-          <div className="text-sm font-bold text-emerald-400 mt-1 tabular-nums">64.2%</div>
-          <div className="text-[9px] text-slate-500 mt-0.5">PF: 2.15</div>
+          <div className={`text-sm font-bold mt-1 tabular-nums ${performance.win_rate != null ? (performance.win_rate >= 50.0 ? 'text-emerald-400' : 'text-amber-400') : 'text-slate-400'}`}>
+            {performance.win_rate != null ? `${performance.win_rate.toFixed(1)}%` : 'N/A'}
+          </div>
+          <div className="text-[9px] text-slate-500 mt-0.5">
+            PF: {performance.profit_factor != null ? performance.profit_factor.toFixed(2) : 'N/A'}
+          </div>
         </div>
 
         {/* 8. Open Positions & Risk */}

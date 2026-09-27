@@ -100,4 +100,67 @@ describe('RiskPage', () => {
     expect(screen.queryByRole('button', { name: /bypass/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /delete/i })).not.toBeInTheDocument();
   });
+
+  it('renders market data degraded state warning when status is degraded', async () => {
+    const degradedStatus: RiskStatusResponse = {
+      ...mockRiskStatus,
+      status: 'degraded',
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/v1/risk/limits')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: () => Promise.resolve(mockRiskLimits),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(degradedStatus),
+      });
+    });
+
+    render(<RiskPage />);
+
+    expect(await screen.findByText('Market Data Degraded:')).toBeInTheDocument();
+    expect(screen.getByText(/Live price feed unavailable/i)).toBeInTheDocument();
+  });
+
+  it('renders net exposure and circuit breaker state correctly', async () => {
+    const customStatus: RiskStatusResponse = {
+      ...mockRiskStatus,
+      gross_exposure: '50000.00',
+      net_exposure: '15000.00',
+      circuit_breaker_state: 'TRIPPED',
+      emergency_stop_active: true,
+    };
+
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/v1/risk/limits')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ 'content-type': 'application/json' }),
+          json: () => Promise.resolve(mockRiskLimits),
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        json: () => Promise.resolve(customStatus),
+      });
+    });
+
+    render(<RiskPage />);
+
+    expect(await screen.findByText('$50,000.00')).toBeInTheDocument();
+    expect(screen.getByText('$15,000.00')).toBeInTheDocument();
+    expect(screen.getByText('TRIPPED')).toBeInTheDocument();
+    expect(screen.getAllByText('ACTIVE').length).toBeGreaterThanOrEqual(1);
+  });
 });

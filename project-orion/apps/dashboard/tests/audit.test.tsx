@@ -135,8 +135,8 @@ describe('AuditPage', () => {
     expect(await screen.findByText('Compliance Audit Trail')).toBeInTheDocument();
     expect(await screen.findByText('ORDER_PLACED')).toBeInTheDocument();
     expect(await screen.findByText('MEMBER_INVITED')).toBeInTheDocument();
-    expect(screen.getByText('usr-trader-2')).toBeInTheDocument();
-    expect(screen.getByText('ORDER_ENGINE')).toBeInTheDocument();
+    expect(await screen.findByText('usr-trader-2')).toBeInTheDocument();
+    expect(await screen.findByText('ORDER_ENGINE')).toBeInTheDocument();
   });
 
   it('opens payload modal and shows redacted details', async () => {

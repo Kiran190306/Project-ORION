@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, LogOut, ShieldCheck, Building2, ChevronDown, Search, Bell, Globe } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, LogOut, ShieldCheck, Building2, ChevronDown, Search, Globe, Settings } from 'lucide-react';
 import { useAuth } from '../../auth/AuthContext';
 import { useOrganization } from '../../auth/OrganizationContext';
 import { PaperTradingBadge } from '../common/Badge';
 import { Dropdown, DropdownItem } from '../common/Dropdown';
+import { NotificationPopover } from '../notifications/NotificationPopover';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
+  const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { currentOrg, organizations, currentRole, switchOrganization } = useOrganization();
   const [timeUtc, setTimeUtc] = useState<string>('');
@@ -170,28 +173,29 @@ export const Topbar: React.FC<TopbarProps> = ({ onToggleSidebar }) => {
           <span>MARKET ACTIVE</span>
         </div>
 
-        {/* Notifications Icon */}
-        <button
-          type="button"
-          className="relative p-1.5 text-slate-400 hover:text-slate-200 hover:bg-[#141E33] rounded-lg transition-colors cursor-pointer"
-          title="Terminal Notifications"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-sky-400 rounded-full" />
-        </button>
+        {/* Notifications Popover */}
+        <NotificationPopover />
 
         <div className="hidden lg:block text-xs font-mono text-slate-400 tabular-nums">
           {timeUtc}
         </div>
 
         {user && (
-          <div className="flex items-center gap-2.5 border-l border-[#1E293B] pl-3 sm:pl-4">
-            <div className="w-8 h-8 rounded-full bg-[#141E33] border border-[#1E293B] flex items-center justify-center text-slate-300 font-bold font-mono text-xs">
+          <div
+            onClick={() => navigate('/settings')}
+            className="flex items-center gap-2.5 border-l border-[#1E293B] pl-3 sm:pl-4 hover:opacity-90 cursor-pointer group"
+            title="User Profile & Settings"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#141E33] border border-[#1E293B] group-hover:border-sky-500/50 flex items-center justify-center text-slate-300 font-bold font-mono text-xs transition-colors">
               {user.username.substring(0, 2).toUpperCase()}
             </div>
             <div className="hidden sm:flex flex-col">
-              <span className="text-xs font-semibold text-slate-200">{user.username}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-200 group-hover:text-sky-300 transition-colors">
+                  {user.username}
+                </span>
+                <Settings className="w-3 h-3 text-slate-500 group-hover:text-sky-400 transition-colors" />
+              </div>
               <div className="flex items-center gap-1">
                 {user.is_superuser && (
                   <span className="text-[10px] text-sky-400 font-mono flex items-center gap-0.5 mr-1">

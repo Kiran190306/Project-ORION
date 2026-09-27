@@ -1,26 +1,23 @@
-import React, { useState } from 'react';
-import { Search, TrendingUp, TrendingDown } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Search, RefreshCw, AlertCircle } from 'lucide-react';
+import { marketDataApi } from '../../api/endpoints';
+import type { MarketQuote } from '../../api/types';
+import { usePolling } from '../../hooks/usePolling';
 
-export interface WatchlistPair {
+export interface WatchlistPairConfig {
   symbol: string;
   name: string;
-  bid: number;
-  ask: number;
-  spreadPips: number;
-  change24h: number;
-  high: number;
-  low: number;
 }
 
-const DEFAULT_WATCHLIST: WatchlistPair[] = [
-  { symbol: 'EUR/USD', name: 'Euro / US Dollar', bid: 1.08502, ask: 1.08522, spreadPips: 0.2, change24h: 0.35, high: 1.0874, low: 1.0815 },
-  { symbol: 'GBP/USD', name: 'British Pound / USD', bid: 1.27110, ask: 1.27140, spreadPips: 0.3, change24h: -0.18, high: 1.2745, low: 1.2680 },
-  { symbol: 'USD/JPY', name: 'US Dollar / Yen', bid: 155.210, ask: 155.240, spreadPips: 0.3, change24h: 0.42, high: 155.80, low: 154.90 },
-  { symbol: 'AUD/USD', name: 'Aussie / US Dollar', bid: 0.65420, ask: 0.65460, spreadPips: 0.4, change24h: 0.12, high: 0.6570, low: 0.6520 },
-  { symbol: 'USD/CAD', name: 'US Dollar / Canadian', bid: 1.36850, ask: 1.36900, spreadPips: 0.5, change24h: -0.22, high: 1.3720, low: 1.3660 },
-  { symbol: 'USD/CHF', name: 'US Dollar / Swiss Franc', bid: 0.88410, ask: 0.88450, spreadPips: 0.4, change24h: 0.08, high: 0.8870, low: 0.8820 },
-  { symbol: 'NZD/USD', name: 'Kiwi / US Dollar', bid: 0.60120, ask: 0.60170, spreadPips: 0.5, change24h: -0.45, high: 0.6050, low: 0.5995 },
-  { symbol: 'EUR/GBP', name: 'Euro / British Pound', bid: 0.85350, ask: 0.85380, spreadPips: 0.3, change24h: 0.25, high: 0.8560, low: 0.8510 },
+const WATCHLIST_SYMBOLS: WatchlistPairConfig[] = [
+  { symbol: 'EUR/USD', name: 'Euro / US Dollar' },
+  { symbol: 'GBP/USD', name: 'British Pound / USD' },
+  { symbol: 'USD/JPY', name: 'US Dollar / Yen' },
+  { symbol: 'AUD/USD', name: 'Aussie / US Dollar' },
+  { symbol: 'USD/CAD', name: 'US Dollar / Canadian' },
+  { symbol: 'USD/CHF', name: 'US Dollar / Swiss Franc' },
+  { symbol: 'NZD/USD', name: 'Kiwi / US Dollar' },
+  { symbol: 'EUR/GBP', name: 'Euro / British Pound' },
 ];
 
 interface TerminalWatchlistProps {
@@ -35,8 +32,57 @@ export const TerminalWatchlist: React.FC<TerminalWatchlistProps> = ({
   className = '',
 }) => {
   const [search, setSearch] = useState('');
+  const [quotes, setQuotes] = useState<Record<string, MarketQuote>>({});
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filtered = DEFAULT_WATCHLIST.filter(
+  const fetchQuotes = useCallback(async () => {
+    try {
+      const results = await Promise.allSettled(
+        WATCHLIST_SYMBOLS.map((item) => marketDataApi.getQuote(item.symbol))
+      );
+      const newQuotes: Record<string, MarketQuote> = {};
+      let anySuccess = false;
+
+      results.forEach((res) => {
+        if (res.status === 'fulfilled' && res.value) {
+          newQuotes[res.value.symbol] = res.value;
+          anySuccess = true;
+        }
+      });
+
+      if (anySuccess) {
+        setQuotes((prev) => ({ ...prev, ...newQuotes }));
+        setError(null);
+      } else {
+        setQuotes((prev) => {
+          if (Object.keys(prev).length === 0) {
+            setError('Market quotes currently unavailable');
+          }
+          return prev;
+        });
+      }
+    } catch {
+      setQuotes((prev) => {
+        if (Object.keys(prev).length === 0) {
+          setError('Failed to fetch market quotes');
+        }
+        return prev;
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Poll real quotes every 10 seconds with tab visibility checking
+  usePolling(fetchQuotes, 10000);
+
+  // Initial load
+  useEffect(() => {
+    fetchQuotes();
+  }, [fetchQuotes]);
+
+  const filtered = WATCHLIST_SYMBOLS.filter(
     (p) =>
       p.symbol.toLowerCase().includes(search.toLowerCase()) ||
       p.name.toLowerCase().includes(search.toLowerCase())
@@ -48,14 +94,29 @@ export const TerminalWatchlist: React.FC<TerminalWatchlistProps> = ({
       style={{ backgroundColor: '#141E33', borderColor: '#1E293B' }}
     >
       {/* Header */}
-      <div className="p-3 border-b border-[#1E293B] flex items-center justify-between">
+      <div className="p-3 border-b border-[#1E293B] bg-[#0F172A] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-sky-400" />
+          <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-amber-400 animate-pulse' : error ? 'bg-rose-400' : 'bg-sky-400'}`} />
           <h3 className="text-xs font-bold font-mono text-slate-100 tracking-wider uppercase">
             FX Watchlist
           </h3>
         </div>
-        <span className="text-[10px] font-mono text-slate-500 uppercase">Live Stream</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] font-mono text-slate-400 uppercase">
+            {isLoading ? 'SYNCING...' : 'LIVE QUOTES'}
+          </span>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoading(true);
+              fetchQuotes();
+            }}
+            title="Refresh Watchlist"
+            className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {/* Quick Filter */}
@@ -72,11 +133,41 @@ export const TerminalWatchlist: React.FC<TerminalWatchlistProps> = ({
         </div>
       </div>
 
+      {/* Error state if no quotes could be loaded */}
+      {error && Object.keys(quotes).length === 0 && !isLoading && (
+        <div className="p-4 text-center">
+          <AlertCircle className="w-5 h-5 text-amber-400 mx-auto mb-1.5" />
+          <div className="text-[11px] font-mono text-slate-400 mb-2">{error}</div>
+          <button
+            type="button"
+            onClick={() => {
+              setIsLoading(true);
+              fetchQuotes();
+            }}
+            className="text-xs font-mono text-sky-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+          >
+            <RefreshCw className="w-3 h-3" /> Retry Connection
+          </button>
+        </div>
+      )}
+
       {/* Pairs List */}
       <div className="flex-1 overflow-y-auto divide-y divide-[#1E293B]/60 max-h-[460px]">
         {filtered.map((item) => {
           const isSelected = item.symbol === selectedSymbol;
-          const isUp = item.change24h >= 0;
+          const quote = quotes[item.symbol];
+          const isJpy = item.symbol.includes('JPY');
+          const decimals = isJpy ? 3 : 5;
+
+          const bidNum = quote ? Number(quote.bid) : null;
+          const askNum = quote ? Number(quote.ask) : null;
+          let spreadPips: string = '--';
+          if (quote?.spread_pips) {
+            spreadPips = `${Number(quote.spread_pips).toFixed(1)}p`;
+          } else if (bidNum != null && askNum != null) {
+            const pipMult = isJpy ? 100 : 10000;
+            spreadPips = `${(Math.abs(askNum - bidNum) * pipMult).toFixed(1)}p`;
+          }
 
           return (
             <div
@@ -93,26 +184,28 @@ export const TerminalWatchlist: React.FC<TerminalWatchlistProps> = ({
                   <span className={`text-xs font-bold ${isSelected ? 'text-sky-300' : 'text-slate-100'}`}>
                     {item.symbol}
                   </span>
-                  <span className="text-[9px] text-slate-500 bg-[#090D16] px-1 rounded border border-[#1E293B]">
-                    {item.spreadPips}p
+                  <span className="text-[9px] text-slate-400 bg-[#090D16] px-1 rounded border border-[#1E293B]">
+                    {spreadPips}
                   </span>
+                  {quote?.is_stale && (
+                    <span className="text-[8px] text-amber-400 bg-amber-950/40 px-1 rounded border border-amber-800/40">
+                      STALE
+                    </span>
+                  )}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5">
-                  L: {item.low} H: {item.high}
+                  {item.name}
                 </div>
               </div>
 
               <div className="text-right">
                 <div className="text-xs font-semibold text-slate-200 tabular-nums">
-                  {item.bid.toFixed(item.symbol.includes('JPY') ? 3 : 5)}
+                  {bidNum != null ? bidNum.toFixed(decimals) : (
+                    <span className="text-slate-500">--.-----</span>
+                  )}
                 </div>
-                <div
-                  className={`text-[10px] font-medium flex items-center justify-end gap-0.5 tabular-nums ${
-                    isUp ? 'text-emerald-400' : 'text-rose-400'
-                  }`}
-                >
-                  {isUp ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-                  <span>{isUp ? '+' : ''}{item.change24h}%</span>
+                <div className="text-[10px] text-slate-400 tabular-nums mt-0.5">
+                  Ask: {askNum != null ? askNum.toFixed(decimals) : '--'}
                 </div>
               </div>
             </div>

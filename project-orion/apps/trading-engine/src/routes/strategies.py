@@ -18,6 +18,7 @@ from libraries.domain.organization.permissions import Permission
 from libraries.infrastructure.persistence.models import (
     AccountModel,
     StrategyConfigModel,
+    StrategyDeploymentModel,
 )
 
 from ..dependencies import (
@@ -268,7 +269,192 @@ async def get_strategy_config_schema(
     )
 
 
-# ─── Per-Account Strategy Configuration ─────────────────────────────────────
+async def _get_deployment_status(
+    session: AsyncSession, org_id: str | None, strategy_id: str
+) -> str | None:
+    """Helper to query the latest deployment lifecycle status for a strategy."""
+    if not org_id:
+        return None
+    stmt = (
+        select(StrategyDeploymentModel.status)
+        .where(
+            StrategyDeploymentModel.organization_id == org_id,
+            StrategyDeploymentModel.strategy_id == strategy_id,
+        )
+        .order_by(StrategyDeploymentModel.created_at.desc())
+        .limit(1)
+    )
+    res = await session.execute(stmt)
+    return res.scalar_one_or_none()
+
+
+# ─── Multi-Strategy & Per-Account Configuration ──────────────────────────────
+
+
+@router.get(
+    "/account/configs",
+    response_model=list[AccountStrategyConfigResponse],
+    status_code=status.HTTP_200_OK,
+    summary="List Account Strategy Configurations",
+    description="Returns all active and configured strategy configurations for the account/organization.",
+)
+async def list_account_strategy_configs(
+    account: Annotated[AccountModel, Depends(get_user_account)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.STRATEGY_READ))],
+) -> list[AccountStrategyConfigResponse]:
+    """Get all configured strategies for the user's account and organization."""
+    query = select(StrategyConfigModel)
+    if account.organization_id is not None:
+        query = query.where(
+            (StrategyConfigModel.organization_id == account.organization_id)
+            | (StrategyConfigModel.account_id == account.id)
+        )
+    else:
+        query = query.where(
+            (StrategyConfigModel.account_id == account.id)
+            | (StrategyConfigModel.organization_id.is_(None))
+        )
+    result = await session.execute(
+        query.order_by(
+            StrategyConfigModel.is_active.desc(),
+            StrategyConfigModel.updated_at.desc(),
+        )
+    )
+    configs = result.scalars().all()
+
+    responses: list[AccountStrategyConfigResponse] = []
+    for cfg in configs:
+        prefix = f"{account.id}_"
+        raw_strat_id = cfg.id[len(prefix):] if cfg.id.startswith(prefix) else cfg.id
+        strat_info = _find_strategy(raw_strat_id)
+        dep_status = await _get_deployment_status(
+            session, account.organization_id, raw_strat_id
+        )
+        responses.append(
+            AccountStrategyConfigResponse(
+                account_id=account.id,
+                strategy_id=raw_strat_id,
+                name=cfg.name or (strat_info["name"] if strat_info else raw_strat_id),
+                timeframe=cfg.parameters.get("timeframe", "M15") if cfg.parameters else "M15",
+                symbols=cfg.symbols or [],
+                parameters=cfg.parameters or {},
+                is_active=cfg.is_active,
+                deployment_status=dep_status,
+                updated_at=cfg.updated_at or datetime.now(timezone.utc),
+            )
+        )
+    return responses
+
+
+@router.post(
+    "/account/configs",
+    response_model=AccountStrategyConfigResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create or Activate Account Strategy Configuration",
+    description="Configures and activates a strategy for multi-strategy execution without deactivating existing active strategies.",
+)
+async def create_account_strategy_config(
+    body: UpdateAccountStrategyRequest,
+    account: Annotated[AccountModel, Depends(get_user_account)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.STRATEGY_CONFIGURE))],
+) -> AccountStrategyConfigResponse:
+    """Add or update a strategy in the multi-strategy portfolio."""
+    strategy = _find_strategy(body.strategy_id)
+    if strategy is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Strategy '{body.strategy_id}' not found in catalogue",
+        )
+
+    config_id = f"{account.id}_{body.strategy_id}"
+    result = await session.execute(
+        select(StrategyConfigModel).where(StrategyConfigModel.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    now = datetime.now(timezone.utc)
+
+    if config is None:
+        config = StrategyConfigModel(
+            id=config_id,
+            organization_id=account.organization_id,
+            account_id=account.id,
+            name=strategy["name"],
+            version="1.0",
+            is_active=body.is_active,
+            symbols=body.symbols or strategy["symbols"],
+            parameters={"timeframe": body.timeframe, **body.parameters},
+            description=strategy["description"],
+        )
+        session.add(config)
+    else:
+        config.organization_id = account.organization_id
+        config.account_id = account.id
+        config.is_active = body.is_active
+        config.symbols = body.symbols or strategy["symbols"]
+        config.parameters = {"timeframe": body.timeframe, **body.parameters}
+
+    await session.flush()
+    dep_status = await _get_deployment_status(
+        session, account.organization_id, body.strategy_id
+    )
+    return AccountStrategyConfigResponse(
+        account_id=account.id,
+        strategy_id=body.strategy_id,
+        name=strategy["name"],
+        timeframe=body.timeframe,
+        symbols=config.symbols or [],
+        parameters=config.parameters or {},
+        is_active=config.is_active,
+        deployment_status=dep_status,
+        updated_at=now,
+    )
+
+
+@router.delete(
+    "/account/configs/{strategy_id}",
+    response_model=AccountStrategyConfigResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Deactivate Strategy Configuration",
+    description="Deactivates a specific strategy configuration from active execution.",
+)
+async def deactivate_account_strategy_config(
+    strategy_id: str,
+    account: Annotated[AccountModel, Depends(get_user_account)],
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.STRATEGY_CONFIGURE))],
+) -> AccountStrategyConfigResponse:
+    """Deactivate an active strategy in the portfolio."""
+    config_id = f"{account.id}_{strategy_id}"
+    result = await session.execute(
+        select(StrategyConfigModel).where(StrategyConfigModel.id == config_id)
+    )
+    config = result.scalar_one_or_none()
+    if config is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Configuration for strategy '{strategy_id}' not found",
+        )
+    config.is_active = False
+    await session.flush()
+    dep_status = await _get_deployment_status(
+        session, account.organization_id, strategy_id
+    )
+    return AccountStrategyConfigResponse(
+        account_id=account.id,
+        strategy_id=strategy_id,
+        name=config.name,
+        timeframe=config.parameters.get("timeframe", "M15") if config.parameters else "M15",
+        symbols=config.symbols or [],
+        parameters=config.parameters or {},
+        is_active=False,
+        deployment_status=dep_status,
+        updated_at=config.updated_at or datetime.now(timezone.utc),
+    )
 
 
 @router.get(

@@ -47,7 +47,10 @@ import type {
   PaperResetResponse,
   PnLBreakdownResponse,
   PortfolioOverviewResponse,
+  MultiStrategyPortfolioResponse,
   PositionResponse,
+  PositionSizingRequest,
+  PositionSizingResponse,
   RiskLimitsResponse,
   RiskStatusResponse,
   StrategyConfigSchemaResponse,
@@ -87,6 +90,14 @@ import type {
   BrokerSandboxOrderResponse,
   BrokerSandboxPosition,
   BrokerSandboxReconciliationResponse,
+  ChangePasswordRequest,
+  NotificationItem,
+  UnreadCountResponse,
+  MarkAllReadResponse,
+  NotificationPreferences,
+  UpdateNotificationPreferencesRequest,
+  UserProfileResponse,
+  UpdateProfileRequest,
 } from './types';
 
 // ─── Authentication ──────────────────────────────────────────────────────────
@@ -137,6 +148,12 @@ export const authApi = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+
+  changePassword: (data: ChangePasswordRequest): Promise<GenericMessageResponse> =>
+    apiClient<GenericMessageResponse>('/api/v1/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ─── Onboarding ──────────────────────────────────────────────────────────────
@@ -184,7 +201,7 @@ export const accountApi = {
 
 export const ordersApi = {
   list: (
-    params?: PaginationParams & { symbol?: string; status?: string }
+    params?: PaginationParams & { symbol?: string; status?: string; strategy_id?: string }
   ): Promise<PaginatedResponse<OrderResponse>> =>
     apiClient<PaginatedResponse<OrderResponse>>('/api/v1/orders/', {
       method: 'GET',
@@ -212,7 +229,7 @@ export const ordersApi = {
 
 export const positionsApi = {
   list: (
-    params?: PaginationParams & { symbol?: string; is_open?: boolean }
+    params?: PaginationParams & { symbol?: string; is_open?: boolean; strategy_id?: string }
   ): Promise<PaginatedResponse<PositionResponse>> =>
     apiClient<PaginatedResponse<PositionResponse>>('/api/v1/positions/', {
       method: 'GET',
@@ -227,6 +244,12 @@ export const positionsApi = {
   close: (positionId: string): Promise<ClosePositionResponse> =>
     apiClient<ClosePositionResponse>(`/api/v1/positions/${encodeURIComponent(positionId)}/close`, {
       method: 'POST',
+    }),
+
+  calculateSizing: (data: PositionSizingRequest): Promise<PositionSizingResponse> =>
+    apiClient<PositionSizingResponse>('/api/v1/positions/sizing', {
+      method: 'POST',
+      body: JSON.stringify(data),
     }),
 };
 
@@ -269,6 +292,11 @@ export const portfolioApi = {
     apiClient<ExposureResponse>('/api/v1/portfolio/exposure', {
       method: 'GET',
     }),
+
+  getStrategyBreakdown: (): Promise<MultiStrategyPortfolioResponse> =>
+    apiClient<MultiStrategyPortfolioResponse>('/api/v1/portfolio/strategies', {
+      method: 'GET',
+    }),
 };
 
 // ─── Strategies ──────────────────────────────────────────────────────────────
@@ -304,6 +332,27 @@ export const strategiesApi = {
       method: 'PUT',
       body: JSON.stringify(config),
     }),
+
+  listAccountConfigs: (): Promise<AccountStrategyConfigResponse[]> =>
+    apiClient<AccountStrategyConfigResponse[]>('/api/v1/strategies/account/configs', {
+      method: 'GET',
+    }),
+
+  createAccountConfig: (
+    config: UpdateAccountStrategyRequest
+  ): Promise<AccountStrategyConfigResponse> =>
+    apiClient<AccountStrategyConfigResponse>('/api/v1/strategies/account/configs', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+
+  deleteAccountConfig: (strategyId: string): Promise<AccountStrategyConfigResponse> =>
+    apiClient<AccountStrategyConfigResponse>(
+      `/api/v1/strategies/account/configs/${encodeURIComponent(strategyId)}`,
+      {
+        method: 'DELETE',
+      }
+    ),
 };
 
 // ─── Risk ────────────────────────────────────────────────────────────────────
@@ -723,6 +772,62 @@ export const brokerSandboxApi = {
       `/api/v1/broker-sandbox/accounts/${encodeURIComponent(accountId)}/reconciliations`,
       { method: 'GET' }
     ),
+};
+
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export const notificationsApi = {
+  list: (params?: PaginationParams & { unread_only?: boolean }): Promise<PaginatedResponse<NotificationItem>> => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit !== undefined) searchParams.set('limit', String(params.limit));
+    if (params?.offset !== undefined) searchParams.set('offset', String(params.offset));
+    if (params?.unread_only !== undefined) searchParams.set('unread_only', String(params.unread_only));
+    const qs = searchParams.toString();
+    return apiClient<PaginatedResponse<NotificationItem>>(`/api/v1/notifications${qs ? `?${qs}` : ''}`, {
+      method: 'GET',
+    });
+  },
+
+  getUnreadCount: (): Promise<UnreadCountResponse> =>
+    apiClient<UnreadCountResponse>('/api/v1/notifications/unread-count', {
+      method: 'GET',
+    }),
+
+  markRead: (notificationId: string): Promise<NotificationItem> =>
+    apiClient<NotificationItem>(`/api/v1/notifications/${encodeURIComponent(notificationId)}/read`, {
+      method: 'POST',
+    }),
+
+  markAllRead: (): Promise<MarkAllReadResponse> =>
+    apiClient<MarkAllReadResponse>('/api/v1/notifications/read-all', {
+      method: 'POST',
+    }),
+};
+
+// ─── User Profile & Settings ────────────────────────────────────────────────
+
+export const userApi = {
+  getProfile: (): Promise<UserProfileResponse> =>
+    apiClient<UserProfileResponse>('/api/v1/users/me', {
+      method: 'GET',
+    }),
+
+  updateProfile: (data: UpdateProfileRequest): Promise<UserProfileResponse> =>
+    apiClient<UserProfileResponse>('/api/v1/users/me', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    }),
+
+  getPreferences: (): Promise<NotificationPreferences> =>
+    apiClient<NotificationPreferences>('/api/v1/users/me/preferences', {
+      method: 'GET',
+    }),
+
+  updatePreferences: (data: UpdateNotificationPreferencesRequest): Promise<NotificationPreferences> =>
+    apiClient<NotificationPreferences>('/api/v1/users/me/preferences', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
 };
 
 

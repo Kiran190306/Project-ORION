@@ -51,7 +51,9 @@ from .routes.strategies import router as strategies_router
 from .routes.subscription import router as subscription_router
 from .routes.trades import router as trades_router
 from .routes.trading import router as trading_router
+from .routes.users import router as users_router
 from .routes.worker import router as worker_router
+from .routes.notifications import router as notifications_router
 
 logger = logging.getLogger("trading_engine.main")
 
@@ -184,6 +186,8 @@ def create_app(
     app.include_router(optimization_router)
     app.include_router(deployments_router)
     app.include_router(broker_sandbox_router)
+    app.include_router(notifications_router)
+    app.include_router(users_router)
 
     return app
 

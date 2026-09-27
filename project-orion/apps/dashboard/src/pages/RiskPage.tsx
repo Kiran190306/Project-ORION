@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { RefreshCw, CheckCircle2, Lock } from 'lucide-react';
+import { RefreshCw, CheckCircle2, Lock, AlertTriangle } from 'lucide-react';
 import { riskApi } from '../api/endpoints';
 import type { RiskStatusResponse, RiskLimitsResponse } from '../api/types';
 import { usePolling } from '../hooks/usePolling';
@@ -97,6 +97,16 @@ export const RiskPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Degraded State Warning */}
+      {status?.status === 'degraded' && (
+        <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-800/80 flex items-start gap-3.5 font-mono text-xs text-amber-200">
+          <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
+          <div>
+            <span className="font-semibold text-amber-100">Market Data Degraded:</span> Live price feed unavailable. Risk exposure and mark-to-market calculations are evaluated using fallback / last known prices.
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="p-4 rounded-lg bg-rose-950/60 border border-rose-800 text-rose-300 text-xs font-mono">
           Error retrieving risk status: {error}
@@ -107,10 +117,24 @@ export const RiskPage: React.FC = () => {
       {status && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
           <Card
-            className="p-4 border-l-4 border-l-emerald-500"
+            className={`p-4 border-l-4 ${
+              status.status === 'healthy'
+                ? 'border-l-emerald-500'
+                : status.status === 'degraded'
+                ? 'border-l-amber-500'
+                : 'border-l-rose-500'
+            }`}
             title="Engine Health"
             badge={
-              <Badge variant={status.status === 'healthy' ? 'success' : 'danger'}>
+              <Badge
+                variant={
+                  status.status === 'healthy'
+                    ? 'success'
+                    : status.status === 'degraded'
+                    ? 'warning'
+                    : 'danger'
+                }
+              >
                 {status.status}
               </Badge>
             }
@@ -122,8 +146,18 @@ export const RiskPage: React.FC = () => {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Total Exposure:</span>
-                <span className="font-bold text-slate-200">{formatCurrency(status.total_exposure)}</span>
+                <span className="font-bold text-slate-200">
+                  {formatCurrency(status.gross_exposure ?? status.total_exposure)}
+                </span>
               </div>
+              {status.net_exposure !== undefined && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Net Exposure:</span>
+                  <span className="font-bold text-slate-200">
+                    {formatCurrency(status.net_exposure)}
+                  </span>
+                </div>
+              )}
             </div>
           </Card>
 
@@ -137,6 +171,10 @@ export const RiskPage: React.FC = () => {
                 <span className="text-slate-400">Used Margin:</span>
                 <span className="font-bold text-slate-200">{formatCurrency(status.used_margin)}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Free Margin:</span>
+                <span className="font-bold text-slate-200">{formatCurrency(status.free_margin)}</span>
+              </div>
             </div>
           </Card>
 
@@ -147,6 +185,10 @@ export const RiskPage: React.FC = () => {
                 <span className="font-bold text-slate-200">{formatPercent(status.drawdown)}</span>
               </div>
               <div className="flex justify-between">
+                <span className="text-slate-400">Daily Loss Rate:</span>
+                <span className="font-bold text-slate-200">{formatPercent(status.daily_loss_rate)}</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-slate-400">Consecutive Losses:</span>
                 <span className="font-bold text-slate-200">{status.consecutive_losses}</span>
               </div>
@@ -155,11 +197,27 @@ export const RiskPage: React.FC = () => {
 
           <Card
             className={`p-4 border-l-4 ${
-              status.emergency_stop_active ? 'border-l-rose-500 bg-rose-950/20' : 'border-l-emerald-500'
+              status.emergency_stop_active
+                ? 'border-l-rose-500 bg-rose-950/20'
+                : status.circuit_breaker_state !== 'NORMAL'
+                ? 'border-l-amber-500'
+                : 'border-l-emerald-500'
             }`}
-            title="Emergency Circuit Breaker"
+            title="Circuit Breakers"
           >
             <div className="space-y-1.5 mt-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400">Breaker State:</span>
+                <span
+                  className={`font-bold ${
+                    status.circuit_breaker_state === 'NORMAL'
+                      ? 'text-emerald-400'
+                      : 'text-amber-400'
+                  }`}
+                >
+                  {status.circuit_breaker_state || 'NORMAL'}
+                </span>
+              </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400">Emergency Stop:</span>
                 <span

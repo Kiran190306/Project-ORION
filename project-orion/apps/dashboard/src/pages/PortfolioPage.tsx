@@ -1,16 +1,18 @@
 import React, { useState, useCallback } from 'react';
-import { RefreshCw, AlertCircle, PieChart, TrendingUp, DollarSign } from 'lucide-react';
+import { RefreshCw, AlertCircle, PieChart, TrendingUp, DollarSign, Layers } from 'lucide-react';
 import { portfolioApi } from '../api/endpoints';
 import type {
   PortfolioOverviewResponse,
   EquityCurveResponse,
   PnLBreakdownResponse,
   ExposureResponse,
+  MultiStrategyPortfolioResponse,
+  StrategyPortfolioItem,
 } from '../api/types';
 import { usePolling } from '../hooks/usePolling';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
-import { PaperTradingBadge } from '../components/common/Badge';
+import { Badge, PaperTradingBadge } from '../components/common/Badge';
 import { EquityCurveChart } from '../components/charts/EquityCurveChart';
 import { ExposureBarChart } from '../components/charts/ExposureBarChart';
 import { Table, Column } from '../components/common/Table';
@@ -23,21 +25,24 @@ export const PortfolioPage: React.FC = () => {
   const [equityCurve, setEquityCurve] = useState<EquityCurveResponse | null>(null);
   const [pnl, setPnl] = useState<PnLBreakdownResponse | null>(null);
   const [exposure, setExposure] = useState<ExposureResponse | null>(null);
+  const [strategyBreakdown, setStrategyBreakdown] = useState<MultiStrategyPortfolioResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchPortfolio = useCallback(async () => {
     try {
-      const [o, eq, p, exp] = await Promise.all([
+      const [o, eq, p, exp, sb] = await Promise.all([
         portfolioApi.getOverview(),
         portfolioApi.getEquityCurve(),
         portfolioApi.getPnL(),
         portfolioApi.getExposure(),
+        portfolioApi.getStrategyBreakdown().catch(() => null),
       ]);
       setOverview(o);
       setEquityCurve(eq);
       setPnl(p);
       setExposure(exp);
+      setStrategyBreakdown(sb || null);
       setError(null);
     } catch (err) {
       setError(getErrorMessage(err));
@@ -109,6 +114,95 @@ export const PortfolioPage: React.FC = () => {
       header: 'Positions',
       accessor: 'position_count',
       className: 'font-mono text-slate-400',
+    },
+  ];
+
+  const strategyColumns: Column<StrategyPortfolioItem>[] = [
+    {
+      header: 'Strategy',
+      render: (item) => (
+        <div>
+          <div className="font-bold text-slate-100">{item.strategy_name || item.strategy_id}</div>
+          <div className="text-[10px] text-slate-500 font-mono">{item.strategy_id}</div>
+        </div>
+      ),
+    },
+    {
+      header: 'Lifecycle State',
+      render: (item) => {
+        switch (item.deployment_status) {
+          case 'PROMOTION_CANDIDATE':
+            return <Badge variant="success">PROMOTION CANDIDATE</Badge>;
+          case 'PAPER_VALIDATED':
+            return <Badge variant="success">PAPER VALIDATED</Badge>;
+          case 'INCUBATING':
+            return <Badge variant="info">INCUBATING</Badge>;
+          case 'GATES_PASSED':
+            return <Badge variant="info">GATES PASSED</Badge>;
+          case 'PENDING_GATES':
+            return <Badge variant="warning">PENDING GATES</Badge>;
+          default:
+            return <Badge variant="buy">ACTIVE</Badge>;
+        }
+      },
+    },
+    {
+      header: 'Open Positions',
+      render: (item) => <span className="font-mono">{item.open_positions_count}</span>,
+    },
+    {
+      header: 'Orders',
+      render: (item) => <span className="font-mono">{item.total_orders_count}</span>,
+    },
+    {
+      header: 'Gross Exposure',
+      render: (item) => (
+        <span className="font-mono">
+          {formatCurrency(item.gross_exposure, strategyBreakdown?.currency || 'USD')}
+        </span>
+      ),
+    },
+    {
+      header: 'Unrealized P&L',
+      render: (item) => {
+        const pnl = formatPnl(item.unrealized_pnl, strategyBreakdown?.currency || 'USD');
+        return (
+          <span
+            className={`font-mono font-semibold ${
+              pnl.isPositive ? 'text-emerald-400' : pnl.isNegative ? 'text-rose-400' : 'text-slate-300'
+            }`}
+          >
+            {pnl.formatted}
+          </span>
+        );
+      },
+    },
+    {
+      header: 'Realized P&L',
+      render: (item) => {
+        const pnl = formatPnl(item.realized_pnl, strategyBreakdown?.currency || 'USD');
+        return (
+          <span
+            className={`font-mono font-semibold ${
+              pnl.isPositive ? 'text-emerald-400' : pnl.isNegative ? 'text-rose-400' : 'text-slate-300'
+            }`}
+          >
+            {pnl.formatted}
+          </span>
+        );
+      },
+    },
+    {
+      header: 'Win Rate',
+      render: (item) => (
+        <span className="font-mono">
+          {item.win_rate !== null && item.win_rate !== undefined ? (
+            `${(item.win_rate * (item.win_rate <= 1.0 ? 100 : 1)).toFixed(1)}%`
+          ) : (
+            <span className="text-slate-500">N/A</span>
+          )}
+        </span>
+      ),
     },
   ];
 
@@ -195,6 +289,79 @@ export const PortfolioPage: React.FC = () => {
             drawdownPct={equityCurve.current_drawdown}
             currency={equityCurve.currency}
           />
+        </Card>
+      )}
+
+      {/* Multi-Strategy Portfolio Allocation & Attribution */}
+      {strategyBreakdown && Array.isArray(strategyBreakdown.strategies) && (
+        <Card
+          title={
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-sky-400" />
+                <span>Multi-Strategy Portfolio Allocation & Attribution</span>
+              </div>
+              <span className="text-xs font-mono text-slate-400 font-normal">
+                {strategyBreakdown.total_active_strategies || strategyBreakdown.strategies.length} Active{' '}
+                {(strategyBreakdown.total_active_strategies || strategyBreakdown.strategies.length) === 1
+                  ? 'Strategy'
+                  : 'Strategies'}
+              </span>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-slate-950/60 border border-slate-800 rounded-lg font-mono text-xs">
+              <div>
+                <span className="text-slate-500 block">Total Strategy Exposure:</span>
+                <span className="font-bold text-slate-100">
+                  {formatCurrency(
+                    strategyBreakdown.total_gross_exposure ??
+                      strategyBreakdown.strategies.reduce(
+                        (acc, s) =>
+                          acc +
+                          (typeof s.gross_exposure === 'number'
+                            ? s.gross_exposure
+                            : parseFloat(String(s.gross_exposure)) || 0),
+                        0
+                      ),
+                    strategyBreakdown.currency || 'USD'
+                  )}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Total Unrealized Strategy P&L:</span>
+                <span
+                  className={`font-bold ${
+                    formatPnl(strategyBreakdown.total_unrealized_pnl, strategyBreakdown.currency || 'USD').isPositive
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
+                  }`}
+                >
+                  {formatPnl(strategyBreakdown.total_unrealized_pnl, strategyBreakdown.currency || 'USD').formatted}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Total Realized Strategy P&L:</span>
+                <span
+                  className={`font-bold ${
+                    formatPnl(strategyBreakdown.total_realized_pnl, strategyBreakdown.currency || 'USD').isPositive
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
+                  }`}
+                >
+                  {formatPnl(strategyBreakdown.total_realized_pnl, strategyBreakdown.currency || 'USD').formatted}
+                </span>
+              </div>
+            </div>
+
+            <Table
+              columns={strategyColumns}
+              data={strategyBreakdown.strategies}
+              emptyMessage="No active strategy deployments found in paper account."
+              keyExtractor={(item) => item.strategy_id}
+            />
+          </div>
         </Card>
       )}
 

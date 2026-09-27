@@ -19,7 +19,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import AsyncGenerator, Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import TYPE_CHECKING, Annotated, Any
 
@@ -193,16 +193,16 @@ async def get_current_user(
 
         # Check if password was changed after token issuance (token revocation)
         token_iat = payload.get("iat")
-        if (
-            user.password_changed_at is not None
-            and token_iat is not None
-            and token_iat < int(user.password_changed_at.timestamp()) - 1
-        ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Session revoked due to password change. Please log in again.",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        if user.password_changed_at is not None and token_iat is not None:
+            pwd_changed = user.password_changed_at
+            if pwd_changed.tzinfo is None:
+                pwd_changed = pwd_changed.replace(tzinfo=timezone.utc)
+            if token_iat < int(pwd_changed.timestamp()):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session revoked due to password change. Please log in again.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
 
         return {
             "id": user.id,

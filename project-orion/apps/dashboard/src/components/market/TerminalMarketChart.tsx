@@ -1,12 +1,16 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   Maximize2,
   Minimize2,
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { useToast } from '../common/Toast';
+import { ordersApi, marketDataApi } from '../../api/endpoints';
+import { getErrorMessage } from '../../utils/errors';
 
 export interface Candle {
   time: string;
@@ -17,6 +21,8 @@ export interface Candle {
   close: number;
   volume: number;
 }
+
+export type CanonicalTimeframe = 'M1' | 'M5' | 'M15' | 'H1' | 'H4' | 'D1';
 
 interface TerminalMarketChartProps {
   symbol?: string;
@@ -30,7 +36,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
   className = '',
 }) => {
   const toast = useToast();
-  const [timeframe, setTimeframe] = useState<'1m' | '5m' | '15m' | '1h' | '4h' | '1d'>('1h');
+  const [timeframe, setTimeframe] = useState<CanonicalTimeframe>('H1');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEMA, setShowEMA] = useState(true);
   const [showVolume, setShowVolume] = useState(true);
@@ -41,58 +47,62 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
   const [lotSize, setLotSize] = useState<number>(0.1);
   const [isOrderSubmitting, setIsOrderSubmitting] = useState(false);
 
+  // Real historical market candles state
+  const [candles, setCandles] = useState<Candle[]>([]);
+  const [candlesLoading, setCandlesLoading] = useState<boolean>(true);
+  const [candlesError, setCandlesError] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Generate realistic OHLCV price series anchored to current symbol base price
-  const candles: Candle[] = useMemo(() => {
-    const isJpy = symbol.includes('JPY');
-    const basePrice = isJpy ? 155.20 : symbol.includes('GBP') ? 1.2710 : symbol.includes('AUD') ? 0.6540 : 1.0850;
-    const volatility = isJpy ? 0.25 : 0.0018;
-
-    const data: Candle[] = [];
-    let currentPrice = basePrice - volatility * 12;
-    const now = Date.now();
-    const intervalMinutes = timeframe === '1m' ? 1 : timeframe === '5m' ? 5 : timeframe === '15m' ? 15 : timeframe === '1h' ? 60 : timeframe === '4h' ? 240 : 1440;
-    const count = 52;
-
-    for (let i = 0; i < count; i++) {
-      const timeMs = now - (count - i) * intervalMinutes * 60 * 1000;
-      const d = new Date(timeMs);
-      const timeStr = `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
-
-      // Pseudo-random walk with trend momentum
-      const trend = Math.sin(i / 6) * volatility * 0.45;
-      const noise = (Math.sin(i * 1.7) * 0.5 + Math.cos(i * 0.9) * 0.5) * volatility;
-      const open = currentPrice;
-      const close = open + trend + noise;
-      const high = Math.max(open, close) + Math.abs(Math.sin(i * 2.3)) * volatility * 0.6;
-      const low = Math.min(open, close) - Math.abs(Math.cos(i * 1.9)) * volatility * 0.6;
-      const volume = Math.round(5000 + Math.abs(Math.sin(i * 0.8)) * 12000);
-
-      data.push({
-        time: timeStr,
-        timestamp: timeMs,
-        open: Number(open.toFixed(isJpy ? 3 : 5)),
-        high: Number(high.toFixed(isJpy ? 3 : 5)),
-        low: Number(low.toFixed(isJpy ? 3 : 5)),
-        close: Number(close.toFixed(isJpy ? 3 : 5)),
-        volume,
+  // Fetch genuine historical candles from market data API
+  const fetchCandles = useCallback(async () => {
+    setCandlesLoading(true);
+    setCandlesError(null);
+    try {
+      const res = await marketDataApi.getCandles(symbol, { timeframe, limit: 60 });
+      const rawCandles = res.candles || [];
+      const mapped: Candle[] = rawCandles.map((c) => {
+        const d = new Date(c.timestamp);
+        const validDate = !isNaN(d.getTime());
+        const timeStr = validDate
+          ? `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+          : String(c.timestamp);
+        return {
+          time: timeStr,
+          timestamp: validDate ? d.getTime() : Date.now(),
+          open: Number(c.open),
+          high: Number(c.high),
+          low: Number(c.low),
+          close: Number(c.close),
+          volume: Number(c.volume),
+        };
       });
-
-      currentPrice = close;
+      setCandles(mapped);
+    } catch (err) {
+      setCandlesError(getErrorMessage(err));
+      setCandles([]);
+    } finally {
+      setCandlesLoading(false);
     }
-    return data;
   }, [symbol, timeframe]);
+
+  useEffect(() => {
+    fetchCandles();
+  }, [fetchCandles]);
 
   // Compute Technical Indicators: EMA 20, EMA 50, RSI 14, ATR 14
   const { ema20, ema50, rsi14, atr14 } = useMemo(() => {
+    if (candles.length === 0) {
+      return { ema20: [], ema50: [], rsi14: [], atr14: 0 };
+    }
+
     const closes = candles.map((c) => c.close);
 
     // EMA calculation helper
     const calcEMA = (period: number) => {
       const k = 2 / (period + 1);
       const ema: (number | null)[] = [];
-      let prev = closes.slice(0, period).reduce((a, b) => a + b, 0) / period;
+      let prev = closes.slice(0, Math.min(period, closes.length)).reduce((a, b) => a + b, 0) / Math.max(1, Math.min(period, closes.length));
       for (let i = 0; i < closes.length; i++) {
         if (i < period - 1) {
           ema.push(null);
@@ -135,6 +145,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
 
     // ATR calculation helper
     let atrSum = 0;
+    const atrPeriod = Math.min(14, candles.length - 1);
     for (let i = 1; i < candles.length && i <= 14; i++) {
       const tr = Math.max(
         candles[i].high - candles[i].low,
@@ -143,20 +154,45 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
       );
       atrSum += tr;
     }
-    const currentAtr = atrSum / Math.min(14, candles.length - 1);
+    const currentAtr = atrPeriod > 0 ? atrSum / atrPeriod : 0.001;
 
     return {
-      ema20: calcEMA(10), // using period 10 for 50-candle series responsiveness
+      ema20: calcEMA(10), // period 10 for responsiveness
       ema50: calcEMA(20),
       rsi14: calcRSI(14),
       atr14: currentAtr,
     };
   }, [candles]);
 
+  const fallbackCandle: Candle = {
+    time: '--',
+    timestamp: 0,
+    open: 0,
+    high: 0,
+    low: 0,
+    close: 0,
+    volume: 0,
+  };
+
   // Active Candle for Tooltip
-  const activeCandle = hoverIndex !== null && candles[hoverIndex] ? candles[hoverIndex] : candles[candles.length - 1];
-  const activeEma20 = hoverIndex !== null && ema20[hoverIndex] ? ema20[hoverIndex] : ema20[ema20.length - 1];
-  const activeRsi = hoverIndex !== null && rsi14[hoverIndex] ? rsi14[hoverIndex] : rsi14[rsi14.length - 1];
+  const activeCandle =
+    hoverIndex !== null && candles[hoverIndex]
+      ? candles[hoverIndex]
+      : candles.length > 0
+        ? candles[candles.length - 1]
+        : fallbackCandle;
+  const activeEma20 =
+    hoverIndex !== null && ema20[hoverIndex] !== undefined
+      ? ema20[hoverIndex]
+      : ema20.length > 0
+        ? ema20[ema20.length - 1]
+        : null;
+  const activeRsi =
+    hoverIndex !== null && rsi14[hoverIndex] !== undefined
+      ? rsi14[hoverIndex]
+      : rsi14.length > 0
+        ? rsi14[rsi14.length - 1]
+        : null;
 
   // SVG Chart Geometry
   const width = 800;
@@ -167,35 +203,51 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
 
   // Visible Slice according to Zoom
   const visibleCandles = useMemo(() => {
+    if (candles.length === 0) return [];
     const visibleCount = Math.max(20, Math.round(candles.length / zoomLevel));
-    return candles.slice(candles.length - visibleCount);
+    return candles.slice(Math.max(0, candles.length - visibleCount));
   }, [candles, zoomLevel]);
 
-  const minPrice = Math.min(...visibleCandles.map((c) => c.low));
-  const maxPrice = Math.max(...visibleCandles.map((c) => c.high));
-  const priceRange = maxPrice - minPrice || 1;
-  const maxVolume = Math.max(...visibleCandles.map((c) => c.volume)) || 1;
+  const isJpy = symbol.includes('JPY');
+  const priceDecimals = isJpy ? 3 : 5;
+  const hasCandles = visibleCandles.length > 0;
+  const minPrice = hasCandles ? Math.min(...visibleCandles.map((c) => c.low)) : 1.0;
+  const maxPrice = hasCandles ? Math.max(...visibleCandles.map((c) => c.high)) : 1.1;
+  const priceRange = maxPrice > minPrice ? maxPrice - minPrice : 0.001;
+  const maxVolume = hasCandles ? Math.max(...visibleCandles.map((c) => c.volume)) || 1 : 1;
 
   const getY = (val: number) => padding.top + chartHeight - ((val - minPrice) / priceRange) * chartHeight;
-  const candleStep = chartWidth / visibleCandles.length;
+  const candleStep = hasCandles ? chartWidth / visibleCandles.length : chartWidth;
 
   // Grid price ticks
   const priceTicks = [0.15, 0.38, 0.62, 0.85].map((pct) => minPrice + priceRange * pct);
 
   // Target Stop Loss & Take Profit Levels
-  const currentPrice = candles[candles.length - 1]?.close || 1.0850;
-  const stopLossPrice = Number((currentPrice - atr14 * 1.5).toFixed(symbol.includes('JPY') ? 3 : 5));
-  const takeProfitPrice = Number((currentPrice + atr14 * 2.5).toFixed(symbol.includes('JPY') ? 3 : 5));
+  const currentPrice = candles.length > 0 ? candles[candles.length - 1].close : 0;
+  const stopLossPrice = currentPrice > 0 ? Number((currentPrice - atr14 * 1.5).toFixed(priceDecimals)) : 0;
+  const takeProfitPrice = currentPrice > 0 ? Number((currentPrice + atr14 * 2.5).toFixed(priceDecimals)) : 0;
 
-  const handleExecutePaperOrder = (side: 'BUY' | 'SELL') => {
+  const handleExecutePaperOrder = async (side: 'BUY' | 'SELL') => {
     setIsOrderSubmitting(true);
-    setTimeout(() => {
-      setIsOrderSubmitting(false);
-      toast.success(`[PAPER] Simulated ${side} Order Filled: ${lotSize} Lots ${symbol} @ ${currentPrice}`);
+    try {
+      const units = Math.round(lotSize * 100000);
+      const res = await ordersApi.create({
+        symbol,
+        side,
+        order_type: 'MARKET',
+        quantity: units,
+      });
+      toast.success(
+        `[PAPER] Order Submitted: ${res.symbol} ${res.side} (${res.status || 'SUBMITTED'})`
+      );
       if (onPlaceOrder) {
-        onPlaceOrder(side, lotSize * 100000);
+        onPlaceOrder(side, units);
       }
-    }, 400);
+    } catch (err) {
+      toast.error(getErrorMessage(err));
+    } finally {
+      setIsOrderSubmitting(false);
+    }
   };
 
   return (
@@ -215,19 +267,19 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
             <h2 className="text-sm font-bold font-mono text-slate-100">{symbol}</h2>
           </div>
           <div className="text-sm font-bold font-mono text-emerald-400 tabular-nums">
-            {currentPrice.toFixed(symbol.includes('JPY') ? 3 : 5)}
+            {currentPrice > 0 ? currentPrice.toFixed(priceDecimals) : '--'}
           </div>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">
-            +0.32%
+          <span className="text-[10px] font-mono text-slate-400 bg-[#090D16] border border-[#1E293B] px-1.5 py-0.5 rounded">
+            {timeframe}
           </span>
           <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
-            ATR: {atr14.toFixed(symbol.includes('JPY') ? 3 : 5)}
+            ATR: {atr14 > 0 ? atr14.toFixed(priceDecimals) : '--'}
           </span>
         </div>
 
-        {/* Timeframe Selector */}
+        {/* Timeframe Selector (Canonical Backend Timeframes) */}
         <div className="flex items-center gap-1 bg-[#090D16] p-0.5 rounded-lg border border-[#1E293B]">
-          {(['1m', '5m', '15m', '1h', '4h', '1d'] as const).map((tf) => (
+          {(['M1', 'M5', 'M15', 'H1', 'H4', 'D1'] as const).map((tf) => (
             <button
               key={tf}
               type="button"
@@ -238,7 +290,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {tf.toUpperCase()}
+              {tf}
             </button>
           ))}
         </div>
@@ -299,7 +351,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
             <button
               type="button"
               onClick={() => setZoomLevel((z) => Math.min(2.5, z + 0.25))}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded cursor-pointer"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
@@ -307,7 +359,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
             <button
               type="button"
               onClick={() => setZoomLevel((z) => Math.max(0.75, z - 0.25))}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded cursor-pointer"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
@@ -315,7 +367,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
             <button
               type="button"
               onClick={() => setZoomLevel(1)}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded cursor-pointer"
               title="Reset Zoom"
             >
               <RotateCcw className="w-3 h-3" />
@@ -323,7 +375,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
             <button
               type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded"
+              className="p-1 text-slate-400 hover:text-slate-200 hover:bg-[#1A2742] rounded cursor-pointer"
               title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
             >
               {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -338,271 +390,310 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
           TIME: <span className="text-slate-200">{activeCandle.time}</span>
         </div>
         <div>
-          O: <span className="text-slate-200">{activeCandle.open}</span>
+          O: <span className="text-slate-200">{activeCandle.open > 0 ? activeCandle.open.toFixed(priceDecimals) : '--'}</span>
         </div>
         <div>
-          H: <span className="text-emerald-400">{activeCandle.high}</span>
+          H: <span className="text-emerald-400">{activeCandle.high > 0 ? activeCandle.high.toFixed(priceDecimals) : '--'}</span>
         </div>
         <div>
-          L: <span className="text-rose-400">{activeCandle.low}</span>
+          L: <span className="text-rose-400">{activeCandle.low > 0 ? activeCandle.low.toFixed(priceDecimals) : '--'}</span>
         </div>
         <div>
-          C: <span className={activeCandle.close >= activeCandle.open ? 'text-emerald-400' : 'text-rose-400'}>{activeCandle.close}</span>
+          C: <span className={activeCandle.close >= activeCandle.open ? 'text-emerald-400' : 'text-rose-400'}>
+            {activeCandle.close > 0 ? activeCandle.close.toFixed(priceDecimals) : '--'}
+          </span>
         </div>
         <div>
           VOL: <span className="text-slate-200">{activeCandle.volume.toLocaleString()}</span>
         </div>
-        {showEMA && activeEma20 && (
+        {showEMA && activeEma20 != null && (
           <div>
-            EMA(20): <span className="text-sky-400">{activeEma20.toFixed(symbol.includes('JPY') ? 3 : 5)}</span>
+            EMA(20): <span className="text-sky-400">{activeEma20.toFixed(priceDecimals)}</span>
           </div>
         )}
-        {showRSI && activeRsi && (
+        {showRSI && activeRsi != null && (
           <div>
             RSI(14): <span className="text-amber-400">{activeRsi.toFixed(1)}</span>
           </div>
         )}
       </div>
 
-      {/* Interactive Candlestick Chart SVG Canvas */}
-      <div className="relative flex-1 bg-[#090D16] select-none">
-        <svg
-          viewBox={`0 0 ${width} ${height}`}
-          className="w-full h-auto block"
-          onMouseLeave={() => setHoverIndex(null)}
-          onMouseMove={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const relX = ((e.clientX - rect.left) / rect.width) * width - padding.left;
-            const idx = Math.floor(relX / candleStep);
-            if (idx >= 0 && idx < visibleCandles.length) {
-              setHoverIndex(idx);
-            }
-          }}
-        >
-          {/* Subtle Grid Lines & Y-Axis Labels */}
-          {priceTicks.map((price, i) => {
-            const y = getY(price);
-            return (
-              <g key={i}>
-                <line
-                  x1={padding.left}
-                  y1={y}
-                  x2={width - padding.right}
-                  y2={y}
-                  stroke="#1E293B"
-                  strokeDasharray="3 3"
-                  strokeWidth="1"
-                />
-                <text
-                  x={width - padding.right + 6}
-                  y={y + 3}
-                  fill="#64748B"
-                  fontSize="10"
-                  fontFamily="JetBrains Mono"
-                  textAnchor="start"
-                >
-                  {price.toFixed(symbol.includes('JPY') ? 3 : 5)}
-                </text>
-              </g>
-            );
-          })}
+      {/* Candlestick Chart SVG Canvas / State Container */}
+      <div className="relative flex-1 bg-[#090D16] select-none min-h-[360px] flex items-center justify-center">
+        {/* Loading Overlay */}
+        {candlesLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090D16]/80 backdrop-blur-sm z-10">
+            <Loader2 className="w-6 h-6 text-sky-400 animate-spin mb-2" />
+            <span className="text-xs font-mono text-slate-300">
+              Loading {symbol} ({timeframe}) market candles...
+            </span>
+          </div>
+        )}
 
-          {/* Volume Bars */}
-          {showVolume &&
-            visibleCandles.map((c, i) => {
-              const x = padding.left + i * candleStep + candleStep / 2;
-              const isGreen = c.close >= c.open;
-              const barHeight = (c.volume / maxVolume) * 45;
-              const y = height - padding.bottom - barHeight;
+        {/* Error Overlay */}
+        {candlesError && !candlesLoading && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090D16]/90 p-4 text-center z-10">
+            <AlertCircle className="w-6 h-6 text-rose-400 mb-2" />
+            <span className="text-xs font-mono text-slate-200 mb-1">Failed to load market data</span>
+            <span className="text-[11px] font-mono text-slate-400 mb-3 max-w-sm">{candlesError}</span>
+            <button
+              type="button"
+              onClick={() => fetchCandles()}
+              className="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded text-xs font-mono flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!candlesLoading && !candlesError && candles.length === 0 && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#090D16] p-4 text-center z-10">
+            <span className="text-xs font-mono text-slate-400">
+              Market data unavailable for {symbol} ({timeframe})
+            </span>
+            <button
+              type="button"
+              onClick={() => fetchCandles()}
+              className="mt-2 text-xs font-mono text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <RotateCcw className="w-3 h-3" /> Retry
+            </button>
+          </div>
+        )}
+
+        {/* SVG Chart when candles exist */}
+        {hasCandles && (
+          <svg
+            viewBox={`0 0 ${width} ${height}`}
+            className="w-full h-auto block"
+            onMouseLeave={() => setHoverIndex(null)}
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              const relX = ((e.clientX - rect.left) / rect.width) * width - padding.left;
+              const idx = Math.floor(relX / candleStep);
+              if (idx >= 0 && idx < visibleCandles.length) {
+                setHoverIndex(idx);
+              }
+            }}
+          >
+            {/* Subtle Grid Lines & Y-Axis Labels */}
+            {priceTicks.map((price, i) => {
+              const y = getY(price);
               return (
-                <rect
-                  key={`vol-${i}`}
-                  x={x - candleStep * 0.35}
-                  y={y}
-                  width={candleStep * 0.7}
-                  height={barHeight}
-                  fill={isGreen ? '#10B981' : '#F43F5E'}
-                  opacity="0.22"
-                />
+                <g key={i}>
+                  <line
+                    x1={padding.left}
+                    y1={y}
+                    x2={width - padding.right}
+                    y2={y}
+                    stroke="#1E293B"
+                    strokeDasharray="3 3"
+                    strokeWidth="1"
+                  />
+                  <text
+                    x={width - padding.right + 6}
+                    y={y + 3}
+                    fill="#64748B"
+                    fontSize="10"
+                    fontFamily="JetBrains Mono"
+                    textAnchor="start"
+                  >
+                    {price.toFixed(priceDecimals)}
+                  </text>
+                </g>
               );
             })}
 
-          {/* Visible Stop Loss & Take Profit Reference Levels */}
-          <g>
-            {/* Take Profit (Green Dashed) */}
-            <line
-              x1={padding.left}
-              y1={getY(takeProfitPrice)}
-              x2={width - padding.right}
-              y2={getY(takeProfitPrice)}
-              stroke="#10B981"
-              strokeDasharray="4 4"
-              strokeWidth="1.2"
-              opacity="0.8"
-            />
-            <rect
-              x={width - padding.right + 2}
-              y={getY(takeProfitPrice) - 8}
-              width="58"
-              height="16"
-              fill="#064E3B"
-              rx="3"
-            />
-            <text
-              x={width - padding.right + 6}
-              y={getY(takeProfitPrice) + 4}
-              fill="#34D399"
-              fontSize="9"
-              fontFamily="JetBrains Mono"
-              fontWeight="bold"
-            >
-              TP {takeProfitPrice}
-            </text>
+            {/* Volume Bars */}
+            {showVolume &&
+              visibleCandles.map((c, i) => {
+                const x = padding.left + i * candleStep + candleStep / 2;
+                const isGreen = c.close >= c.open;
+                const barHeight = (c.volume / maxVolume) * 45;
+                const y = height - padding.bottom - barHeight;
+                return (
+                  <rect
+                    key={`vol-${i}`}
+                    x={x - candleStep * 0.35}
+                    y={y}
+                    width={candleStep * 0.7}
+                    height={barHeight}
+                    fill={isGreen ? '#10B981' : '#F43F5E'}
+                    opacity="0.22"
+                  />
+                );
+              })}
 
-            {/* Stop Loss (Red Dashed) */}
-            <line
-              x1={padding.left}
-              y1={getY(stopLossPrice)}
-              x2={width - padding.right}
-              y2={getY(stopLossPrice)}
-              stroke="#F43F5E"
-              strokeDasharray="4 4"
-              strokeWidth="1.2"
-              opacity="0.8"
-            />
-            <rect
-              x={width - padding.right + 2}
-              y={getY(stopLossPrice) - 8}
-              width="58"
-              height="16"
-              fill="#4C0519"
-              rx="3"
-            />
-            <text
-              x={width - padding.right + 6}
-              y={getY(stopLossPrice) + 4}
-              fill="#FB7185"
-              fontSize="9"
-              fontFamily="JetBrains Mono"
-              fontWeight="bold"
-            >
-              SL {stopLossPrice}
-            </text>
-          </g>
-
-          {/* Candlesticks (Wicks & Bodies) */}
-          {visibleCandles.map((c, i) => {
-            const x = padding.left + i * candleStep + candleStep / 2;
-            const isGreen = c.close >= c.open;
-            const color = isGreen ? '#10B981' : '#F43F5E';
-            const candleBodyTop = getY(Math.max(c.open, c.close));
-            const candleBodyHeight = Math.max(2, Math.abs(getY(c.open) - getY(c.close)));
-            const wickTop = getY(c.high);
-            const wickBottom = getY(c.low);
-
-            return (
-              <g key={`candle-${i}`}>
-                {/* Wick */}
+            {/* Visible Stop Loss & Take Profit Reference Levels */}
+            {currentPrice > 0 && (
+              <g>
+                {/* Take Profit (Green Dashed) */}
                 <line
-                  x1={x}
-                  y1={wickTop}
-                  x2={x}
-                  y2={wickBottom}
-                  stroke={color}
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
+                  x1={padding.left}
+                  y1={getY(takeProfitPrice)}
+                  x2={width - padding.right}
+                  y2={getY(takeProfitPrice)}
+                  stroke="#10B981"
+                  strokeDasharray="4 4"
+                  strokeWidth="1.2"
+                  opacity="0.8"
                 />
-                {/* Body */}
                 <rect
-                  x={x - candleStep * 0.35}
-                  y={candleBodyTop}
-                  width={candleStep * 0.7}
-                  height={candleBodyHeight}
-                  fill={isGreen ? '#10B981' : '#F43F5E'}
-                  rx="1"
+                  x={width - padding.right + 2}
+                  y={getY(takeProfitPrice) - 8}
+                  width="58"
+                  height="16"
+                  fill="#064E3B"
+                  rx="3"
+                />
+                <text
+                  x={width - padding.right + 6}
+                  y={getY(takeProfitPrice) + 4}
+                  fill="#34D399"
+                  fontSize="9"
+                  fontFamily="JetBrains Mono"
+                  fontWeight="bold"
+                >
+                  TP {takeProfitPrice}
+                </text>
+
+                {/* Stop Loss (Red Dashed) */}
+                <line
+                  x1={padding.left}
+                  y1={getY(stopLossPrice)}
+                  x2={width - padding.right}
+                  y2={getY(stopLossPrice)}
+                  stroke="#F43F5E"
+                  strokeDasharray="4 4"
+                  strokeWidth="1.2"
+                  opacity="0.8"
+                />
+                <rect
+                  x={width - padding.right + 2}
+                  y={getY(stopLossPrice) - 8}
+                  width="58"
+                  height="16"
+                  fill="#4C0519"
+                  rx="3"
+                />
+                <text
+                  x={width - padding.right + 6}
+                  y={getY(stopLossPrice) + 4}
+                  fill="#FB7185"
+                  fontSize="9"
+                  fontFamily="JetBrains Mono"
+                  fontWeight="bold"
+                >
+                  SL {stopLossPrice}
+                </text>
+              </g>
+            )}
+
+            {/* Candlesticks (Wicks & Bodies) */}
+            {visibleCandles.map((c, i) => {
+              const x = padding.left + i * candleStep + candleStep / 2;
+              const isGreen = c.close >= c.open;
+              const color = isGreen ? '#10B981' : '#F43F5E';
+              const candleBodyTop = getY(Math.max(c.open, c.close));
+              const candleBodyHeight = Math.max(2, Math.abs(getY(c.open) - getY(c.close)));
+              const wickTop = getY(c.high);
+              const wickBottom = getY(c.low);
+
+              return (
+                <g key={`candle-${i}`}>
+                  {/* Wick */}
+                  <line
+                    x1={x}
+                    y1={wickTop}
+                    x2={x}
+                    y2={wickBottom}
+                    stroke={color}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                  {/* Body */}
+                  <rect
+                    x={x - candleStep * 0.35}
+                    y={candleBodyTop}
+                    width={candleStep * 0.7}
+                    height={candleBodyHeight}
+                    fill={color}
+                    rx="1"
+                  />
+                </g>
+              );
+            })}
+
+            {/* EMA 20 Overlay Line */}
+            {showEMA && (
+              <polyline
+                fill="none"
+                stroke="#38BDF8"
+                strokeWidth="1.8"
+                opacity="0.9"
+                points={visibleCandles
+                  .map((_, i) => {
+                    const val = ema20[candles.length - visibleCandles.length + i];
+                    if (val == null) return null;
+                    const x = padding.left + i * candleStep + candleStep / 2;
+                    const y = getY(val);
+                    return `${x},${y}`;
+                  })
+                  .filter(Boolean)
+                  .join(' ')}
+              />
+            )}
+
+            {/* EMA 50 Overlay Line */}
+            {showEMA && (
+              <polyline
+                fill="none"
+                stroke="#FBBF24"
+                strokeWidth="1.6"
+                strokeDasharray="4 2"
+                opacity="0.8"
+                points={visibleCandles
+                  .map((_, i) => {
+                    const val = ema50[candles.length - visibleCandles.length + i];
+                    if (val == null) return null;
+                    const x = padding.left + i * candleStep + candleStep / 2;
+                    const y = getY(val);
+                    return `${x},${y}`;
+                  })
+                  .filter(Boolean)
+                  .join(' ')}
+              />
+            )}
+
+            {/* Interactive Crosshair Guidelines */}
+            {hoverIndex !== null && hoverIndex < visibleCandles.length && (
+              <g>
+                {/* Vertical line */}
+                <line
+                  x1={padding.left + hoverIndex * candleStep + candleStep / 2}
+                  y1={padding.top}
+                  x2={padding.left + hoverIndex * candleStep + candleStep / 2}
+                  y2={height - padding.bottom}
+                  stroke="#94A3B8"
+                  strokeDasharray="2 2"
+                  strokeWidth="1"
+                />
+                {/* Horizontal line */}
+                <line
+                  x1={padding.left}
+                  y1={getY(visibleCandles[hoverIndex].close)}
+                  x2={width - padding.right}
+                  y2={getY(visibleCandles[hoverIndex].close)}
+                  stroke="#94A3B8"
+                  strokeDasharray="2 2"
+                  strokeWidth="1"
                 />
               </g>
-            );
-          })}
-
-          {/* EMA 20 Overlay Line */}
-          {showEMA && (
-            <polyline
-              fill="none"
-              stroke="#38BDF8"
-              strokeWidth="1.8"
-              opacity="0.9"
-              points={visibleCandles
-                .map((_, i) => {
-                  const val = ema20[candles.length - visibleCandles.length + i];
-                  if (val == null) return null;
-                  const x = padding.left + i * candleStep + candleStep / 2;
-                  const y = getY(val);
-                  return `${x},${y}`;
-                })
-                .filter(Boolean)
-                .join(' ')}
-            />
-          )}
-
-          {/* EMA 50 Overlay Line */}
-          {showEMA && (
-            <polyline
-              fill="none"
-              stroke="#FBBF24"
-              strokeWidth="1.6"
-              strokeDasharray="4 2"
-              opacity="0.8"
-              points={visibleCandles
-                .map((_, i) => {
-                  const val = ema50[candles.length - visibleCandles.length + i];
-                  if (val == null) return null;
-                  const x = padding.left + i * candleStep + candleStep / 2;
-                  const y = getY(val);
-                  return `${x},${y}`;
-                })
-                .filter(Boolean)
-                .join(' ')}
-            />
-          )}
-
-          {/* Strategy Signal Marker on Recent Setup Candle */}
-          {visibleCandles.length > 5 && (
-            <g transform={`translate(${padding.left + (visibleCandles.length - 4) * candleStep + candleStep / 2}, ${getY(visibleCandles[visibleCandles.length - 4].low) + 18})`}>
-              <path d="M 0 -8 L 6 2 L -6 2 Z" fill="#38BDF8" />
-              <rect x="-38" y="4" width="76" height="14" rx="2" fill="#0C4A6E" stroke="#0284C7" strokeWidth="0.8" />
-              <text x="0" y="14" fill="#E0F2FE" fontSize="8" fontFamily="JetBrains Mono" fontWeight="bold" textAnchor="middle">
-                ▲ ORION SIGNAL
-              </text>
-            </g>
-          )}
-
-          {/* Interactive Crosshair Guidelines */}
-          {hoverIndex !== null && hoverIndex < visibleCandles.length && (
-            <g>
-              {/* Vertical line */}
-              <line
-                x1={padding.left + hoverIndex * candleStep + candleStep / 2}
-                y1={padding.top}
-                x2={padding.left + hoverIndex * candleStep + candleStep / 2}
-                y2={height - padding.bottom}
-                stroke="#94A3B8"
-                strokeDasharray="2 2"
-                strokeWidth="1"
-              />
-              {/* Horizontal line */}
-              <line
-                x1={padding.left}
-                y1={getY(visibleCandles[hoverIndex].close)}
-                x2={width - padding.right}
-                y2={getY(visibleCandles[hoverIndex].close)}
-                stroke="#94A3B8"
-                strokeDasharray="2 2"
-                strokeWidth="1"
-              />
-            </g>
-          )}
-        </svg>
+            )}
+          </svg>
+        )}
       </div>
 
       {/* Sub-Indicator Panels (RSI / MACD) */}
@@ -610,7 +701,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
         <div className="px-4 py-2 bg-[#0B101D] border-t border-[#1E293B] flex items-center justify-between font-mono text-[11px]">
           <div className="flex items-center gap-3">
             <span className="text-amber-400 font-bold">RSI(14):</span>
-            <span className="text-slate-100 font-semibold">{activeRsi ? activeRsi.toFixed(1) : '56.4'}</span>
+            <span className="text-slate-100 font-semibold">{activeRsi != null ? activeRsi.toFixed(1) : '--'}</span>
             <span className="text-[10px] text-slate-500">Thresholds: 70 (Overbought) / 30 (Oversold)</span>
           </div>
           <div className="flex items-center gap-2">
@@ -620,7 +711,9 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
                 style={{ width: `${Math.min(100, Math.max(0, activeRsi || 50))}%` }}
               />
             </div>
-            <span className="text-[10px] text-slate-400">Neutral Range</span>
+            <span className="text-[10px] text-slate-400">
+              {activeRsi != null ? (activeRsi > 70 ? 'Overbought' : activeRsi < 30 ? 'Oversold' : 'Neutral Range') : 'No Data'}
+            </span>
           </div>
         </div>
       )}
@@ -629,9 +722,9 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
         <div className="px-4 py-2 bg-[#0B101D] border-t border-[#1E293B] flex items-center justify-between font-mono text-[11px]">
           <div className="flex items-center gap-3">
             <span className="text-sky-400 font-bold">MACD(12,26,9):</span>
-            <span className="text-emerald-400 font-semibold">+0.00034</span>
-            <span className="text-slate-400">Signal: +0.00021</span>
-            <span className="text-emerald-400 font-bold">Hist: +0.00013 (Bullish Expansion)</span>
+            <span className="text-slate-400">
+              {hasCandles ? 'Calculated on live series' : 'Awaiting data'}
+            </span>
           </div>
         </div>
       )}
@@ -660,25 +753,27 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            disabled={isOrderSubmitting}
+            disabled={isOrderSubmitting || currentPrice === 0}
             onClick={() => handleExecutePaperOrder('SELL')}
-            className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-mono text-xs font-bold shadow-sm shadow-rose-950 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-mono text-xs font-bold shadow-sm shadow-rose-950 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            {isOrderSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>SELL</span>
             <span className="text-[10px] opacity-80 tabular-nums">
-              {(currentPrice - 0.00015).toFixed(symbol.includes('JPY') ? 3 : 5)}
+              {currentPrice > 0 ? (currentPrice - (isJpy ? 0.015 : 0.00015)).toFixed(priceDecimals) : '--'}
             </span>
           </button>
 
           <button
             type="button"
-            disabled={isOrderSubmitting}
+            disabled={isOrderSubmitting || currentPrice === 0}
             onClick={() => handleExecutePaperOrder('BUY')}
-            className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono text-xs font-bold shadow-sm shadow-emerald-950 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-mono text-xs font-bold shadow-sm shadow-emerald-950 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
+            {isOrderSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
             <span>BUY</span>
             <span className="text-[10px] opacity-80 tabular-nums">
-              {(currentPrice + 0.00015).toFixed(symbol.includes('JPY') ? 3 : 5)}
+              {currentPrice > 0 ? (currentPrice + (isJpy ? 0.015 : 0.00015)).toFixed(priceDecimals) : '--'}
             </span>
           </button>
         </div>

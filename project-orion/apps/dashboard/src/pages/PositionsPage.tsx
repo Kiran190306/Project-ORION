@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Search, Filter } from 'lucide-react';
-import { positionsApi } from '../api/endpoints';
-import type { PositionResponse } from '../api/types';
+import { RefreshCw, Search, Filter, Layers } from 'lucide-react';
+import { positionsApi, strategiesApi } from '../api/endpoints';
+import type { PositionResponse, AccountStrategyConfigResponse } from '../api/types';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge, PaperTradingBadge } from '../components/common/Badge';
@@ -19,6 +19,8 @@ export const PositionsPage: React.FC = () => {
   const [offset, setOffset] = useState(0);
   const [symbolFilter, setSymbolFilter] = useState('');
   const [openFilter, setOpenFilter] = useState<string>('true'); // Default to open
+  const [strategyFilter, setStrategyFilter] = useState('');
+  const [availableStrategies, setAvailableStrategies] = useState<AccountStrategyConfigResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +30,23 @@ export const PositionsPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const toast = useToast();
+
+  const fetchStrategies = useCallback(async () => {
+    try {
+      const configs = await strategiesApi.listAccountConfigs();
+      if (Array.isArray(configs)) {
+        setAvailableStrategies(configs);
+      } else {
+        setAvailableStrategies([]);
+      }
+    } catch {
+      setAvailableStrategies([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStrategies();
+  }, [fetchStrategies]);
 
   const fetchPositions = useCallback(async () => {
     setIsLoading(true);
@@ -40,6 +59,7 @@ export const PositionsPage: React.FC = () => {
         offset,
         symbol: symbolFilter.trim() || undefined,
         is_open: isOpenParam,
+        strategy_id: strategyFilter || undefined,
       });
       setPositions(res.items);
       setTotal(res.total);
@@ -49,7 +69,7 @@ export const PositionsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [limit, offset, symbolFilter, openFilter]);
+  }, [limit, offset, symbolFilter, openFilter, strategyFilter]);
 
   useEffect(() => {
     fetchPositions();
@@ -83,9 +103,29 @@ export const PositionsPage: React.FC = () => {
       ),
     },
     {
+      header: 'Order Ref',
+      render: (item) =>
+        item.order_id ? (
+          <span className="font-mono text-xs text-slate-400" title={item.order_id}>
+            {item.order_id.substring(0, 8)}&hellip;
+          </span>
+        ) : (
+          <span className="text-slate-600 text-xs font-mono">—</span>
+        ),
+    },
+    {
       header: 'Symbol',
       accessor: 'symbol',
       className: 'font-bold font-mono text-slate-100',
+    },
+    {
+      header: 'Strategy',
+      render: (item) =>
+        item.strategy_id ? (
+          <Badge variant="info">{item.strategy_id}</Badge>
+        ) : (
+          <span className="text-slate-500 font-mono text-xs">Manual</span>
+        ),
     },
     {
       header: 'Side',
@@ -204,6 +244,25 @@ export const PositionsPage: React.FC = () => {
               <option value="">All Positions</option>
             </select>
           </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Layers className="w-3.5 h-3.5 text-slate-500" />
+            <select
+              value={strategyFilter}
+              onChange={(e) => {
+                setStrategyFilter(e.target.value);
+                setOffset(0);
+              }}
+              className="w-full sm:w-auto px-3 py-1.5 rounded-md bg-slate-950 border border-slate-800 text-slate-200 focus:border-sky-500 focus:outline-none"
+            >
+              <option value="">All Strategies</option>
+              {(availableStrategies || []).map((s) => (
+                <option key={s.strategy_id} value={s.strategy_id}>
+                  {s.strategy_id} ({s.deployment_status || (s.is_active ? 'ACTIVE' : 'INACTIVE')})
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </Card>
 
@@ -250,6 +309,18 @@ export const PositionsPage: React.FC = () => {
                 <span className="text-slate-500">Position ID:</span>
                 <span>{selectedPosition.id}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Strategy:</span>
+                <span className="font-semibold text-sky-400">
+                  {selectedPosition.strategy_id || 'Manual Execution'}
+                </span>
+              </div>
+              {selectedPosition.order_id && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Originating Order:</span>
+                  <span className="font-mono text-slate-400">{selectedPosition.order_id}</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-slate-500">Instrument:</span>
                 <span className="font-bold text-slate-100">

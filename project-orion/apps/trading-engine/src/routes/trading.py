@@ -25,20 +25,46 @@ from ..dependencies import (
     get_db_session,
     get_metrics_registry,
     get_paper_trading_service,
+    get_paper_adapter,
     get_user_account,
     require_permission,
 )
-from ..schemas import PaperTradeRequest, PaperTradeResponse
+from ..schemas import (
+    PaperTradeRequest,
+    PaperTradeResponse,
+    PositionSizingRequest,
+    PositionSizingResponse,
+)
 from ..services.entitlement_service import EntitlementService
 from ..services.paper_trading import (
     PaperTradingError,
     PaperTradingNotReadyError,
     PaperTradingService,
 )
+from ..services.position_sizing_service import PositionSizingService
 
 logger = logging.getLogger("trading_engine.routes.trading")
 
 router = APIRouter(prefix="/api/v1", tags=["Trading"])
+
+
+@router.post(
+    "/trading/position-size",
+    response_model=PositionSizingResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Calculate Position Sizing",
+    description="Calculate position sizing for trading orders based on real account balance and risk parameters.",
+)
+async def calculate_trading_position_size(
+    request: PositionSizingRequest,
+    account: Annotated[AccountModel, Depends(get_user_account)],
+    adapter: Annotated[Any, Depends(get_paper_adapter)],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.ORDER_CREATE))],
+) -> PositionSizingResponse:
+    """Calculate position size for trading orders."""
+    service = PositionSizingService(account=account, adapter=adapter)
+    return await service.calculate_size(request)
 
 
 @router.post(
