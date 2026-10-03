@@ -263,6 +263,7 @@ class PositionIntent:
     target_quantity: Decimal
     stop_loss: Decimal | None = None
     take_profit: Decimal | None = None
+    trailing_distance: Decimal | None = None
     max_risk: Decimal | None = None
     timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""

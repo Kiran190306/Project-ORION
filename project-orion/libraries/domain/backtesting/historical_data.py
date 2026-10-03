@@ -8,17 +8,37 @@ and streaming replay. All providers follow the same interface.
 from __future__ import annotations
 
 import abc
+import calendar
 import csv
+import hashlib
 import random
+from collections.abc import AsyncIterator
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, AsyncIterator
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from libraries.domain.backtesting.exceptions import (
     DataFormatError,
     DataNotFoundError,
+    HistoricalDataUnavailableError,
 )
 from libraries.domain.backtesting.models import Timeframe
+from libraries.domain.research.models import DatasetProvenance, DataSourceMode
+
+if TYPE_CHECKING:
+    from libraries.domain.market_data.models import BarType
+
+
+def _sanitize_error_message(msg: str) -> str:
+    """Strip API keys, tokens, and credentials from error messages to maintain audit security."""
+    import re
+
+    return re.sub(
+        r"(?i)(api[_-]?key|token|secret|password|bearer\s+|authorization)\s*[:=]\s*[^\s&,;\"']+",
+        r"\1=[REDACTED]",
+        msg,
+    )
+
 
 
 class HistoricalDataProvider(abc.ABC):
@@ -150,7 +170,7 @@ class CsvProvider(HistoricalDataProvider):
         end_date: date,
     ) -> list[dict[str, Any]]:
         try:
-            with open(self._file_path, "r") as f:
+            with open(self._file_path, "r", encoding="utf-8") as f:  # noqa: ASYNC230 - local file CSV provider; aiofiles is not an installed dependency
                 reader = csv.DictReader(f)
                 candles = []
                 for row in reader:
@@ -172,7 +192,7 @@ class CsvProvider(HistoricalDataProvider):
                 return candles
         except FileNotFoundError:
             raise DataNotFoundError(f"CSV file not found: {self._file_path}")
-        except Exception as e:
+        except (csv.Error, ValueError, KeyError, OSError) as e:
             raise DataFormatError(f"Failed to parse CSV: {e}")
 
     async def load_ticks(
@@ -380,7 +400,7 @@ class StreamingReplayProvider(HistoricalDataProvider):
 class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
     """Bridges MarketDataService and canonical market data into BacktestEngine."""
 
-    _BASE_PRICES: dict[str, Decimal] = {
+    _BASE_PRICES: ClassVar[dict[str, Decimal]] = {
         "EUR/USD": Decimal("1.08500"),
         "GBP/USD": Decimal("1.26500"),
         "USD/JPY": Decimal("151.200"),
@@ -393,9 +413,28 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
         self,
         market_data_service: Any | None = None,
         quality_engine: Any | None = None,
+        source_mode: DataSourceMode | str | None = None,
     ) -> None:
         self._service = market_data_service
         self._quality = quality_engine
+        if isinstance(source_mode, str):
+            sm = source_mode.lower()
+            if sm in ("real", "external"):
+                self._source_mode: DataSourceMode | None = DataSourceMode.EXTERNAL
+            elif sm in ("synthetic", "deterministic"):
+                self._source_mode = DataSourceMode.SYNTHETIC
+            elif sm == "auto":
+                self._source_mode = DataSourceMode.AUTO
+            else:
+                self._source_mode = DataSourceMode(sm)
+        else:
+            self._source_mode = source_mode
+        self._last_provenance: DatasetProvenance | None = None
+
+    @property
+    def last_provenance(self) -> DatasetProvenance | None:
+        """Audit provenance of the most recently loaded dataset."""
+        return self._last_provenance
 
     async def load_candles(
         self,
@@ -403,17 +442,53 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
         timeframe: Timeframe,
         start_date: date,
         end_date: date,
+        source_mode: DataSourceMode | str | None = None,
     ) -> list[dict[str, Any]]:
-        from libraries.domain.market_data.normalization import normalize_symbol
+        from libraries.domain.market_data.normalization import (
+            bar_type_to_timeframe,
+            normalize_symbol,
+        )
 
         canonical = normalize_symbol(symbol)
+        tf_domain = bar_type_to_timeframe(timeframe)
         start_dt = datetime.combine(start_date, datetime.min.time(), tzinfo=timezone.utc)
         end_dt = datetime.combine(end_date, datetime.max.time(), tzinfo=timezone.utc)
+        tf_str = tf_domain.value
 
-        # 1. Attempt to load from MarketDataService if available
-        if self._service is not None and hasattr(self._service, "get_candles"):
+        # Resolve effective source mode
+        effective_mode = source_mode or self._source_mode
+        if isinstance(effective_mode, str):
+            em = effective_mode.lower()
+            if em in ("real", "external"):
+                effective_mode = DataSourceMode.EXTERNAL
+            elif em in ("synthetic", "deterministic"):
+                effective_mode = DataSourceMode.SYNTHETIC
+            elif em == "auto":
+                effective_mode = DataSourceMode.AUTO
+
+        if effective_mode is None or effective_mode == DataSourceMode.AUTO:
+            effective_mode = DataSourceMode.EXTERNAL if self._service is not None else DataSourceMode.SYNTHETIC
+
+        # 1. External Real Market Data Path
+        if effective_mode == DataSourceMode.EXTERNAL:
+            if self._service is None or not hasattr(self._service, "get_candles"):
+                raise HistoricalDataUnavailableError(
+                    symbol=canonical,
+                    timeframe=tf_str,
+                    start=start_dt,
+                    end=end_dt,
+                    provider="external",
+                    reason="External historical data requested but no MarketDataService is configured",
+                )
+
+            # Extract provider identity safely
+            provider_name = "external"
+            if hasattr(self._service, "provider") and hasattr(self._service.provider, "provider_name") and isinstance(self._service.provider.provider_name, str):
+                provider_name = self._service.provider.provider_name
+            elif hasattr(self._service, "provider_name") and isinstance(self._service.provider_name, str):
+                provider_name = self._service.provider_name
+
             try:
-                tf_str = timeframe.value if hasattr(timeframe, "value") else str(timeframe)
                 raw_candles = await self._service.get_candles(
                     symbol=canonical,
                     timeframe=tf_str,
@@ -421,49 +496,142 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
                     end=end_dt,
                     limit=1000,
                 )
-                if raw_candles:
-                    candles = []
-                    for c in raw_candles:
-                        candles.append(
-                            {
-                                "timestamp": c.timestamp if hasattr(c, "timestamp") else c["timestamp"],
-                                "open": Decimal(str(c.open if hasattr(c, "open") else c["open"])),
-                                "high": Decimal(str(c.high if hasattr(c, "high") else c["high"])),
-                                "low": Decimal(str(c.low if hasattr(c, "low") else c["low"])),
-                                "close": Decimal(str(c.close if hasattr(c, "close") else c["close"])),
-                                "volume": Decimal(
-                                    str(c.volume if hasattr(c, "volume") else c.get("volume", 100))
-                                ),
-                            }
-                        )
-                    candles.sort(key=lambda x: x["timestamp"])
-                    return candles
-            except Exception:
-                pass
+            except Exception as exc:
+                is_rate_limit = (
+                    "RateLimit" in type(exc).__name__
+                    or "429" in str(exc)
+                    or getattr(exc, "status_code", None) == 429
+                )
+                status_code = 429 if is_rate_limit else getattr(exc, "status_code", None)
+                sanitized_reason = _sanitize_error_message(str(exc))
+                raise HistoricalDataUnavailableError(
+                    symbol=canonical,
+                    timeframe=tf_str,
+                    start=start_dt,
+                    end=end_dt,
+                    provider=provider_name,
+                    reason=f"External provider failure: {sanitized_reason}",
+                    status_code=status_code,
+                    cause=exc,
+                ) from exc
 
-        # 2. Deterministic canonical candle generator
-        return self._generate_deterministic_candles(canonical, timeframe, start_dt, end_dt)
+            if not raw_candles:
+                raise HistoricalDataUnavailableError(
+                    symbol=canonical,
+                    timeframe=tf_str,
+                    start=start_dt,
+                    end=end_dt,
+                    provider=provider_name,
+                    reason="External provider returned zero candles for requested range",
+                )
+
+            candles = []
+            for c in raw_candles:
+                candles.append(
+                    {
+                        "timestamp": c.timestamp if hasattr(c, "timestamp") else c["timestamp"],
+                        "open": Decimal(str(c.open if hasattr(c, "open") else c["open"])),
+                        "high": Decimal(str(c.high if hasattr(c, "high") else c["high"])),
+                        "low": Decimal(str(c.low if hasattr(c, "low") else c["low"])),
+                        "close": Decimal(str(c.close if hasattr(c, "close") else c["close"])),
+                        "volume": Decimal(
+                            str(c.volume if hasattr(c, "volume") else c.get("volume", 100))
+                        ),
+                    }
+                )
+            candles.sort(key=lambda x: x["timestamp"])
+
+            # Verify integrity
+            for c in candles:
+                if (
+                    c["high"] < c["low"]
+                    or c["high"] < c["open"]
+                    or c["high"] < c["close"]
+                    or c["low"] > c["open"]
+                    or c["low"] > c["close"]
+                ):
+                    raise HistoricalDataUnavailableError(
+                        symbol=canonical,
+                        timeframe=tf_str,
+                        start=start_dt,
+                        end=end_dt,
+                        provider=provider_name,
+                        reason="Candle integrity violation: high/low bounds invalid",
+                    )
+
+            import hashlib
+
+            dataset_hash = None
+            if candles:
+                fp = f"{len(candles)}:{candles[0]['timestamp']}:{candles[0]['open']}:{candles[-1]['timestamp']}:{candles[-1]['close']}"
+                dataset_hash = hashlib.sha256(fp.encode()).hexdigest()[:16]
+
+            self._last_provenance = DatasetProvenance(
+                data_source="external",
+                provider=provider_name,
+                symbol=canonical,
+                timeframe=tf_str,
+                start=start_dt,
+                end=end_dt,
+                candle_count=len(candles),
+                synthetic=False,
+                deterministic=False,
+                data_quality="excellent",
+                dataset_hash=dataset_hash,
+            )
+            return candles
+
+        # 2. Deterministic Synthetic Data Path
+        elif effective_mode == DataSourceMode.SYNTHETIC:
+            candles = self._generate_deterministic_candles(canonical, tf_domain, start_dt, end_dt)
+            import hashlib
+
+            dataset_hash = None
+            if candles:
+                fp = f"{len(candles)}:{candles[0]['timestamp']}:{candles[0]['open']}:{candles[-1]['timestamp']}:{candles[-1]['close']}"
+                dataset_hash = hashlib.sha256(fp.encode()).hexdigest()[:16]
+
+            self._last_provenance = DatasetProvenance(
+                data_source="synthetic",
+                provider="deterministic_prng",
+                symbol=canonical,
+                timeframe=tf_str,
+                start=start_dt,
+                end=end_dt,
+                candle_count=len(candles),
+                synthetic=True,
+                deterministic=True,
+                data_quality=None,
+                dataset_hash=dataset_hash,
+            )
+            return candles
+
+        else:
+            raise ValueError(f"Unsupported data source mode: {effective_mode}")
 
     def _generate_deterministic_candles(
         self,
         symbol: str,
-        timeframe: Timeframe,
+        timeframe: Timeframe | BarType | str,
         start_dt: datetime,
         end_dt: datetime,
     ) -> list[dict[str, Any]]:
-        import hashlib
+        from libraries.domain.market_data.normalization import bar_type_to_timeframe
 
+        tf_domain = bar_type_to_timeframe(timeframe)
         base = self._BASE_PRICES.get(symbol, Decimal("1.08500"))
+        tf_val = tf_domain.value
 
-        tf_val = timeframe.value if hasattr(timeframe, "value") else str(timeframe)
-        step_minutes = {
-            "M1": 1,
-            "M5": 5,
-            "M15": 15,
-            "H1": 60,
-            "H4": 240,
-            "D1": 1440,
-        }.get(tf_val, 60)
+        step_map: dict[Timeframe, timedelta] = {
+            Timeframe.M1: timedelta(minutes=1),
+            Timeframe.M5: timedelta(minutes=5),
+            Timeframe.M15: timedelta(minutes=15),
+            Timeframe.M30: timedelta(minutes=30),
+            Timeframe.H1: timedelta(hours=1),
+            Timeframe.H4: timedelta(hours=4),
+            Timeframe.D1: timedelta(days=1),
+            Timeframe.WEEKLY: timedelta(weeks=1),
+        }
 
         seed_str = f"{symbol}_{start_dt.date().isoformat()}_{end_dt.date().isoformat()}_{tf_val}"
         seed_int = int(hashlib.sha256(seed_str.encode()).hexdigest()[:8], 16)
@@ -473,8 +641,13 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
         curr = start_dt
         current_price = float(base)
 
+        if tf_domain == Timeframe.WEEKLY and curr.weekday() >= 5:
+            curr += timedelta(days=(7 - curr.weekday()))
+
         while curr <= end_dt:
-            if curr.weekday() < 5:  # Mon-Fri
+            is_active_session = True if tf_domain in (Timeframe.WEEKLY, Timeframe.MONTHLY) else (curr.weekday() < 5)
+
+            if is_active_session:
                 drift = (rng.random() - 0.495) * 0.001 * current_price
                 open_p = current_price
                 close_p = open_p + drift
@@ -498,7 +671,14 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
                 )
                 current_price = close_p
 
-            curr += timedelta(minutes=step_minutes)
+            if tf_domain == Timeframe.MONTHLY:
+                year = curr.year + 1 if curr.month == 12 else curr.year
+                month = 1 if curr.month == 12 else curr.month + 1
+                max_day = calendar.monthrange(year, month)[1]
+                day = min(curr.day, max_day)
+                curr = curr.replace(year=year, month=month, day=day)
+            else:
+                curr += step_map[tf_domain]
 
         return candles
 
@@ -521,6 +701,7 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
         start_date: date,
         end_date: date,
     ) -> bool:
+        from libraries.domain.market_data.exceptions import SymbolNotFoundError
         from libraries.domain.market_data.normalization import (
             canonical_instruments,
             normalize_symbol,
@@ -529,5 +710,6 @@ class MarketDataServiceHistoricalProvider(HistoricalDataProvider):
         try:
             canonical = normalize_symbol(symbol)
             return canonical in canonical_instruments() and start_date <= end_date
-        except Exception:
+        except SymbolNotFoundError:
+            # Unknown symbol — treat as data unavailable, not a crash.
             return False

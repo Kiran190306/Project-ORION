@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from libraries.domain.backtesting.historical_data import (
     MarketDataServiceHistoricalProvider,
@@ -22,6 +23,16 @@ from libraries.domain.backtesting.historical_data import (
 from libraries.domain.backtesting.leakage_guard import LeakageGuard
 from libraries.domain.backtesting.models import Timeframe
 from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
+from libraries.domain.market_data.exceptions import (
+    SymbolNotFoundError,
+    UnsupportedBarTypeError,
+)
+from libraries.domain.market_data.normalization import (
+    bar_type_to_timeframe,
+    normalize_symbol,
+    normalize_timeframe,
+)
+from libraries.domain.research.models import DatasetProvenance, DataSourceMode
 from libraries.domain.research.optimization_engine import OptimizationEngine
 from libraries.domain.research.optimization_models import (
     FitnessObjective,
@@ -71,14 +82,35 @@ class OptimizationService:
     def __init__(
         self,
         session: AsyncSession,
+        market_data_service: Any | None = None,
         historical_provider: MarketDataServiceHistoricalProvider | None = None,
         entitlement_service: EntitlementService | None = None,
+        default_data_source: str | DataSourceMode | None = None,
     ) -> None:
         self.session = session
-        self.provider = historical_provider or MarketDataServiceHistoricalProvider()
+        self.market_data_service = market_data_service
+        self.provider = historical_provider or MarketDataServiceHistoricalProvider(
+            market_data_service=market_data_service,
+            source_mode=default_data_source,
+        )
         self.entitlement_service = entitlement_service or EntitlementService(session)
         self.opt_engine = OptimizationEngine()
         self.wfa_engine = WalkForwardEngine(self.opt_engine)
+
+    @staticmethod
+    def _parse_timeframe(raw_timeframe: str) -> Timeframe:
+        """Parse raw timeframe string into backtesting Timeframe via canonical bridge.
+
+        Raises:
+            HTTPException 422: If timeframe is unrecognized or unsupported.
+        """
+        try:
+            return bar_type_to_timeframe(raw_timeframe)
+        except (UnsupportedBarTypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unsupported or invalid timeframe '{raw_timeframe}': {exc}",
+            ) from exc
 
     def get_default_space(self, strategy_id: str) -> StrategyDefaultSpaceResponse:
         """Retrieve canonical default parameter space and bounds for an archetype."""
@@ -162,22 +194,38 @@ class OptimizationService:
             raise
 
         # 5. Fetch Historical Candles & Enforce LeakageGuard
+        data_source = getattr(request, "data_source", None)
         try:
-            try:
-                tf = Timeframe(request.timeframe.lower())
-            except ValueError:
-                tf = Timeframe.H1
+            canonical_sym = normalize_symbol(request.symbol)
+        except SymbolNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unsupported or invalid symbol '{request.symbol}': {exc}",
+            ) from exc
 
+        try:
+            canonical_tf_bt = normalize_timeframe(request.timeframe)
+            tf = bar_type_to_timeframe(canonical_tf_bt)
+        except (UnsupportedBarTypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unsupported or invalid timeframe '{request.timeframe}': {exc}",
+            ) from exc
+
+        try:
             start_d = request.start_date.date() if isinstance(request.start_date, datetime) else request.start_date
             end_d = request.end_date.date() if isinstance(request.end_date, datetime) else request.end_date
 
             candles = await self.provider.load_candles(
-                symbol=request.symbol,
+                symbol=canonical_sym,
                 timeframe=tf,
                 start_date=start_d,
                 end_date=end_d,
+                source_mode=data_source,
             )
             LeakageGuard.assert_monotonic_timestamps([c["timestamp"] for c in candles])
+        except HTTPException:
+            raise
         except Exception as exc:
             logger.error("Historical data fetch or LeakageGuard assertion failed: %s", exc)
             raise HTTPException(
@@ -213,14 +261,17 @@ class OptimizationService:
             "slippage_pips": float(request.slippage_pips),
             "commission": float(request.commission),
         }
+        provenance = getattr(self.provider, "last_provenance", None)
+        if provenance is not None and isinstance(provenance, DatasetProvenance):
+            config_dict["provenance"] = provenance.to_dict()
 
         job_model = OptimizationJobModel(
             id=job_id,
             organization_id=organization_id,
             created_by=user_id,
             strategy_id=canonical_id,
-            symbol=request.symbol,
-            timeframe=request.timeframe,
+            symbol=canonical_sym,
+            timeframe=canonical_tf_bt.name,
             start_date=request.start_date,
             end_date=request.end_date,
             initial_capital=request.initial_capital,
@@ -244,8 +295,8 @@ class OptimizationService:
                 strategy_id=canonical_id,
                 parameter_combinations=combos,
                 candles=candles,
-                symbol=request.symbol,
-                timeframe=request.timeframe,
+                symbol=canonical_sym,
+                timeframe=canonical_tf_bt.name,
                 initial_capital=request.initial_capital,
                 spread_pips=request.spread_pips,
                 slippage_pips=request.slippage_pips,
@@ -387,6 +438,11 @@ class OptimizationService:
             job_model.regime_breakdown = regimes_json
             job_model.heatmap = heatmap_json
             job_model.warnings = warnings_list
+            provenance = getattr(self.provider, "last_provenance", None)
+            if provenance is not None and isinstance(provenance, DatasetProvenance):
+                config_dict["provenance"] = provenance.to_dict()
+                job_model.optimization_config = dict(config_dict)
+                flag_modified(job_model, "optimization_config")
             job_model.completed_at = datetime.now(timezone.utc)
             job_model.updated_at = datetime.now(timezone.utc)
 
@@ -399,7 +455,7 @@ class OptimizationService:
                 component="optimization",
                 details={
                     "strategy_id": canonical_id,
-                    "symbol": request.symbol,
+                    "symbol": canonical_sym,
                     "total_combinations": len(combos),
                     "best_sharpe": best_candidate.sharpe_ratio,
                 },
@@ -466,22 +522,38 @@ class OptimizationService:
             raise
 
         # 4. Fetch Historical Candles & Enforce LeakageGuard
+        data_source = getattr(request, "data_source", None)
         try:
-            try:
-                tf = Timeframe(request.timeframe.lower())
-            except ValueError:
-                tf = Timeframe.H1
+            canonical_sym = normalize_symbol(request.symbol)
+        except SymbolNotFoundError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unsupported or invalid symbol '{request.symbol}': {exc}",
+            ) from exc
 
+        try:
+            canonical_tf_bt = normalize_timeframe(request.timeframe)
+            tf = bar_type_to_timeframe(canonical_tf_bt)
+        except (UnsupportedBarTypeError, ValueError) as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Unsupported or invalid timeframe '{request.timeframe}': {exc}",
+            ) from exc
+
+        try:
             start_d = request.start_date.date() if isinstance(request.start_date, datetime) else request.start_date
             end_d = request.end_date.date() if isinstance(request.end_date, datetime) else request.end_date
 
             candles = await self.provider.load_candles(
-                symbol=request.symbol,
+                symbol=canonical_sym,
                 timeframe=tf,
                 start_date=start_d,
                 end_date=end_d,
+                source_mode=data_source,
             )
             LeakageGuard.assert_monotonic_timestamps([c["timestamp"] for c in candles])
+        except HTTPException:
+            raise
         except Exception as exc:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -511,14 +583,17 @@ class OptimizationService:
             "slippage_pips": float(request.slippage_pips),
             "commission": float(request.commission),
         }
+        provenance = getattr(self.provider, "last_provenance", None)
+        if provenance is not None and isinstance(provenance, DatasetProvenance):
+            config_dict["provenance"] = provenance.to_dict()
 
         job_model = OptimizationJobModel(
             id=job_id,
             organization_id=organization_id,
             created_by=user_id,
             strategy_id=canonical_id,
-            symbol=request.symbol,
-            timeframe=request.timeframe,
+            symbol=canonical_sym,
+            timeframe=canonical_tf_bt.name,
             start_date=request.start_date,
             end_date=request.end_date,
             initial_capital=request.initial_capital,
@@ -543,8 +618,8 @@ class OptimizationService:
                 space=space,
                 candidate_combinations=combos,
                 candles=candles,
-                symbol=request.symbol,
-                timeframe=request.timeframe,
+                symbol=canonical_sym,
+                timeframe=canonical_tf_bt.name,
                 n_windows=request.n_windows,
                 in_sample_ratio=request.in_sample_ratio,
                 anchored=request.anchored,
@@ -598,6 +673,11 @@ class OptimizationService:
             }
             job_model.walk_forward_result = wfa_json
             job_model.warnings = list(wfa_result.warnings)
+            provenance = getattr(self.provider, "last_provenance", None)
+            if provenance is not None and isinstance(provenance, DatasetProvenance):
+                config_dict["provenance"] = provenance.to_dict()
+                job_model.optimization_config = dict(config_dict)
+                flag_modified(job_model, "optimization_config")
             job_model.completed_at = datetime.now(timezone.utc)
             job_model.updated_at = datetime.now(timezone.utc)
 
@@ -609,6 +689,7 @@ class OptimizationService:
                 component="optimization",
                 details={
                     "strategy_id": canonical_id,
+                    "symbol": canonical_sym,
                     "n_windows": request.n_windows,
                     "verdict": wfa_result.robustness_verdict.value,
                     "mean_wfe": wfa_result.mean_wfe,
@@ -892,6 +973,7 @@ class OptimizationService:
             heatmap=heatmap_schema,
             warnings=job.warnings,
             error_message=job.error_message,
+            dataset_provenance=job.dataset_provenance,
             created_at=job.created_at,
             completed_at=job.completed_at,
         )

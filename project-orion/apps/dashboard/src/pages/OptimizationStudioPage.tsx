@@ -48,7 +48,7 @@ export const OptimizationStudioPage: React.FC = () => {
   const [activeJob, setActiveJob] = useState<OptimizationJobDetail | null>(null);
 
   // Form State
-  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('TrendFollowing');
+  const [selectedStrategyId, setSelectedStrategyId] = useState<string>('trend_following');
   const [optimizationMode, setOptimizationMode] = useState<'GRID_SEARCH' | 'RANDOM_SEARCH' | 'WALK_FORWARD'>('GRID_SEARCH');
   const [selectedSymbol, setSelectedSymbol] = useState<string>('EUR/USD');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('H1');
@@ -79,7 +79,7 @@ export const OptimizationStudioPage: React.FC = () => {
       setStrategies(strats);
       setJobs(jobList);
 
-      const defaultStrat = strats.length > 0 ? strats[0].strategy_id : 'TrendFollowing';
+      const defaultStrat = strats.length > 0 ? strats[0].strategy_id : 'trend_following';
       setSelectedStrategyId(defaultStrat);
 
       // Fetch default parameter space
@@ -443,9 +443,9 @@ export const OptimizationStudioPage: React.FC = () => {
                     ))}
                     {strategies.length === 0 && (
                       <>
-                        <option value="TrendFollowing">Trend Following (EMA Cross)</option>
-                        <option value="MeanReversion">Mean Reversion (Bollinger + RSI)</option>
-                        <option value="Breakout">Volatility Breakout (Donchian)</option>
+                        <option value="trend_following">Trend Following (EMA Cross)</option>
+                        <option value="mean_reversion">Mean Reversion (Bollinger + RSI)</option>
+                        <option value="breakout">Volatility Breakout (Donchian)</option>
                       </>
                     )}
                   </select>

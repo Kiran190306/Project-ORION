@@ -11,7 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from libraries.domain.organization.permissions import Permission
 from libraries.domain.security.rate_limit import RateLimitPolicies
 
-from ..dependencies import TenantContext, get_db_session, rate_limit, require_permission
+from ..dependencies import (
+    TenantContext,
+    get_db_session,
+    get_optimization_service,
+    rate_limit,
+    require_permission,
+)
 from ..schemas_optimization import (
     OptimizationJobDetailResponse,
     OptimizationJobSummaryResponse,
@@ -27,13 +33,6 @@ from ..services.optimization_service import OptimizationService
 logger = logging.getLogger("trading_engine.routes.optimization")
 
 router = APIRouter(prefix="/api/v1/optimization", tags=["Optimization"])
-
-
-def get_optimization_service(
-    session: Annotated[AsyncSession, Depends(get_db_session)],
-) -> OptimizationService:
-    """Dependency provider for OptimizationService."""
-    return OptimizationService(session=session)
 
 
 def _resolve_org_id(tenant_context: TenantContext) -> str:

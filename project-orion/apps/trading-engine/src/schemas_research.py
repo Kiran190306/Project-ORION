@@ -5,7 +5,12 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from libraries.domain.market_data.normalization import (
+    normalize_symbol,
+    normalize_timeframe,
+)
 
 
 class ParameterSchemaResponse(BaseModel):
@@ -86,6 +91,26 @@ class ExperimentSummaryResponse(BaseModel):
     warnings: list[dict[str, Any]] | None = None
     error_message: str | None = None
 
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def canonicalize_symbol(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_symbol(str(v))
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def canonicalize_timeframe(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_timeframe(str(v)).name
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
 
 class ExperimentDetailResponse(ExperimentSummaryResponse):
     """Full experiment details including parameter configuration."""
@@ -127,6 +152,7 @@ class TradeRecordResponse(BaseModel):
     net_pnl: float
     duration_seconds: float
     exit_reason: str
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class ExperimentTradesResponse(BaseModel):

@@ -9,7 +9,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from apps.trading_engine.src import dependencies
-from apps.trading_engine.src.config import AppSettings
 from apps.trading_engine.src.main import create_app
 from apps.trading_engine.src.services.market_data_service import MarketDataService
 from fastapi.testclient import TestClient
@@ -42,8 +41,8 @@ def _mock_account(user_id: str = "user-market-001") -> MagicMock:
     account.user_id = user_id
     account.broker_name = "paper"
     account.currency = "USD"
-    account.balance = Decimal("100000")
-    account.equity = Decimal("100000")
+    account.balance = Decimal(100000)
+    account.equity = Decimal(100000)
     account.is_live = False
     account.is_active = True
     return account
@@ -168,7 +167,7 @@ class TestMarketDataRoutes:
         assert response.status_code == 200
         data = response.json()
         assert data["symbol"] == "EUR/USD"
-        assert data["timeframe"] == "1h"
+        assert data["timeframe"] == "H1"
         assert isinstance(data["candles"], list)
         assert len(data["candles"]) == 10
 

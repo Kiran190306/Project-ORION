@@ -6,7 +6,7 @@ observing future prices, future candles, future spreads, or future signals.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from libraries.domain.strategy.models import StrategyContext
@@ -73,6 +73,23 @@ class LeakageGuard:
                         f"{b_ts.isoformat()} is in the future relative to simulation time "
                         f"{current_time.isoformat()}"
                     )
+
+        # 4. Check all candlestick patterns in metadata if present
+        patterns = getattr(context, "patterns", None) or context.metadata.get("patterns")
+        if patterns:
+            curr_ts_norm = (
+                current_time if current_time.tzinfo is not None else current_time.replace(tzinfo=timezone.utc)
+            )
+            for idx, pat in enumerate(patterns):
+                p_ts = getattr(pat, "timestamp", None)
+                if p_ts is not None:
+                    p_ts_norm = p_ts if p_ts.tzinfo is not None else p_ts.replace(tzinfo=timezone.utc)
+                    if p_ts_norm > curr_ts_norm:
+                        raise DataLeakageDetectedError(
+                            f"Look-ahead bias detected: pattern [{idx}] ({getattr(pat, 'pattern_id', 'unknown')}) "
+                            f"timestamp {p_ts.isoformat()} is in the future relative to simulation time "
+                            f"{current_time.isoformat()}"
+                        )
 
     @staticmethod
     def assert_monotonic_timestamps(timestamps: list[datetime]) -> None:

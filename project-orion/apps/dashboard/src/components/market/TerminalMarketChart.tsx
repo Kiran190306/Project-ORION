@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '../common/Toast';
 import { ordersApi, marketDataApi } from '../../api/endpoints';
+import { MarketPatternItem } from '../../api/types';
 import { getErrorMessage } from '../../utils/errors';
 
 export interface Candle {
@@ -42,6 +43,7 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
   const [showVolume, setShowVolume] = useState(true);
   const [showRSI, setShowRSI] = useState(false);
   const [showMACD, setShowMACD] = useState(false);
+  const [showPatterns, setShowPatterns] = useState(true);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
   const [lotSize, setLotSize] = useState<number>(0.1);
@@ -51,43 +53,144 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
   const [candles, setCandles] = useState<Candle[]>([]);
   const [candlesLoading, setCandlesLoading] = useState<boolean>(true);
   const [candlesError, setCandlesError] = useState<string | null>(null);
+  const [patterns, setPatterns] = useState<MarketPatternItem[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
+  const activeRequestIdRef = useRef(0);
+  const inFlightRef = useRef(false);
+
+  // Track component mount lifecycle
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Fetch genuine historical candles from market data API
-  const fetchCandles = useCallback(async () => {
-    setCandlesLoading(true);
-    setCandlesError(null);
-    try {
-      const res = await marketDataApi.getCandles(symbol, { timeframe, limit: 60 });
-      const rawCandles = res.candles || [];
-      const mapped: Candle[] = rawCandles.map((c) => {
-        const d = new Date(c.timestamp);
-        const validDate = !isNaN(d.getTime());
-        const timeStr = validDate
-          ? `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
-          : String(c.timestamp);
-        return {
-          time: timeStr,
-          timestamp: validDate ? d.getTime() : Date.now(),
-          open: Number(c.open),
-          high: Number(c.high),
-          low: Number(c.low),
-          close: Number(c.close),
-          volume: Number(c.volume),
-        };
-      });
-      setCandles(mapped);
-    } catch (err) {
-      setCandlesError(getErrorMessage(err));
-      setCandles([]);
-    } finally {
-      setCandlesLoading(false);
-    }
-  }, [symbol, timeframe]);
+  const fetchCandles = useCallback(
+    async (isBackground = false) => {
+      // Prevent duplicate/overlapping background requests
+      if (isBackground && inFlightRef.current) {
+        return;
+      }
 
+      const requestId = ++activeRequestIdRef.current;
+      inFlightRef.current = true;
+
+      // Only display the loading spinner on initial/explicit fetch to prevent UI flicker
+      if (!isBackground) {
+        setCandlesLoading(true);
+        setCandlesError(null);
+      }
+
+      try {
+        const patternsPromise =
+          typeof marketDataApi.getPatterns === 'function'
+            ? marketDataApi.getPatterns(symbol, { timeframe, limit: 60 })
+            : Promise.resolve({ symbol, timeframe, provider: 'mock', patterns: [], total_detected: 0 });
+
+        const [candlesRes, patternsRes] = await Promise.allSettled([
+          marketDataApi.getCandles(symbol, { timeframe, limit: 60 }),
+          patternsPromise,
+        ]);
+
+        if (!isMountedRef.current || requestId !== activeRequestIdRef.current) {
+          return;
+        }
+
+        if (candlesRes.status === 'fulfilled') {
+          const rawCandles = candlesRes.value.candles || [];
+          const mapped: Candle[] = rawCandles.map((c) => {
+            const d = new Date(c.timestamp);
+            const validDate = !isNaN(d.getTime());
+            const timeStr = validDate
+              ? `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`
+              : String(c.timestamp);
+            return {
+              time: timeStr,
+              timestamp: validDate ? d.getTime() : Date.now(),
+              open: Number(c.open),
+              high: Number(c.high),
+              low: Number(c.low),
+              close: Number(c.close),
+              volume: Number(c.volume),
+            };
+          });
+          setCandles(mapped);
+          setCandlesError(null);
+        } else {
+          const errorMsg = getErrorMessage(candlesRes.reason);
+          // Only trigger blocking error state on initial/manual load; preserve previous data on background failure
+          if (!isBackground) {
+            setCandlesError(errorMsg);
+            setCandles([]);
+            setPatterns([]);
+          }
+        }
+
+        if (patternsRes.status === 'fulfilled' && patternsRes.value) {
+          setPatterns(patternsRes.value.patterns || []);
+        } else {
+          // If initial load fails for patterns, clear them; on background failure, preserve previous
+          if (!isBackground) {
+            setPatterns([]);
+          }
+        }
+      } catch (err) {
+        if (!isMountedRef.current || requestId !== activeRequestIdRef.current) {
+          return;
+        }
+        const errorMsg = getErrorMessage(err);
+        if (!isBackground) {
+          setCandlesError(errorMsg);
+          setCandles([]);
+          setPatterns([]);
+        }
+      } finally {
+        if (requestId === activeRequestIdRef.current) {
+          inFlightRef.current = false;
+          if (isMountedRef.current && !isBackground) {
+            setCandlesLoading(false);
+          }
+        }
+      }
+    },
+    [symbol, timeframe]
+  );
+
+  // Orchestrate initial load and periodic background auto-refresh
   useEffect(() => {
-    fetchCandles();
+    // 1. Initial fetch for this symbol/timeframe
+    fetchCandles(false);
+
+    // 2. Periodic auto-refresh every 10 seconds (aligned with terminal market data cadence)
+    const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+        return;
+      }
+      fetchCandles(true);
+    }, 10000);
+
+    // 3. Tab visibility management: resume immediately when returning to tab
+    const handleVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        fetchCandles(true);
+      }
+    };
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    // Cleanup interval and listener on unmount or when symbol/timeframe changes
+    return () => {
+      clearInterval(intervalId);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
+    };
   }, [fetchCandles]);
 
   // Compute Technical Indicators: EMA 20, EMA 50, RSI 14, ATR 14
@@ -208,6 +311,47 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
     return candles.slice(Math.max(0, candles.length - visibleCount));
   }, [candles, zoomLevel]);
 
+  // Map candlestick patterns to visible candles
+  const candlePatternMap = useMemo(() => {
+    const map = new Map<number, MarketPatternItem[]>();
+    if (!showPatterns || patterns.length === 0 || visibleCandles.length === 0) {
+      return map;
+    }
+
+    const timestampToVisibleIndex = new Map<number, number>();
+    visibleCandles.forEach((c, idx) => {
+      timestampToVisibleIndex.set(c.timestamp, idx);
+    });
+
+    const visibleOffset = candles.length - visibleCandles.length;
+
+    patterns.forEach((p) => {
+      const pTime = new Date(p.timestamp).getTime();
+      let targetVisibleIdx = timestampToVisibleIndex.get(pTime);
+
+      // Fallback matching using candle_index adjusted for visible slice
+      if (targetVisibleIdx === undefined && typeof p.candle_index === 'number') {
+        const visIdx = p.candle_index - visibleOffset;
+        if (visIdx >= 0 && visIdx < visibleCandles.length) {
+          targetVisibleIdx = visIdx;
+        }
+      }
+
+      if (targetVisibleIdx !== undefined && targetVisibleIdx >= 0 && targetVisibleIdx < visibleCandles.length) {
+        const existing = map.get(targetVisibleIdx) || [];
+        existing.push(p);
+        map.set(targetVisibleIdx, existing);
+      }
+    });
+
+    return map;
+  }, [patterns, visibleCandles, candles.length, showPatterns]);
+
+  const activePatterns =
+    hoverIndex !== null && candlePatternMap.has(hoverIndex)
+      ? candlePatternMap.get(hoverIndex) || []
+      : [];
+
   const isJpy = symbol.includes('JPY');
   const priceDecimals = isJpy ? 3 : 5;
   const hasCandles = visibleCandles.length > 0;
@@ -275,6 +419,14 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
           <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
             ATR: {atr14 > 0 ? atr14.toFixed(priceDecimals) : '--'}
           </span>
+          {patterns.length > 0 && showPatterns && (
+            <span
+              data-testid="chart-patterns-count"
+              className="text-[10px] font-mono text-sky-400 bg-sky-950/60 border border-sky-800/50 px-1.5 py-0.5 rounded hidden md:inline"
+            >
+              {patterns.length} pattern{patterns.length > 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Timeframe Selector (Canonical Backend Timeframes) */}
@@ -345,6 +497,19 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
           >
             MACD
           </button>
+          <button
+            type="button"
+            data-testid="toggle-patterns-btn"
+            onClick={() => setShowPatterns(!showPatterns)}
+            className={`px-2 py-1 text-[10px] font-mono rounded border transition-colors cursor-pointer ${
+              showPatterns
+                ? 'bg-sky-500/15 border-sky-500/40 text-sky-300 font-semibold'
+                : 'border-[#1E293B] text-slate-400 hover:bg-[#1A2742]'
+            }`}
+            title="Toggle Candlestick Pattern Markers"
+          >
+            PATTERNS
+          </button>
 
           {/* Zoom controls */}
           <div className="flex items-center border-l border-[#1E293B] pl-1.5 ml-1 gap-1">
@@ -414,6 +579,14 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
         {showRSI && activeRsi != null && (
           <div>
             RSI(14): <span className="text-amber-400">{activeRsi.toFixed(1)}</span>
+          </div>
+        )}
+        {showPatterns && activePatterns.length > 0 && (
+          <div data-testid="active-candle-patterns" className="flex items-center gap-1.5 bg-[#141E33] px-2 py-0.5 rounded border border-[#1E293B]">
+            <span className="text-[10px] font-bold text-sky-400">PATTERNS:</span>
+            <span className="text-slate-200">
+              {activePatterns.map((p) => `${p.name} (${p.direction})`).join(', ')}
+            </span>
           </div>
         )}
       </div>
@@ -666,6 +839,188 @@ export const TerminalMarketChart: React.FC<TerminalMarketChartProps> = ({
                   .join(' ')}
               />
             )}
+
+            {/* Candlestick Pattern Markers */}
+            {showPatterns &&
+              Array.from(candlePatternMap.entries()).map(([candleIdx, pList]) => {
+                const c = visibleCandles[candleIdx];
+                if (!c) return null;
+
+                const x = padding.left + candleIdx * candleStep + candleStep / 2;
+                const wickTop = getY(c.high);
+                const wickBottom = getY(c.low);
+
+                const bullishList = pList.filter((p) => p.direction === 'bullish');
+                const bearishList = pList.filter((p) => p.direction === 'bearish');
+                const neutralList = pList.filter((p) => p.direction === 'neutral');
+                const isHovered = hoverIndex === candleIdx;
+
+                return (
+                  <g key={`patterns-candle-${candleIdx}`} data-testid={`pattern-marker-candle-${candleIdx}`}>
+                    {/* Bullish markers: positioned below candle wickBottom */}
+                    {bullishList.length > 0 && (
+                      <g
+                        data-testid="pattern-marker-bullish"
+                        transform={`translate(${x}, ${wickBottom + 12})`}
+                      >
+                        <title>
+                          {bullishList
+                            .map(
+                              (p) =>
+                                `[Bullish] ${p.name} (${p.strength}, conf: ${p.confidence}): ${p.description}`
+                            )
+                            .join('\n')}
+                        </title>
+                        <polygon
+                          points="0,-5 4.5,3 -4.5,3"
+                          fill="#10B981"
+                          stroke="#064E3B"
+                          strokeWidth="0.8"
+                        />
+                        {bullishList.length > 1 && (
+                          <text
+                            x="0"
+                            y="11"
+                            fill="#10B981"
+                            fontSize="8"
+                            fontFamily="JetBrains Mono"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {bullishList.length}
+                          </text>
+                        )}
+                      </g>
+                    )}
+
+                    {/* Bearish markers: positioned above candle wickTop */}
+                    {bearishList.length > 0 && (
+                      <g
+                        data-testid="pattern-marker-bearish"
+                        transform={`translate(${x}, ${wickTop - 12})`}
+                      >
+                        <title>
+                          {bearishList
+                            .map(
+                              (p) =>
+                                `[Bearish] ${p.name} (${p.strength}, conf: ${p.confidence}): ${p.description}`
+                            )
+                            .join('\n')}
+                        </title>
+                        <polygon
+                          points="0,5 4.5,-3 -4.5,-3"
+                          fill="#F43F5E"
+                          stroke="#881337"
+                          strokeWidth="0.8"
+                        />
+                        {bearishList.length > 1 && (
+                          <text
+                            x="0"
+                            y="-6"
+                            fill="#F43F5E"
+                            fontSize="8"
+                            fontFamily="JetBrains Mono"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {bearishList.length}
+                          </text>
+                        )}
+                      </g>
+                    )}
+
+                    {/* Neutral markers: diamond symbol */}
+                    {neutralList.length > 0 && (
+                      <g
+                        data-testid="pattern-marker-neutral"
+                        transform={`translate(${x}, ${
+                          bearishList.length > 0 ? wickBottom + 12 : wickTop - 12
+                        })`}
+                      >
+                        <title>
+                          {neutralList
+                            .map(
+                              (p) =>
+                                `[Neutral] ${p.name} (${p.strength}, conf: ${p.confidence}): ${p.description}`
+                            )
+                            .join('\n')}
+                        </title>
+                        <polygon
+                          points="0,-4 3.5,0 0,4 -3.5,0"
+                          fill="#F59E0B"
+                          stroke="#78350F"
+                          strokeWidth="0.8"
+                        />
+                        {neutralList.length > 1 && (
+                          <text
+                            x="0"
+                            y={bearishList.length > 0 ? '11' : '-6'}
+                            fill="#F59E0B"
+                            fontSize="8"
+                            fontFamily="JetBrains Mono"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                          >
+                            {neutralList.length}
+                          </text>
+                        )}
+                      </g>
+                    )}
+
+                    {/* Hover Popover Tooltip Box */}
+                    {isHovered && (
+                      <g
+                        data-testid="pattern-hover-popover"
+                        transform={`translate(${Math.min(
+                          width - padding.right - 140,
+                          Math.max(padding.left + 5, x - 70)
+                        )}, ${Math.max(padding.top + 5, Math.min(height - padding.bottom - 45, wickTop - 35))})`}
+                        pointerEvents="none"
+                      >
+                        <rect
+                          width="140"
+                          height={16 + pList.length * 13}
+                          rx="4"
+                          fill="#090D16"
+                          stroke="#334155"
+                          strokeWidth="1"
+                          opacity="0.95"
+                        />
+                        <text
+                          x="6"
+                          y="11"
+                          fill="#94A3B8"
+                          fontSize="8"
+                          fontFamily="JetBrains Mono"
+                          fontWeight="bold"
+                        >
+                          PATTERNS ({pList.length})
+                        </text>
+                        {pList.map((p, pIdx) => {
+                          const pColor =
+                            p.direction === 'bullish'
+                              ? '#34D399'
+                              : p.direction === 'bearish'
+                                ? '#FB7185'
+                                : '#FBBF24';
+                          return (
+                            <text
+                              key={pIdx}
+                              x="6"
+                              y={22 + pIdx * 13}
+                              fill={pColor}
+                              fontSize="8"
+                              fontFamily="JetBrains Mono"
+                            >
+                              • {p.name} ({p.strength})
+                            </text>
+                          );
+                        })}
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
 
             {/* Interactive Crosshair Guidelines */}
             {hoverIndex !== null && hoverIndex < visibleCandles.length && (

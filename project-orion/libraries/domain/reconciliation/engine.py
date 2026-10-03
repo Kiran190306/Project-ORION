@@ -12,9 +12,10 @@ from __future__ import annotations
 
 import logging
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Sequence
+from typing import Any
 
 from libraries.domain.reconciliation.models import (
     AccountDiscrepancy,
@@ -24,9 +25,8 @@ from libraries.domain.reconciliation.models import (
     ReconciliationSnapshot,
     ReconciliationStatus,
 )
-from libraries.infrastructure.execution.broker_adapter import (
+from libraries.domain.reconciliation.ports import (
     AccountInfo,
-    BrokerAdapter,
     OrderExecutionInfo,
     PositionInfo,
 )
@@ -254,7 +254,7 @@ class BrokerReconciliationEngine:
                 matched_symbols.add(sym)
                 rps = remote_by_symbol[sym]
                 # Sum remote net quantity for this symbol
-                remote_qty = sum((rp.quantity for rp in rps), Decimal("0"))
+                remote_qty = sum((rp.quantity for rp in rps), Decimal(0))
                 remote_side = rps[0].side.value.upper() if rps else local_side
                 remote_price = rps[0].open_price if rps else local_price
 

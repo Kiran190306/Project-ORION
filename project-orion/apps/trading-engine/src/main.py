@@ -38,6 +38,7 @@ from .routes.health import router as health_router
 from .routes.legal import router as legal_router
 from .routes.market_data import router as market_data_router
 from .routes.metrics import router as metrics_router
+from .routes.notifications import router as notifications_router
 from .routes.onboarding import router as onboarding_router
 from .routes.optimization import router as optimization_router
 from .routes.orders import router as orders_router
@@ -53,7 +54,6 @@ from .routes.trades import router as trades_router
 from .routes.trading import router as trading_router
 from .routes.users import router as users_router
 from .routes.worker import router as worker_router
-from .routes.notifications import router as notifications_router
 
 logger = logging.getLogger("trading_engine.main")
 
@@ -133,9 +133,12 @@ def create_app(
         request.state.correlation_id = cid
         set_correlation_id(cid)
 
-        response: Response = await call_next(request)
-        response.headers["x-correlation-id"] = cid
-        return response
+        try:
+            response: Response = await call_next(request)
+            response.headers["x-correlation-id"] = cid
+            return response
+        finally:
+            set_correlation_id(None)
 
     @app.middleware("http")
     async def security_headers_middleware(

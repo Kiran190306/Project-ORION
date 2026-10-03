@@ -53,6 +53,17 @@ class BillingService:
         self.provider = provider or create_billing_adapter(self.config)
         self.sub_service = sub_service or SubscriptionService(session)
         self.metrics = metrics
+        if self.metrics is not None:
+            self._ensure_metrics_registered()
+
+    def _ensure_metrics_registered(self) -> None:
+        """Register billing counters on the metrics registry."""
+        if self.metrics is None:
+            return
+        self.metrics.counter("billing_checkout_sessions_total", "Total checkout sessions created")
+        self.metrics.counter("billing_webhook_events_total", "Total webhook events processed")
+        self.metrics.counter("billing_invoices_paid_total", "Total invoices paid")
+        self.metrics.counter("billing_payment_failures_total", "Total payment failures")
 
     async def get_or_create_customer(
         self,

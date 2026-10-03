@@ -60,6 +60,13 @@ class MarketDataService:
     def provider(self) -> MarketDataProviderPort:
         return self._provider
 
+    @property
+    def provider_name(self) -> str:
+        """Canonical identifier of the active market data provider."""
+        if hasattr(self._provider, "provider_name"):
+            return str(self._provider.provider_name).strip().lower()
+        return "default"
+
     async def get_instruments(self) -> list[Instrument]:
         """Return all supported canonical financial instruments."""
         return list(canonical_instruments().values())
@@ -68,8 +75,8 @@ class MarketDataService:
         """Fetch latest validated quote for symbol using cache-aside pattern."""
         canonical = normalize_symbol(symbol)
 
-        # 1. Try cache first
-        cached = await self._cache.get_quote(canonical)
+        # 1. Try cache first with provider isolation
+        cached = await self._cache.get_quote(canonical, provider=self.provider_name)
         if cached is not None:
             if self._metrics:
                 self._metrics.inc("market_data_cache_hits_total")
@@ -100,8 +107,8 @@ class MarketDataService:
                 self._metrics.inc("market_data_stale_quotes_total")
             logger.warning("Market quote for %s is stale: %s", canonical, quote.timestamp)
 
-        # 4. Cache valid quote
-        await self._cache.set_quote(quote, ttl_seconds=15)
+        # 4. Cache valid quote with provider isolation
+        await self._cache.set_quote(quote, provider=self.provider_name, ttl_seconds=15)
 
         # 5. Feed into Paper Execution Adapter so paper simulated fills reflect live market prices
         if self._paper_adapter is not None:
@@ -110,7 +117,7 @@ class MarketDataService:
                     await self._paper_adapter.update_quote(quote)
                 else:
                     await self._paper_adapter.set_current_price(canonical, quote.mid)
-            except Exception as exc:
+            except (RuntimeError, ValueError, TypeError, ConnectionError, OSError) as exc:
                 logger.warning("Failed to update paper execution quote for %s: %s", canonical, exc)
 
         if self._metrics:
@@ -133,7 +140,9 @@ class MarketDataService:
 
         # Check cache if recent request without explicit start/end
         if start is None and end is None:
-            cached = await self._cache.get_candles(canonical, tf.value)
+            cached = await self._cache.get_candles(
+                canonical, tf.name, provider=self.provider_name
+            )
             if cached and len(cached) >= clamped_limit:
                 return cached[-clamped_limit:]
 
@@ -152,9 +161,11 @@ class MarketDataService:
             if assessment.is_valid:
                 valid_candles.append(c)
 
-        # Cache recent candles
+        # Cache recent candles with provider isolation
         if start is None and end is None and valid_candles:
-            await self._cache.set_candles(canonical, tf.value, valid_candles, ttl_seconds=300)
+            await self._cache.set_candles(
+                canonical, tf.name, valid_candles, provider=self.provider_name, ttl_seconds=300
+            )
 
         return valid_candles
 
@@ -169,7 +180,7 @@ class MarketDataService:
             connected = probe.get("connected", False)
             status = ProviderStatus.HEALTHY if connected else ProviderStatus.DISCONNECTED
             latency = float(probe.get("latency_ms", 0.0))
-        except Exception as exc:
+        except (RuntimeError, ValueError, TypeError, ConnectionError, TimeoutError, OSError) as exc:
             logger.error("Provider health probe failed: %s", exc)
             status = ProviderStatus.ERROR
             latency = 999.0

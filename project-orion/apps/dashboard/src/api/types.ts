@@ -792,6 +792,26 @@ export interface MarketCandlesResponse {
   candles: MarketCandle[];
 }
 
+export interface MarketPatternItem {
+  pattern_id: string;
+  name: string;
+  direction: 'bullish' | 'bearish' | 'neutral' | string;
+  strength: 'strong' | 'moderate' | 'weak' | string;
+  candle_index: number;
+  timestamp: string;
+  description: string;
+  confidence: string | number;
+  metadata?: Record<string, any>;
+}
+
+export interface MarketPatternsResponse {
+  symbol: string;
+  timeframe: string;
+  provider: string;
+  patterns: MarketPatternItem[];
+  total_detected: number;
+}
+
 export interface MarketHealth {
   provider: string;
   status: string;

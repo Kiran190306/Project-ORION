@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { TerminalMarketChart } from '../src/components/market/TerminalMarketChart';
@@ -33,6 +33,7 @@ vi.mock('../src/api/endpoints', () => ({
     getQuote: vi.fn(),
     getHealth: vi.fn(),
     listInstruments: vi.fn(),
+    getPatterns: vi.fn().mockResolvedValue({ symbol: 'EUR/USD', timeframe: 'H1', provider: 'mock', patterns: [], total_detected: 0 }),
   },
   dashboardApi: {
     get: vi.fn(),
@@ -54,6 +55,13 @@ vi.mock('../src/api/endpoints', () => ({
 describe('Phase 1 Real Terminal Functionality', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(marketDataApi.getPatterns).mockResolvedValue({
+      symbol: 'EUR/USD',
+      timeframe: 'H1',
+      provider: 'mock',
+      patterns: [],
+      total_detected: 0,
+    });
   });
 
   const mockCandlesData = {
@@ -205,6 +213,258 @@ describe('Phase 1 Real Terminal Functionality', () => {
 
     const priceElementsAfterRetry = await screen.findAllByText('1.08800');
     expect(priceElementsAfterRetry.length).toBeGreaterThanOrEqual(1);
+  });
+
+  describe('TerminalMarketChart: Auto-Refresh & Data Freshness Hardening', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        configurable: true,
+      });
+    });
+
+    it('periodically refreshes candles at 10-second intervals', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // Initial call
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Advance by 10s
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(2);
+
+      // Advance by another 10s
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(3);
+    });
+
+    it('resets timer and fetches new candles when symbol prop changes', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      const { rerender } = render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('EUR/USD', expect.objectContaining({ timeframe: 'H1' }));
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Rerender with GBP/USD
+      rerender(<TerminalMarketChart symbol="GBP/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('GBP/USD', expect.objectContaining({ timeframe: 'H1' }));
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(2);
+
+      // Next tick refreshes the new symbol
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('GBP/USD', expect.objectContaining({ timeframe: 'H1' }));
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(3);
+    });
+
+    it('resets timer and fetches new candles when timeframe changes', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('EUR/USD', { timeframe: 'H1', limit: 60 });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Click M15 timeframe button
+      const m15Btn = screen.getByRole('button', { name: 'M15' });
+      await act(async () => {
+        fireEvent.click(m15Btn);
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('EUR/USD', { timeframe: 'M15', limit: 60 });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(2);
+
+      // Next tick refreshes M15
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledWith('EUR/USD', { timeframe: 'M15', limit: 60 });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(3);
+    });
+
+    it('cleans up interval on component unmount', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      const { unmount } = render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      unmount();
+
+      // Advancing timer after unmount should NOT trigger any new calls
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+    });
+
+    it('preserves existing candles and does not blank chart when background refresh fails', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValueOnce(mockCandlesData);
+
+      render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Verify initial price rendered
+      expect(screen.getAllByText('1.08800').length).toBeGreaterThanOrEqual(1);
+
+      // Next periodic refresh fails
+      vi.mocked(marketDataApi.getCandles).mockRejectedValueOnce(new Error('Temporary network drop'));
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+
+      // Verify candles are NOT blanked and no blocking error overlay is displayed
+      expect(screen.queryByText('Failed to load market data')).not.toBeInTheDocument();
+      expect(screen.getAllByText('1.08800').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('pauses periodic refresh when document is hidden and resumes when visible', async () => {
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Simulate document becoming hidden
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'hidden',
+        configurable: true,
+      });
+
+      // Advance timer while hidden - should skip refresh
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(20000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(1);
+
+      // Restore visible state and fire visibilitychange
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        configurable: true,
+      });
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      // Resumes immediate refresh
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(2);
+
+      // Regular polling continues while visible
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(marketDataApi.getCandles).toHaveBeenCalledTimes(3);
+    });
+
+    it('prevents duplicate timers and clears interval on symbol change', async () => {
+      const setIntervalSpy = vi.spyOn(window, 'setInterval');
+      const clearIntervalSpy = vi.spyOn(window, 'clearInterval');
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockCandlesData);
+
+      const { rerender } = render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(setIntervalSpy).toHaveBeenCalledTimes(1);
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(0);
+
+      // Change symbol
+      rerender(<TerminalMarketChart symbol="USD/JPY" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // Old timer cleared, new timer established
+      expect(clearIntervalSpy).toHaveBeenCalledTimes(1);
+      expect(setIntervalSpy).toHaveBeenCalledTimes(2);
+
+      setIntervalSpy.mockRestore();
+      clearIntervalSpy.mockRestore();
+    });
+
+    it('maintains technical indicators and order overlays across periodic refreshes', async () => {
+      const mockManyCandles = {
+        ...mockCandlesData,
+        candles: Array.from({ length: 15 }, (_, i) => ({
+          timestamp: `2026-09-26T12:${String(i).padStart(2, '0')}:00Z`,
+          open: 1.0850 + i * 0.0001,
+          high: 1.0860 + i * 0.0001,
+          low: 1.0840 + i * 0.0001,
+          close: 1.0855 + i * 0.0001,
+          volume: 1000 + i * 100,
+        })),
+      };
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(mockManyCandles);
+
+      render(<TerminalMarketChart symbol="EUR/USD" />);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      // Indicators present initially
+      expect(screen.getByText(/EMA\(20\):/)).toBeInTheDocument();
+      expect(screen.getByText(/ATR:/)).toBeInTheDocument();
+      expect(screen.getByText(/TP /)).toBeInTheDocument();
+      expect(screen.getByText(/SL /)).toBeInTheDocument();
+
+      // Trigger periodic refresh with updated price data
+      const updatedCandlesData = {
+        ...mockManyCandles,
+        candles: [
+          ...mockManyCandles.candles,
+          {
+            timestamp: '2026-09-26T14:00:00Z',
+            open: 1.0880,
+            high: 1.0910,
+            low: 1.0870,
+            close: 1.0905,
+            volume: 18000,
+          },
+        ],
+      };
+      vi.mocked(marketDataApi.getCandles).mockResolvedValue(updatedCandlesData);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+
+      // Updated price and indicators remain active
+      expect(screen.getAllByText('1.09050').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText(/EMA\(20\):/)).toBeInTheDocument();
+      expect(screen.getByText(/ATR:/)).toBeInTheDocument();
+    });
   });
 
   it('TerminalWatchlist: polls real market data quotes and renders live spreads', async () => {

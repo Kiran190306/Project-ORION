@@ -19,8 +19,13 @@ from libraries.domain.market_data.exceptions import (
     SymbolNotFoundError,
     UnsupportedBarTypeError,
 )
-from libraries.domain.market_data.normalization import canonical_instruments
+from libraries.domain.market_data.normalization import (
+    canonical_instruments,
+    normalize_symbol,
+    normalize_timeframe,
+)
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.patterns import detect_patterns, get_default_pattern_registry
 
 from ..dependencies import (
     get_current_active_user,
@@ -32,6 +37,8 @@ from ..schemas import (
     MarketCandlesListResponse,
     MarketHealthResponse,
     MarketInstrumentResponse,
+    MarketPatternResponse,
+    MarketPatternsListResponse,
     MarketQuoteResponse,
 )
 from ..services.market_data_service import MarketDataService
@@ -160,9 +167,11 @@ async def get_candles(
 ) -> MarketCandlesListResponse:
     """Fetch validated historical candles."""
     try:
+        canonical_symbol = normalize_symbol(symbol)
+        canonical_tf = normalize_timeframe(timeframe)
         candles = await market_service.get_candles(
-            symbol=symbol,
-            timeframe=timeframe,
+            symbol=canonical_symbol,
+            timeframe=canonical_tf.value,
             start=start,
             end=end,
             limit=limit,
@@ -200,8 +209,8 @@ async def get_candles(
         ) from exc
 
     return MarketCandlesListResponse(
-        symbol=symbol,
-        timeframe=timeframe,
+        symbol=canonical_symbol,
+        timeframe=canonical_tf.name,
         provider=market_service.provider.provider_name,
         candles=[
             MarketCandleResponse(
@@ -214,6 +223,120 @@ async def get_candles(
             )
             for c in candles
         ],
+    )
+
+
+@router.get(
+    "/patterns",
+    response_model=MarketPatternsListResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Get Candlestick Patterns",
+    description="Detect deterministic institutional candlestick patterns across historical candle data.",
+)
+async def get_patterns(
+    symbol: Annotated[str, Query(description="Forex pair symbol, e.g. EUR/USD or EURUSD")],
+    user: Annotated[dict[str, Any], Depends(get_current_active_user)],
+    _perm: Annotated[Any, Depends(require_permission(Permission.ACCOUNT_READ))],
+    market_service: Annotated[MarketDataService, Depends(get_market_data_service)],
+    timeframe: Annotated[str, Query(description="Candle timeframe e.g. 1m, 5m, 1h, 1d")] = "1h",
+    start: Annotated[datetime | None, Query(description="Start time (UTC)")] = None,
+    end: Annotated[datetime | None, Query(description="End time (UTC)")] = None,
+    limit: Annotated[int, Query(ge=1, le=1000, description="Max candle count to evaluate")] = 60,
+    pattern_ids: Annotated[
+        str | None,
+        Query(description="Optional comma-separated pattern IDs to filter (e.g. doji,hammer)"),
+    ] = None,
+) -> MarketPatternsListResponse:
+    """Fetch historical candles and detect deterministic candlestick patterns."""
+    # 1. Validate and filter pattern IDs if requested
+    target_pattern_ids: list[str] | None = None
+    if pattern_ids is not None:
+        raw_ids = [pid.strip().lower() for pid in pattern_ids.split(",") if pid.strip()]
+        if not raw_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="pattern_ids parameter must contain at least one valid pattern ID",
+            )
+        registry = get_default_pattern_registry()
+        valid_ids = set(registry.list_pattern_ids())
+        unknown_ids = [pid for pid in raw_ids if pid not in valid_ids]
+        if unknown_ids:
+            available_str = ", ".join(sorted(valid_ids))
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=(
+                    f"Unknown pattern ID(s): {', '.join(unknown_ids)}. "
+                    f"Available patterns: {available_str}"
+                ),
+            )
+        target_pattern_ids = list(dict.fromkeys(raw_ids))
+
+    # 2. Retrieve candles through existing market data service
+    try:
+        canonical_symbol = normalize_symbol(symbol)
+        canonical_tf = normalize_timeframe(timeframe)
+        candles = await market_service.get_candles(
+            symbol=canonical_symbol,
+            timeframe=canonical_tf.value,
+            start=start,
+            end=end,
+            limit=limit,
+        )
+    except SymbolNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    except (UnsupportedBarTypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except RateLimitExceededError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Market data rate limit exceeded: {exc}",
+        ) from exc
+    except (CircuitBreakerOpenError, DataUnavailableError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Market data provider unavailable: {exc}",
+        ) from exc
+    except MarketDataError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Market data provider error: {exc}",
+        ) from exc
+    except Exception as exc:
+        logger.error("Unexpected error retrieving candles for patterns on %s: %s", symbol, exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve market candles",
+        ) from exc
+
+    # 3. Detect patterns using pure deterministic engine
+    detected = detect_patterns(candles, pattern_ids=target_pattern_ids)
+
+    # 4. Map to response schema (preserving chronological order)
+    return MarketPatternsListResponse(
+        symbol=canonical_symbol,
+        timeframe=canonical_tf.name,
+        provider=market_service.provider.provider_name,
+        patterns=[
+            MarketPatternResponse(
+                pattern_id=p.pattern_id,
+                name=p.name,
+                direction=p.direction.value,
+                strength=p.strength.value,
+                candle_index=p.candle_index,
+                timestamp=p.timestamp,
+                description=p.description,
+                confidence=p.confidence,
+                metadata=p.metadata,
+            )
+            for p in detected
+        ],
+        total_detected=len(detected),
     )
 
 

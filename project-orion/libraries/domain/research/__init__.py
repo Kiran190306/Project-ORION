@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from libraries.domain.research.models import (
+    DataSourceMode,
+    DatasetProvenance,
     EquityCurvePoint,
     OverfittingWarning,
     ResearchExperiment,
@@ -40,6 +42,8 @@ from libraries.domain.research.regime_analyzer import RegimeAnalyzer
 from libraries.domain.research.walk_forward_engine import WalkForwardEngine
 
 __all__ = [
+    "DataSourceMode",
+    "DatasetProvenance",
     "EquityCurvePoint",
     "FitnessObjective",
     "OptimizationCandidate",

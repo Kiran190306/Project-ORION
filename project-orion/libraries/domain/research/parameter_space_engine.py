@@ -26,6 +26,8 @@ def normalize_strategy_id(strategy_id: str) -> str:
         "mean_reversion": "mean_reversion",
         "breakout": "breakout",
         "momentum": "momentum",
+        "candlestickreversal": "candlestick_reversal",
+        "candlestick_reversal": "candlestick_reversal",
     }
     cleaned = s.lower().replace("-", "_").replace(" ", "_")
     return mapping.get(cleaned, cleaned)
@@ -59,6 +61,42 @@ class ParameterSpaceEngine:
             ranges = (
                 ParameterRange(name="momentum_period", param_type=ParameterType.INT, min_value=10, max_value=25, step=5),
                 ParameterRange(name="momentum_threshold", param_type=ParameterType.FLOAT, min_value=0.01, max_value=0.05, step=0.01),
+            )
+        elif canonical_id == "candlestick_reversal":
+            ranges = (
+                ParameterRange(
+                    name="pattern_id",
+                    param_type=ParameterType.CHOICE,
+                    min_value="any_reversal",
+                    max_value="evening_star",
+                    choices=(
+                        "any_reversal",
+                        "hammer",
+                        "bullish_engulfing",
+                        "morning_star",
+                        "shooting_star",
+                        "bearish_engulfing",
+                        "evening_star",
+                    ),
+                ),
+                ParameterRange(
+                    name="min_confidence",
+                    param_type=ParameterType.FLOAT,
+                    min_value=0.60,
+                    max_value=0.90,
+                    step=0.10,
+                ),
+                ParameterRange(
+                    name="min_strength",
+                    param_type=ParameterType.CHOICE,
+                    min_value="any",
+                    max_value="strong",
+                    choices=(
+                        "any",
+                        "moderate",
+                        "strong",
+                    ),
+                ),
             )
         else:
             param_ranges = []
@@ -108,6 +146,16 @@ class ParameterSpaceEngine:
                     span = float(pr.max_value) - float(pr.min_value)
                     if span > 0 and float(pr.step) > span:
                         raise ValueError(f"Step size ({pr.step}) cannot exceed range span ({span}) for '{pr.name}'")
+
+            elif pr.param_type == ParameterType.CHOICE:
+                if not pr.choices:
+                    raise ValueError(f"Choice parameter '{pr.name}' has no choices defined")
+                if p_meta.options is not None:
+                    invalid = set(pr.choices) - set(p_meta.options)
+                    if invalid:
+                        raise ValueError(
+                            f"Choices {invalid} for '{pr.name}' violate allowed options: {p_meta.options}"
+                        )
 
     @classmethod
     def expand_values(cls, pr: ParameterRange) -> list[Any]:

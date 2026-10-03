@@ -8,7 +8,7 @@ import json
 import logging
 import uuid
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from libraries.domain.billing.exceptions import (
     BillingProviderError,
@@ -34,7 +34,7 @@ class StripeBillingAdapter(BillingProvider):
 
     def __init__(self, config: BillingConfig) -> None:
         self._config = config
-        import stripe  # Encapsulate Stripe import strictly inside adapter
+        import stripe  # type: ignore[import-not-found]  # Encapsulate Stripe import strictly inside adapter
 
         stripe.api_key = config.secret_key
         self._stripe = stripe
@@ -337,9 +337,95 @@ class MockBillingAdapter(BillingProvider):
                 raise InvalidWebhookSignatureError(f"Signature verification parse error: {exc}") from exc
 
         try:
-            return json.loads(payload_bytes.decode("utf-8"))
+            event = json.loads(payload_bytes.decode("utf-8"))
         except Exception as exc:
             raise InvalidWebhookSignatureError(f"Invalid JSON payload: {exc}") from exc
+
+        if not isinstance(event, dict):
+            raise InvalidWebhookSignatureError("Parsed JSON payload is not a dictionary.")
+
+        event_dict = cast(dict[str, Any], event)
+        self._index_simulated_webhook(event_dict)
+        return event_dict
+
+    def _index_simulated_webhook(self, event: dict[str, Any]) -> None:
+        """Record mock subscription state from simulated webhooks to mirror provider state."""
+        event_type = event.get("type", "")
+        data_obj = (event.get("data") or {}).get("object") or {}
+        now = datetime.now(timezone.utc)
+
+        if event_type == "checkout.session.completed":
+            sub_id = data_obj.get("subscription")
+            if sub_id and sub_id not in self.subscriptions:
+                metadata = data_obj.get("metadata") or {}
+                org_id = metadata.get("organization_id", "mock_org")
+                plan_raw = metadata.get("plan_code", "FREE")
+                try:
+                    plan_code = PlanCode.from_str(plan_raw)
+                except (KeyError, ValueError, TypeError):
+                    plan_code = PlanCode.FREE
+                self.subscriptions[sub_id] = BillingSubscription(
+                    id=str(uuid.uuid4()),
+                    organization_id=org_id,
+                    provider_subscription_id=sub_id,
+                    provider_customer_id=data_obj.get("customer") or "",
+                    plan_code=plan_code,
+                    status=BillingSubscriptionStatus.ACTIVE,
+                    current_period_start=now,
+                    current_period_end=None,
+                    cancel_at_period_end=False,
+                    meta_data=metadata,
+                    created_at=now,
+                    updated_at=now,
+                )
+        elif event_type in ("customer.subscription.created", "customer.subscription.updated"):
+            sub_id = data_obj.get("id")
+            if sub_id:
+                metadata = data_obj.get("metadata") or {}
+                org_id = metadata.get("organization_id", "mock_org")
+                plan_raw = metadata.get("plan_code") or (data_obj.get("plan") or {}).get("id") or "FREE"
+                try:
+                    plan_code = PlanCode.from_str(plan_raw)
+                except (KeyError, ValueError, TypeError):
+                    plan_code = PlanCode.FREE
+                status_raw = data_obj.get("status", "active")
+                try:
+                    status = BillingSubscriptionStatus.from_str(status_raw)
+                except (KeyError, ValueError, TypeError):
+                    status = BillingSubscriptionStatus.ACTIVE
+                self.subscriptions[sub_id] = BillingSubscription(
+                    id=str(uuid.uuid4()),
+                    organization_id=org_id,
+                    provider_subscription_id=sub_id,
+                    provider_customer_id=data_obj.get("customer") or "",
+                    plan_code=plan_code,
+                    status=status,
+                    current_period_start=now,
+                    current_period_end=None,
+                    cancel_at_period_end=bool(data_obj.get("cancel_at_period_end", False)),
+                    meta_data=metadata,
+                    created_at=now,
+                    updated_at=now,
+                )
+        elif event_type == "customer.subscription.deleted":
+            sub_id = data_obj.get("id")
+            if sub_id and sub_id in self.subscriptions:
+                sub = self.subscriptions[sub_id]
+                self.subscriptions[sub_id] = BillingSubscription(
+                    id=sub.id,
+                    organization_id=sub.organization_id,
+                    provider_subscription_id=sub.provider_subscription_id,
+                    provider_customer_id=sub.provider_customer_id,
+                    plan_code=sub.plan_code,
+                    status=BillingSubscriptionStatus.CANCELED,
+                    current_period_start=sub.current_period_start,
+                    current_period_end=sub.current_period_end,
+                    cancel_at_period_end=sub.cancel_at_period_end,
+                    latest_invoice_id=sub.latest_invoice_id,
+                    meta_data=sub.meta_data,
+                    created_at=sub.created_at,
+                    updated_at=now,
+                )
 
 
 def create_billing_adapter(config: BillingConfig) -> BillingProvider:

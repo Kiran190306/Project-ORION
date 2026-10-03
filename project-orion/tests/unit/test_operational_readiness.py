@@ -326,14 +326,14 @@ def test_logging_sensitive_redaction() -> None:
 
 
 def test_alembic_migrations_chain() -> None:
-    """Verifies that all 8 Alembic revisions form a contiguous, unbroken linear chain from 0001 to 0008."""
+    """Verifies that all Alembic revisions form a contiguous, unbroken linear chain from root to head."""
     versions_dir = Path(__file__).resolve().parents[2] / "database" / "migrations" / "versions"
     assert versions_dir.is_dir(), f"Alembic versions dir not found at {versions_dir}"
 
     migration_files = sorted(
         [f for f in versions_dir.glob("*.py") if not f.name.startswith("__")]
     )
-    assert len(migration_files) == 12, f"Expected 12 migration files, found {len(migration_files)}"
+    assert len(migration_files) >= 1, f"Expected at least 1 migration file, found {len(migration_files)}"
 
     rev_map: dict[str, str | None] = {}
 
@@ -367,9 +367,16 @@ def test_alembic_migrations_chain() -> None:
         assert revision_id is not None, f"Could not find revision in {mf.name}"
         rev_map[revision_id] = down_revision_id
 
-    # Verify head is 0012_broker_sandbox_integration
-    head_rev = "0012_broker_sandbox_integration"
-    assert head_rev in rev_map, f"Head migration {head_rev} not in migration map"
+    # Identify head revisions (revisions never referenced as down_revision)
+    all_down_revs = {down for down in rev_map.values() if down is not None}
+    heads = [rev for rev in rev_map if rev not in all_down_revs]
+    assert len(heads) == 1, f"Expected exactly 1 migration head (no branches), found {len(heads)}: {heads}"
+    head_rev = heads[0]
+
+    # Identify root revisions (revisions with down_revision=None)
+    roots = [rev for rev, down in rev_map.items() if down is None]
+    assert len(roots) == 1, f"Expected exactly 1 root migration, found {len(roots)}: {roots}"
+    root_rev = roots[0]
 
     # Walk backward from head to root
     current = head_rev
@@ -382,7 +389,9 @@ def test_alembic_migrations_chain() -> None:
         current = down
         visited.append(current)
 
-    # Must terminate at root with 12 revisions
-    assert len(visited) == 12, f"Expected 12 linear revisions, walked {len(visited)}: {visited}"
-    assert rev_map[current] is None, f"Root migration {current} must have down_revision=None"
-    assert "0001_initial_schema" in current
+    # Must terminate at root and cover all migration files
+    assert len(visited) == len(migration_files), (
+        f"Expected {len(migration_files)} linear revisions, walked {len(visited)}: {visited}"
+    )
+    assert current == root_rev, f"Root migration mismatch: expected {root_rev}, got {current}"
+    assert "0001_initial_schema" in root_rev

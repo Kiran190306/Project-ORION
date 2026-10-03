@@ -637,6 +637,23 @@ def get_research_service(
     )
 
 
+def get_optimization_service(
+    session: Annotated[AsyncSession, Depends(get_db_session)],
+    request: Request,
+) -> Any:
+    """Provide OptimizationService with injected database session, entitlement service, and market data service."""
+    from .services.entitlement_service import EntitlementService
+    from .services.optimization_service import OptimizationService
+
+    market_data = getattr(request.app.state, "market_data_service", None)
+    entitlements = EntitlementService(session=session)
+    return OptimizationService(
+        session=session,
+        entitlement_service=entitlements,
+        market_data_service=market_data,
+    )
+
+
 def get_deployment_service(
     session: Annotated[AsyncSession, Depends(get_db_session)],
 ) -> Any:

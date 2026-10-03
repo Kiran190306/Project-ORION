@@ -16,6 +16,7 @@ from libraries.domain.research.optimization_models import (
     WalkForwardRobustness,
     WalkForwardWindowResult,
 )
+from libraries.domain.patterns.engine import CandlestickPatternEngine
 from libraries.domain.research.parameter_space_engine import normalize_strategy_id
 from libraries.domain.strategy.registry import StrategyRegistry
 
@@ -99,6 +100,8 @@ class WalkForwardEngine:
             # 3. Out-of-Sample Forward Validation
             from libraries.domain.backtesting.strategy_adapter import StrategyBacktestAdapter
 
+            pattern_engine = CandlestickPatternEngine()
+
             oos_strategy = StrategyRegistry.create_strategy(
                 strategy_id=canonical_id,
                 parameters=best_params,
@@ -112,6 +115,8 @@ class WalkForwardEngine:
                 spread_pips=spread_pips,
                 adverse_slippage_pips=slippage_pips,
                 commission_per_lot=commission_per_lot,
+                pattern_engine=pattern_engine,
+                candles=oos_candles,
             )
 
             for c in oos_candles:

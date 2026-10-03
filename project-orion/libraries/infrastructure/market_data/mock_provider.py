@@ -2,23 +2,25 @@
 
 from __future__ import annotations
 
-import asyncio
+import calendar
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 
 from libraries.domain.market_data.exceptions import (
-    DataUnavailableError,
     ProviderConnectionError,
     RateLimitExceededError,
     SymbolNotFoundError,
 )
 from libraries.domain.market_data.models import (
-    BarType,
     OHLCV,
+    BarType,
     Quote,
 )
-from libraries.domain.market_data.normalization import normalize_symbol
+from libraries.domain.market_data.normalization import (
+    normalize_symbol,
+    normalize_timeframe,
+)
 
 _MOCK_BASE_PRICES: dict[str, Decimal] = {
     "EUR/USD": Decimal("1.08500"),
@@ -41,6 +43,28 @@ _MOCK_SPREAD_PIPS: dict[str, Decimal] = {
     "NZD/USD": Decimal("0.00020"),
     "XAU/USD": Decimal("0.30"),
 }
+
+_STEP_MAP: dict[BarType, timedelta] = {
+    BarType.M1: timedelta(minutes=1),
+    BarType.M5: timedelta(minutes=5),
+    BarType.M15: timedelta(minutes=15),
+    BarType.M30: timedelta(minutes=30),
+    BarType.H1: timedelta(hours=1),
+    BarType.H4: timedelta(hours=4),
+    BarType.D1: timedelta(days=1),
+    BarType.W1: timedelta(weeks=1),
+}
+
+
+def _shift_months(dt: datetime, months_offset: int) -> datetime:
+    """Shift datetime by integer number of calendar months, preserving end-of-month semantics."""
+    is_eom = dt.day == calendar.monthrange(dt.year, dt.month)[1]
+    total_months = dt.year * 12 + (dt.month - 1) + months_offset
+    new_year = total_months // 12
+    new_month = (total_months % 12) + 1
+    max_days = calendar.monthrange(new_year, new_month)[1]
+    new_day = max_days if is_eom else min(dt.day, max_days)
+    return dt.replace(year=new_year, month=new_month, day=new_day)
 
 
 class MockMarketDataProvider:
@@ -103,7 +127,7 @@ class MockMarketDataProvider:
             raise SymbolNotFoundError(f"Symbol '{symbol}' not supported by mock provider")
 
         mid = self._base_prices[canonical]
-        half_spread = self._spread_pips.get(canonical, Decimal("0.00010")) / Decimal("2")
+        half_spread = self._spread_pips.get(canonical, Decimal("0.00010")) / Decimal(2)
         bid = mid - half_spread
         ask = mid + half_spread
 
@@ -123,7 +147,7 @@ class MockMarketDataProvider:
     async def get_candles(
         self,
         symbol: str,
-        timeframe: BarType,
+        timeframe: BarType | str,
         start: datetime | None = None,
         end: datetime | None = None,
         limit: int = 100,
@@ -142,19 +166,23 @@ class MockMarketDataProvider:
         if canonical not in self._base_prices:
             raise SymbolNotFoundError(f"Symbol '{symbol}' not supported")
 
+        canonical_bt = normalize_timeframe(timeframe)
+
         limit = max(1, min(limit, 1000))
         ref_time = end or datetime.now(timezone.utc)
-        step = timedelta(minutes=5)
-        if timeframe in (BarType.H1, BarType.H4):
-            step = timedelta(hours=1)
-        elif timeframe == BarType.D1:
-            step = timedelta(days=1)
+        if ref_time.tzinfo is None:
+            ref_time = ref_time.replace(tzinfo=timezone.utc)
 
         mid = self._base_prices[canonical]
         candles: list[OHLCV] = []
 
         for i in range(limit):
-            candle_time = ref_time - (step * (limit - i))
+            if canonical_bt == BarType.MN1:
+                candle_time = _shift_months(ref_time, -(limit - i))
+            else:
+                step = _STEP_MAP[canonical_bt]
+                candle_time = ref_time - (step * (limit - i))
+
             offset = Decimal(str((i % 10 - 5) * 0.0002))
             open_p = mid + offset
             close_p = open_p + Decimal("0.0001")
@@ -171,9 +199,14 @@ class MockMarketDataProvider:
                     low=low_p,
                     close=close_p,
                     volume=vol,
-                    bar_type=timeframe,
+                    bar_type=canonical_bt,
                     metadata={"is_mock": True},
                 )
             )
+
+        if start is not None:
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            candles = [c for c in candles if c.timestamp >= start]
 
         return candles

@@ -46,6 +46,8 @@ class FakeTransport(AbstractTransport):
     async def messages(self):
         for msg in self.messages_list:
             yield msg
+        while self.connected:
+            await asyncio.sleep(0.01)
 
 
 def eur_usd_symbol() -> Symbol:
@@ -97,7 +99,8 @@ def test_mt5_connector_feeds_market_data_manager() -> None:
         assert hasattr(connector, "start")
 
         await connector.start()  # type: ignore[union-attr]
-        await asyncio.sleep(0.01)
+        # Allow at least one tick-processing cycle before stopping.
+        await asyncio.sleep(0.05)
         await connector.stop()  # type: ignore[union-attr]
 
         assert len(publisher.snapshots) == 1
@@ -106,4 +109,6 @@ def test_mt5_connector_feeds_market_data_manager() -> None:
 
         await manager.stop()
 
-    asyncio.run(exercise())
+    # TD-011: Bounded timeout prevents indefinite hang caused by auto_reconnect loop
+    # on FakeTransport (which re-yields messages on each reconnect cycle).
+    asyncio.run(asyncio.wait_for(exercise(), timeout=5.0))

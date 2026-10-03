@@ -15,13 +15,7 @@ from typing import Any
 
 from libraries.domain.execution.models import (
     BrokerOrderId,
-    ExecutionResult,
-    Fill,
     Order,
-    OrderId,
-    OrderSide,
-    OrderStatus,
-    OrderType,
 )
 
 
@@ -61,57 +55,12 @@ class AdapterProviderUnavailableError(ExecutionAdapterError):
     """Raised when the broker provider is unreachable or in maintenance."""
 
 
-@dataclass(frozen=True, slots=True)
-class AccountInfo:
-    """Broker account information."""
-
-    account_id: str
-    broker_name: str
-    balance: Decimal
-    equity: Decimal
-    margin: Decimal
-    margin_free: Decimal
-    margin_level: float
-    currency: str
-    leverage: int
-    is_live: bool = False
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class PositionInfo:
-    """Open position information."""
-
-    position_id: str
-    symbol: str
-    side: OrderSide
-    quantity: Decimal
-    open_price: Decimal
-    current_price: Decimal
-    stop_loss: Decimal | None = None
-    take_profit: Decimal | None = None
-    commission: Decimal = Decimal("0")
-    swap: Decimal = Decimal("0")
-    profit: Decimal = Decimal("0")
-    open_time: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(frozen=True, slots=True)
-class OrderExecutionInfo:
-    """Order execution information returned by the broker."""
-
-    broker_order_id: BrokerOrderId
-    status: OrderStatus
-    filled_quantity: Decimal = Decimal("0")
-    average_fill_price: Decimal | None = None
-    commission: Decimal = Decimal("0")
-    fills: tuple[Fill, ...] = ()
-    rejection_reason: str = ""
-    latency_ms: float = 0.0
-    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    metadata: dict[str, Any] = field(default_factory=dict)
+from libraries.domain.reconciliation.ports import (
+    AccountInfo,
+    BrokerReconciliationPort,
+    OrderExecutionInfo,
+    PositionInfo,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -122,9 +71,9 @@ class ExecutionSymbolInfo:
     description: str = ""
     digits: int = 5
     pip_size: Decimal = Decimal("0.00001")
-    pip_value: Decimal = Decimal("0")
+    pip_value: Decimal = Decimal(0)
     min_volume: Decimal = Decimal("0.01")
-    max_volume: Decimal = Decimal("100")
+    max_volume: Decimal = Decimal(100)
     volume_step: Decimal = Decimal("0.01")
     spread: float = 0.0
     swap_long: float = 0.0
@@ -150,7 +99,7 @@ class BrokerAdapterConfig:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
-class BrokerAdapter(ABC):
+class BrokerAdapter(BrokerReconciliationPort, ABC):
     """Abstract base class for all broker execution adapters.
 
     Every adapter must implement all methods. Adapters are infrastructure

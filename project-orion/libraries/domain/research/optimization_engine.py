@@ -14,6 +14,7 @@ from libraries.domain.research.optimization_models import (
     SensitivityHeatmapMatrix,
     SensitivityHeatmapPoint,
 )
+from libraries.domain.patterns.engine import CandlestickPatternEngine
 from libraries.domain.research.parameter_space_engine import normalize_strategy_id
 from libraries.domain.strategy.registry import StrategyRegistry
 
@@ -54,6 +55,7 @@ class OptimizationEngine:
 
         canonical_id = normalize_strategy_id(strategy_id)
         raw_candidates: list[dict[str, Any]] = []
+        pattern_engine = CandlestickPatternEngine()
 
         for idx, params in enumerate(parameter_combinations):
             if self._is_cancelled:
@@ -78,6 +80,8 @@ class OptimizationEngine:
                 spread_pips=spread_pips,
                 adverse_slippage_pips=slippage_pips,
                 commission_per_lot=commission_per_lot,
+                pattern_engine=pattern_engine,
+                candles=candles,
             )
 
             # Feed historical candles

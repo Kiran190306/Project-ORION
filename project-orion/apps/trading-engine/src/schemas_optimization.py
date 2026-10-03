@@ -6,7 +6,12 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from libraries.domain.market_data.normalization import (
+    normalize_symbol,
+    normalize_timeframe,
+)
 
 
 class ParameterRangeSchema(BaseModel):
@@ -45,6 +50,7 @@ class OptimizationRunRequest(BaseModel):
     spread_pips: Decimal = Field(default=Decimal("1.5"), description="Simulated bid/ask spread in pips")
     slippage_pips: Decimal = Field(default=Decimal("0.5"), description="Simulated adverse execution slippage in pips")
     commission: Decimal = Field(default=Decimal("7.00"), description="Round-turn commission per standard lot")
+    data_source: str | None = Field(default=None, description="Optional market data source mode: 'external', 'synthetic', 'auto'")
 
 
 class WalkForwardRunRequest(BaseModel):
@@ -65,6 +71,7 @@ class WalkForwardRunRequest(BaseModel):
     spread_pips: Decimal = Field(default=Decimal("1.5"))
     slippage_pips: Decimal = Field(default=Decimal("0.5"))
     commission: Decimal = Field(default=Decimal("7.00"))
+    data_source: str | None = Field(default=None, description="Optional market data source mode: 'external', 'synthetic', 'auto'")
 
 
 class OptimizationCandidateResponse(BaseModel):
@@ -172,6 +179,26 @@ class OptimizationJobSummaryResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def canonicalize_symbol(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_symbol(str(v))
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def canonicalize_timeframe(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_timeframe(str(v)).name
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
 
 class OptimizationJobDetailResponse(BaseModel):
     """Full detail schema for an optimization job."""
@@ -201,10 +228,31 @@ class OptimizationJobDetailResponse(BaseModel):
     heatmap: SensitivityHeatmapResponse | None = None
     warnings: list[str] | None = None
     error_message: str | None = None
+    dataset_provenance: dict[str, Any] | None = Field(default=None, description="Validated dataset provenance metadata")
     created_at: datetime
     completed_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def canonicalize_symbol(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_symbol(str(v))
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def canonicalize_timeframe(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_timeframe(str(v)).name
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
 
 
 class StrategyDefaultSpaceResponse(BaseModel):

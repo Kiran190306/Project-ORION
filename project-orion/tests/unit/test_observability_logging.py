@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Generator
 
 import pytest
 
@@ -19,6 +20,12 @@ from libraries.observability.logging import (
 
 
 class TestStructuredLogger:
+    @pytest.fixture(autouse=True)
+    def clean_correlation_context(self) -> Generator[None, None, None]:
+        set_correlation_id(None)
+        yield
+        set_correlation_id(None)
+
     def test_get_logger(self) -> None:
         logger = get_logger("test_logger")
         assert isinstance(logger, StructuredLogger)
@@ -40,7 +47,6 @@ class TestStructuredLogger:
         set_correlation_id("")  # Reset
 
     def test_structured_logger_creation(self) -> None:
-        config = LoggingConfig(level="DEBUG", service_name="test")
         logger = get_logger("test_svc")
         assert logger.name == "test_svc"
 
@@ -58,6 +64,23 @@ class TestStructuredLogger:
 
 
 class TestStructuredFormatter:
+    def test_formatter_default_construction(self) -> None:
+        """Regression test for TD-013: verify default construction works."""
+        formatter = StructuredFormatter()
+        record = logging.LogRecord(
+            name="test_logger",
+            level=logging.INFO,
+            pathname=__file__,
+            lineno=42,
+            msg="default config test",
+            args=(),
+            exc_info=None,
+        )
+        output = formatter.format(record)
+        data = json.loads(output)
+        assert data["message"] == "default config test"
+        assert data["service"] == "orion"
+
     def test_formatter_creates_json(self) -> None:
         config = LoggingConfig(service_name="test")
         formatter = StructuredFormatter(config)

@@ -19,20 +19,24 @@ from typing import Any
 
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm.attributes import flag_modified
 
 from libraries.domain.backtesting.historical_data import (
     MarketDataServiceHistoricalProvider,
 )
-from libraries.domain.backtesting.models import Timeframe
 from libraries.domain.backtesting.strategy_adapter import (
     StrategyBacktestAdapter,
     downsample_equity_curve,
 )
 from libraries.domain.market_data.normalization import (
+    bar_type_to_timeframe,
     normalize_symbol,
     normalize_timeframe,
 )
+from libraries.domain.patterns.engine import CandlestickPatternEngine
 from libraries.domain.research.models import (
+    DatasetProvenance,
+    DataSourceMode,
     ResearchExperimentStatus,
 )
 from libraries.domain.research.overfitting_guard import OverfittingGuard
@@ -55,13 +59,17 @@ class ResearchService:
         session: AsyncSession,
         entitlement_service: EntitlementService | None = None,
         market_data_service: Any | None = None,
+        historical_provider: MarketDataServiceHistoricalProvider | None = None,
+        default_data_source: str | DataSourceMode | None = None,
     ) -> None:
         self.session = session
         self.entitlements = entitlement_service or EntitlementService(session)
         self.market_data_service = market_data_service
-        self.historical_provider = MarketDataServiceHistoricalProvider(
-            market_data_service=market_data_service
+        self.historical_provider = historical_provider or MarketDataServiceHistoricalProvider(
+            market_data_service=market_data_service,
+            source_mode=default_data_source,
         )
+
 
     async def list_available_strategies(self) -> list[dict[str, Any]]:
         """Return the registered strategy catalogue with parameter schemas."""
@@ -132,6 +140,7 @@ class ResearchService:
         spread_pips: Decimal = Decimal("1.5"),
         adverse_slippage_pips: Decimal = Decimal("0.5"),
         commission_per_lot: Decimal = Decimal("7.00"),
+        data_source: str | DataSourceMode | None = None,
     ) -> ResearchExperimentModel:
         """Create, validate, execute, and persist a complete deterministic backtest experiment."""
         # 1. Validation of parameters and canonical symbols/timeframes
@@ -171,7 +180,7 @@ class ResearchService:
             strategy_id=strategy_id,
             strategy_version="1.0.0",
             symbol=canonical_sym,
-            timeframe=tf_enum.value,
+            timeframe=tf_enum.name,
             start_date=start_dt,
             end_date=end_dt,
             initial_capital=initial_capital,
@@ -198,13 +207,35 @@ class ResearchService:
         start_wall = time.time()
 
         try:
-            # 3. Instantiate Strategy and Adapter
+            # 3. Instantiate Strategy
             strategy = StrategyRegistry.create_strategy(
                 strategy_id=strategy_id,
                 parameters=validated_params,
                 symbols=[canonical_sym],
             )
 
+            # 4. Load Historical Market Data
+            tf_domain = bar_type_to_timeframe(tf_enum)
+            candles = await self.historical_provider.load_candles(
+                symbol=canonical_sym,
+                timeframe=tf_domain,
+                start_date=start_date,
+                end_date=end_date,
+                source_mode=data_source,
+            )
+
+            if not candles:
+                raise RuntimeError(f"No historical market data available for {canonical_sym} in selected period")
+
+            # Persist validated dataset provenance in simulation config
+            provenance = getattr(self.historical_provider, "last_provenance", None)
+            if provenance is not None and isinstance(provenance, DatasetProvenance):
+                sim_config["provenance"] = provenance.to_dict()
+                model.simulation_config = dict(sim_config)
+                flag_modified(model, "simulation_config")
+
+            # 5. Instantiate Candlestick Pattern Engine & Backtest Adapter
+            pattern_engine = CandlestickPatternEngine()
             adapter = StrategyBacktestAdapter(
                 strategy=strategy,
                 symbol=canonical_sym,
@@ -213,21 +244,11 @@ class ResearchService:
                 spread_pips=spread_pips,
                 adverse_slippage_pips=adverse_slippage_pips,
                 commission_per_lot=commission_per_lot,
+                pattern_engine=pattern_engine,
+                candles=candles,
             )
 
-            # 4. Load Historical Market Data
-            tf_domain = Timeframe(tf_enum.value) if tf_enum.value in [t.value for t in Timeframe] else Timeframe.H1
-            candles = await self.historical_provider.load_candles(
-                symbol=canonical_sym,
-                timeframe=tf_domain,
-                start_date=start_date,
-                end_date=end_date,
-            )
-
-            if not candles:
-                raise RuntimeError(f"No historical market data available for {canonical_sym} in selected period")
-
-            # 5. Replay Bars Through Strategy & Accounting Engine
+            # 6. Replay Bars Through Strategy & Accounting Engine
             for c in candles:
                 await adapter.on_candle(
                     symbol=canonical_sym,
@@ -307,6 +328,7 @@ class ResearchService:
                     "net_pnl": float(t.net_pnl),
                     "duration_seconds": t.duration_seconds,
                     "exit_reason": t.exit_reason,
+                    "metadata": dict(t.metadata) if hasattr(t, "metadata") and t.metadata else {},
                 }
                 for t in adapter.trades
             ]

@@ -51,8 +51,8 @@ class OrderDiscrepancy:
     broker_order_id: str | None = None
     local_status: str | None = None
     remote_status: str | None = None
-    local_qty: Decimal = Decimal("0")
-    remote_qty: Decimal = Decimal("0")
+    local_qty: Decimal = Decimal(0)
+    remote_qty: Decimal = Decimal(0)
     details: str = ""
 
     def to_dict(self) -> dict[str, Any]:
@@ -78,9 +78,9 @@ class PositionDiscrepancy:
     position_id: str | None = None
     local_side: str | None = None
     remote_side: str | None = None
-    local_qty: Decimal = Decimal("0")
-    remote_qty: Decimal = Decimal("0")
-    delta_qty: Decimal = Decimal("0")
+    local_qty: Decimal = Decimal(0)
+    remote_qty: Decimal = Decimal(0)
+    delta_qty: Decimal = Decimal(0)
     local_price: Decimal | None = None
     remote_price: Decimal | None = None
     details: str = ""

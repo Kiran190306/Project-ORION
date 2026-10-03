@@ -6,10 +6,13 @@ from dataclasses import dataclass
 from datetime import datetime, time, timezone
 from decimal import Decimal
 from enum import StrEnum
-from typing import FrozenSet
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .exceptions import InvalidMarketDataError, InvalidSessionError
+
+if TYPE_CHECKING:
+    from libraries.domain.market_data.models import Instrument
 
 
 class MarketDataKind(StrEnum):
@@ -44,10 +47,37 @@ class Symbol:
             raise InvalidMarketDataError("Symbol code must be uppercase", "code")
         if not self.base_currency or not self.quote_currency:
             raise InvalidMarketDataError("Both currency codes are required")
-        if self.tick_size <= Decimal("0"):
+        if self.tick_size <= Decimal(0):
             raise InvalidMarketDataError("tick_size must be positive", "tick_size")
-        if self.pip_size <= Decimal("0"):
+        if self.pip_size <= Decimal(0):
             raise InvalidMarketDataError("pip_size must be positive", "pip_size")
+
+    @classmethod
+    def from_instrument(cls, instrument: Instrument) -> Symbol:
+        """Construct tick-engine Symbol from canonical Instrument definition."""
+        return cls(
+            code=instrument.symbol,
+            base_currency=instrument.base_currency,
+            quote_currency=instrument.quote_currency,
+            tick_size=instrument.tick_size,
+            pip_size=instrument.pip_size,
+            active=getattr(instrument, "is_active", True),
+        )
+
+    def to_instrument(self, display_name: str | None = None) -> Instrument:
+        """Convert tick-engine Symbol to canonical Instrument representation."""
+        from libraries.domain.market_data.models import Instrument
+
+        disp = display_name or f"{self.base_currency} / {self.quote_currency}"
+        return Instrument(
+            symbol=self.code,
+            base_currency=self.base_currency,
+            quote_currency=self.quote_currency,
+            pip_size=self.pip_size,
+            tick_size=self.tick_size,
+            display_name=disp,
+            is_active=self.active,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,7 +129,7 @@ class Tick:
             raise InvalidMarketDataError("timestamp must be timezone-aware UTC", "timestamp")
         if self.timestamp.utcoffset() != timezone.utc.utcoffset(self.timestamp):
             raise InvalidMarketDataError("timestamp must be normalized to UTC", "timestamp")
-        if self.bid <= Decimal("0") or self.ask <= Decimal("0"):
+        if self.bid <= Decimal(0) or self.ask <= Decimal(0):
             raise InvalidMarketDataError("bid and ask must be positive")
         if self.bid > self.ask:
             raise InvalidMarketDataError("bid cannot exceed ask")
@@ -133,7 +163,7 @@ class OHLC:
             raise InvalidMarketDataError("open must be within candle range")
         if not self.low <= self.close <= self.high:
             raise InvalidMarketDataError("close must be within candle range")
-        if self.volume < Decimal("0"):
+        if self.volume < Decimal(0):
             raise InvalidMarketDataError("volume cannot be negative", "volume")
 
 
@@ -145,7 +175,7 @@ class TradingSession:
     timezone_name: str
     start_time: time
     end_time: time
-    trading_days: FrozenSet[int]
+    trading_days: frozenset[int]
 
     def __post_init__(self) -> None:
         if not self.session_id:

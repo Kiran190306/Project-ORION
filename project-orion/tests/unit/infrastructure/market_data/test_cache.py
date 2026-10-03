@@ -5,13 +5,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
+
 import pytest
 
 from libraries.domain.market_data.models import (
-    BarType,
     DataQuality,
     MarketDataHealth,
-    OHLCV,
     ProviderStatus,
     Quote,
 )
@@ -32,7 +31,7 @@ class TestMarketDataCache:
         mock_redis = MagicMock()
         mock_redis.is_connected = True
 
-        async def _set(key: str, val: str, ex: int | None = None) -> None:
+        async def _set(key: str, val: str, ttl_seconds: int | None = None) -> None:
             store[key] = val
 
         async def _get(key: str) -> str | None:
@@ -54,18 +53,21 @@ class TestMarketDataCache:
         await cache.set_quote(quote, ttl_seconds=15)
         mock_redis.set.assert_called_once()
 
-        cached_quote = await cache.get_quote("EUR/USD")
+        cached_quote = await cache.get_quote("EUR/USD", provider="test")
         assert cached_quote is not None
         assert cached_quote.symbol == "EUR/USD"
         assert cached_quote.bid == Decimal("1.08500")
         assert cached_quote.ask == Decimal("1.08510")
+
+        # Different provider must be isolated
+        assert await cache.get_quote("EUR/USD", provider="other") is None
 
     async def test_set_and_get_health(self) -> None:
         store: dict[str, str] = {}
         mock_redis = MagicMock()
         mock_redis.is_connected = True
 
-        async def _set(key: str, val: str, ex: int | None = None) -> None:
+        async def _set(key: str, val: str, ttl_seconds: int | None = None) -> None:
             store[key] = val
 
         async def _get(key: str) -> str | None:
@@ -92,3 +94,66 @@ class TestMarketDataCache:
         assert retrieved.status == ProviderStatus.HEALTHY
         assert retrieved.data_quality == DataQuality.EXCELLENT
         assert "EUR/USD" in retrieved.symbols_active
+
+    async def test_td_001_ttl_passed_correctly_to_redis(self) -> None:
+        """Regression test for TD-001: verify ttl_seconds kwarg is passed to RedisClient."""
+        mock_redis = MagicMock()
+        mock_redis.is_connected = True
+        mock_redis.set = AsyncMock(return_value=True)
+
+        cache = MarketDataCache(redis_client=mock_redis)
+        now = datetime.now(timezone.utc)
+        quote = Quote(
+            symbol="EUR/USD",
+            bid=Decimal("1.08500"),
+            ask=Decimal("1.08510"),
+            timestamp=now,
+            provider="test",
+        )
+
+        await cache.set_quote(quote, ttl_seconds=42)
+        mock_redis.set.assert_called_once_with(
+            "market:quote:test:EUR/USD",
+            mock_redis.set.call_args[0][1],
+            ttl_seconds=42,
+        )
+
+    async def test_td_001_redis_error_safe_failure(self) -> None:
+        """Verify RedisError is caught safely and does not crash."""
+        from libraries.infrastructure.caching.exceptions import RedisConnectionError
+
+        mock_redis = MagicMock()
+        mock_redis.is_connected = True
+        mock_redis.set = AsyncMock(side_effect=RedisConnectionError("connection dropped"))
+
+        cache = MarketDataCache(redis_client=mock_redis)
+        now = datetime.now(timezone.utc)
+        quote = Quote(
+            symbol="EUR/USD",
+            bid=Decimal("1.08500"),
+            ask=Decimal("1.08510"),
+            timestamp=now,
+            provider="test",
+        )
+
+        # Should not raise exception
+        await cache.set_quote(quote, ttl_seconds=15)
+
+    async def test_td_001_type_error_not_swallowed(self) -> None:
+        """Verify TypeError is NOT swallowed so code errors are visible."""
+        mock_redis = MagicMock()
+        mock_redis.is_connected = True
+        mock_redis.set = AsyncMock(side_effect=TypeError("Unexpected kwarg or type"))
+
+        cache = MarketDataCache(redis_client=mock_redis)
+        now = datetime.now(timezone.utc)
+        quote = Quote(
+            symbol="EUR/USD",
+            bid=Decimal("1.08500"),
+            ask=Decimal("1.08510"),
+            timestamp=now,
+            provider="test",
+        )
+
+        with pytest.raises(TypeError, match="Unexpected kwarg or type"):
+            await cache.set_quote(quote, ttl_seconds=15)

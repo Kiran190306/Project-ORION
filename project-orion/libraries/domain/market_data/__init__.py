@@ -57,9 +57,11 @@ from libraries.domain.market_data.models import (
     TradeTick,
 )
 from libraries.domain.market_data.normalization import (
+    bar_type_to_timeframe,
     canonical_instruments,
     normalize_symbol,
     normalize_timeframe,
+    timeframe_to_bar_type,
 )
 from libraries.domain.market_data.quality_engine import (
     MarketDataQualityEngine,
@@ -124,9 +126,11 @@ __all__ = [
     "OrderBookProviderPort",
     "SessionCalendarPort",
     # Normalization & Quality
+    "bar_type_to_timeframe",
     "canonical_instruments",
     "normalize_symbol",
     "normalize_timeframe",
+    "timeframe_to_bar_type",
     "MarketDataQualityEngine",
     "QualityAssessment",
     # Validation

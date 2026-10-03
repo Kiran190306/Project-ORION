@@ -6,6 +6,8 @@ enabling clean catch-and-handle patterns without exposing internals.
 
 from __future__ import annotations
 
+from typing import Any
+
 
 class BacktestError(Exception):
     """Base exception for all backtesting errors."""
@@ -35,6 +37,40 @@ class ReplaySeekError(ReplayError):
 
 class HistoricalDataError(BacktestError):
     """Raised when historical data operations fail."""
+
+
+class HistoricalDataUnavailableError(HistoricalDataError):
+    """Raised when external historical data is requested but unavailable.
+
+    Guarantees that backtests fail explicitly without silent fallback to synthetic data.
+    """
+
+    def __init__(
+        self,
+        symbol: str,
+        timeframe: str,
+        start: Any,
+        end: Any,
+        provider: str | None = None,
+        reason: str | None = None,
+        status_code: int | None = None,
+        cause: Exception | None = None,
+    ) -> None:
+        self.symbol = symbol
+        self.timeframe = timeframe
+        self.start = start
+        self.end = end
+        self.provider = provider
+        self.reason = reason
+        self.status_code = status_code
+        self.cause = cause
+
+        msg = (
+            f"Historical data unavailable for symbol='{symbol}', timeframe='{timeframe}', "
+            f"range=[{start} -> {end}] from provider='{provider or 'external'}': {reason or 'no data returned'}. "
+            f"Silent fallback to synthetic data is prohibited."
+        )
+        super().__init__(msg)
 
 
 class DataFormatError(HistoricalDataError):

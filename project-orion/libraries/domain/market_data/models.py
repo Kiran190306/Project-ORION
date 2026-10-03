@@ -131,7 +131,7 @@ class Quote:
     @property
     def mid(self) -> Decimal:
         """Mid-market price."""
-        return (self.bid + self.ask) / Decimal("2")
+        return (self.bid + self.ask) / Decimal(2)
 
     @property
     def spread(self) -> Decimal:
@@ -292,6 +292,19 @@ class Instrument:
     display_name: str
     is_active: bool = True
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_symbol(self) -> Any:
+        """Convert canonical Instrument to tick-engine Symbol representation."""
+        from libraries.domain.market.models import Symbol
+
+        return Symbol(
+            code=self.symbol,
+            base_currency=self.base_currency,
+            quote_currency=self.quote_currency,
+            tick_size=self.tick_size,
+            pip_size=self.pip_size,
+            active=self.is_active,
+        )
 
 
 @dataclass(frozen=True, slots=True)

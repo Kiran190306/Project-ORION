@@ -115,6 +115,25 @@ async def test_console_email_adapter_masks_tokens_and_emails(
     assert "q***t@hedgefund.com" in caplog.text
 
 
+@pytest.mark.asyncio
+async def test_console_email_adapter_short_token_masking(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Regression test for TD-015: verify short tokens (<8 chars) are safely masked with '***'."""
+    adapter = ConsoleEmailAdapter()
+
+    with caplog.at_level(logging.INFO):
+        await adapter.send_verification_email(
+            to_email="test@example.com",
+            verification_token="short12",
+            username="testuser",
+        )
+
+    # Short token must be completely masked
+    assert "Token: ***" in caplog.text
+    assert "short12" not in caplog.text
+
+
 # ─── 2. Configuration & Credential Safety ──────────────────────────────────────
 
 

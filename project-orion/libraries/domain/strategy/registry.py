@@ -11,14 +11,21 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from libraries.domain.market_data.models import BarType
+from libraries.domain.market_data.normalization import canonical_instruments
 from libraries.domain.strategy.base import BaseStrategy
 from libraries.domain.strategy.models import StrategyMetadata
 from libraries.domain.strategy.strategies import (
     BreakoutStrategy,
+    CandlestickReversalStrategy,
     MeanReversionStrategy,
     MomentumStrategy,
     TrendFollowingStrategy,
 )
+
+
+_DEFAULT_SUPPORTED_INSTRUMENTS: tuple[str, ...] = tuple(canonical_instruments().keys())
+_DEFAULT_SUPPORTED_TIMEFRAMES: tuple[str, ...] = tuple(b.name for b in BarType)
 
 
 class UnknownStrategyError(ValueError):
@@ -53,15 +60,8 @@ class StrategyCatalogueEntry:
     strategy_class: type[BaseStrategy]
     version: str = "1.0.0"
     is_deterministic: bool = True
-    supported_instruments: tuple[str, ...] = (
-        "EUR/USD",
-        "GBP/USD",
-        "USD/JPY",
-        "AUD/USD",
-        "USD/CHF",
-        "EUR/GBP",
-    )
-    supported_timeframes: tuple[str, ...] = ("M1", "M5", "M15", "H1", "H4", "D1")
+    supported_instruments: tuple[str, ...] = _DEFAULT_SUPPORTED_INSTRUMENTS
+    supported_timeframes: tuple[str, ...] = _DEFAULT_SUPPORTED_TIMEFRAMES
     parameters: tuple[ParameterDefinition, ...] = field(default_factory=tuple)
 
 
@@ -319,6 +319,73 @@ StrategyRegistry.register(
                 min_value=0.001,
                 max_value=0.20,
                 description="Minimum velocity threshold required to trigger a signal",
+            ),
+        ),
+    )
+)
+
+StrategyRegistry.register(
+    StrategyCatalogueEntry(
+        strategy_id="candlestick_reversal",
+        name="Candlestick Reversal",
+        description="Deterministic price action strategy trading candlestick reversal patterns with confirmation.",
+        category="price_action",
+        strategy_class=CandlestickReversalStrategy,
+        version="1.0.0",
+        is_deterministic=True,
+        parameters=(
+            ParameterDefinition(
+                name="pattern_id",
+                param_type="string",
+                default="any_reversal",
+                options=(
+                    "any_reversal",
+                    "hammer",
+                    "inverted_hammer",
+                    "bullish_engulfing",
+                    "bearish_engulfing",
+                    "morning_star",
+                    "evening_star",
+                    "shooting_star",
+                    "hanging_man",
+                    "bullish_harami",
+                    "bearish_harami",
+                    "doji",
+                    "inside_bar",
+                    "three_white_soldiers",
+                    "three_black_crows",
+                ),
+                description="Target candlestick pattern identifier or 'any_reversal'",
+            ),
+            ParameterDefinition(
+                name="pattern_direction",
+                param_type="string",
+                default="all",
+                options=(
+                    "all",
+                    "bullish_only",
+                    "bearish_only",
+                ),
+                description="Direction filter: 'all', 'bullish_only', or 'bearish_only'",
+            ),
+            ParameterDefinition(
+                name="min_strength",
+                param_type="string",
+                default="moderate",
+                options=(
+                    "any",
+                    "moderate",
+                    "strong",
+                ),
+                description="Minimum pattern conviction strength requirement",
+            ),
+            ParameterDefinition(
+                name="min_confidence",
+                param_type="float",
+                default=0.70,
+                min_value=0.50,
+                max_value=1.00,
+                description="Minimum pattern detection confidence threshold",
             ),
         ),
     )

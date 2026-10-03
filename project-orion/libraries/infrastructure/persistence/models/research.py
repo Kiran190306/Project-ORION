@@ -61,6 +61,13 @@ class ResearchExperimentModel(Base, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    @property
+    def dataset_provenance(self) -> dict[str, Any] | None:
+        """Dataset provenance dictionary if present in simulation_config."""
+        if isinstance(self.simulation_config, dict):
+            return self.simulation_config.get("provenance")
+        return None
+
     __table_args__ = (
         Index("ix_research_experiments_org_created", "organization_id", "created_at"),
         Index("ix_research_experiments_org_status", "organization_id", "status"),

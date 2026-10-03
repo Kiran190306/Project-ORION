@@ -482,6 +482,23 @@ export const ResearchLabPage: React.FC = () => {
                               <option value="true">True</option>
                               <option value="false">False</option>
                             </select>
+                          ) : p.options && p.options.length > 0 ? (
+                            <select
+                              value={strategyParams[p.name] ?? p.default}
+                              onChange={(e) =>
+                                setStrategyParams({
+                                  ...strategyParams,
+                                  [p.name]: e.target.value,
+                                })
+                              }
+                              className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:border-sky-500 focus:outline-hidden font-mono"
+                            >
+                              {p.options.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
                           ) : (
                             <input
                               type="text"

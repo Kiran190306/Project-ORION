@@ -13,6 +13,11 @@ from typing import Any, Generic, Self, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from libraries.domain.market_data.normalization import (
+    normalize_symbol,
+    normalize_timeframe,
+)
+
 T = TypeVar("T")
 
 # ─── Enums ───────────────────────────────────────────────────────────────
@@ -1280,6 +1285,74 @@ class MarketCandlesListResponse(BaseModel):
     timeframe: str
     provider: str
     candles: list[MarketCandleResponse]
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def canonicalize_symbol(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_symbol(str(v))
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def canonicalize_timeframe(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_timeframe(str(v)).name
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+
+class MarketPatternResponse(BaseModel):
+    """Response model for a single detected candlestick pattern."""
+
+    model_config = ConfigDict(frozen=True)
+
+    pattern_id: str
+    name: str
+    direction: str
+    strength: str
+    candle_index: int
+    timestamp: datetime
+    description: str
+    confidence: Decimal = Field(default=Decimal("1.00"))
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MarketPatternsListResponse(BaseModel):
+    """Response model for detected candlestick patterns."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    timeframe: str
+    provider: str
+    patterns: list[MarketPatternResponse]
+    total_detected: int
+
+    @field_validator("symbol", mode="before")
+    @classmethod
+    def canonicalize_symbol(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_symbol(str(v))
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
+
+    @field_validator("timeframe", mode="before")
+    @classmethod
+    def canonicalize_timeframe(cls, v: Any) -> str:
+        if v:
+            try:
+                return normalize_timeframe(str(v)).name
+            except (ValueError, KeyError, AttributeError):
+                return str(v)
+        return str(v)
 
 
 class MarketHealthResponse(BaseModel):

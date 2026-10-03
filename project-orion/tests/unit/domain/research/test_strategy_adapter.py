@@ -161,3 +161,87 @@ def test_downsample_small_curve_unchanged() -> None:
     ]
     downsampled = downsample_equity_curve(points, max_points=100)
     assert len(downsampled) == 50
+
+
+from libraries.domain.strategy.base import BaseStrategy
+from libraries.domain.strategy.models import Signal, StrategyContext, StrategyMetadata
+
+
+class _PriceCapturingStrategy(BaseStrategy):
+    def __init__(self, metadata: StrategyMetadata, **kwargs: object) -> None:
+        super().__init__(metadata, kwargs)
+        self.captured_prices: list[Decimal | None] = []
+
+    async def generate_signal(self, context: StrategyContext) -> Signal | None:
+        self.captured_prices.append(context.current_price)
+        return None
+
+
+@pytest.mark.asyncio
+async def test_on_candle_close_price_populates_context_current_price() -> None:
+    """REGRESSION: on_candle(close_price=DECIMAL) must produce context.current_price == close_price and not None."""
+    meta = StrategyMetadata(
+        strategy_id="price_capturing",
+        name="Price Capturing",
+        version="1.0.0",
+        tags=["EUR/USD"],
+    )
+    strat = _PriceCapturingStrategy(meta)
+    strat.initialize()
+
+    adapter = StrategyBacktestAdapter(
+        strategy=strat,
+        symbol="EUR/USD",
+        timeframe="H1",
+    )
+
+    t0 = datetime(2025, 1, 1, 0, 0, tzinfo=timezone.utc)
+    expected_close = Decimal("1.0850")
+    await adapter.on_candle(
+        symbol="EUR/USD",
+        timestamp=t0,
+        open_price=Decimal("1.0800"),
+        high_price=Decimal("1.0900"),
+        low_price=Decimal("1.0750"),
+        close_price=expected_close,
+        volume=Decimal("100"),
+    )
+
+    assert len(strat.captured_prices) == 1
+    assert strat.captured_prices[0] is not None
+    assert strat.captured_prices[0] == expected_close
+
+
+@pytest.mark.asyncio
+async def test_on_candle_close_backward_compatibility() -> None:
+    """REGRESSION: on_candle(close=DECIMAL) remains fully backward compatible."""
+    meta = StrategyMetadata(
+        strategy_id="price_capturing",
+        name="Price Capturing",
+        version="1.0.0",
+        tags=["EUR/USD"],
+    )
+    strat = _PriceCapturingStrategy(meta)
+    strat.initialize()
+
+    adapter = StrategyBacktestAdapter(
+        strategy=strat,
+        symbol="EUR/USD",
+        timeframe="H1",
+    )
+
+    t0 = datetime(2025, 1, 1, 0, 0, tzinfo=timezone.utc)
+    expected_close = Decimal("1.0850")
+    await adapter.on_candle(
+        symbol="EUR/USD",
+        timestamp=t0,
+        open_price=Decimal("1.0800"),
+        high=Decimal("1.0900"),
+        low=Decimal("1.0750"),
+        close=expected_close,
+        volume=Decimal("100"),
+    )
+
+    assert len(strat.captured_prices) == 1
+    assert strat.captured_prices[0] is not None
+    assert strat.captured_prices[0] == expected_close

@@ -15,6 +15,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from libraries.domain.organization.permissions import Permission
+from libraries.domain.strategy.registry import StrategyRegistry
 from libraries.infrastructure.persistence.models import (
     AccountModel,
     StrategyConfigModel,
@@ -40,129 +41,53 @@ logger = logging.getLogger("trading_engine.routes.strategies")
 
 router = APIRouter(prefix="/api/v1/strategies", tags=["Strategies"])
 
-# ─── Static Strategy Catalogue ──────────────────────────────────────────────
+# ─── Strategy Catalogue ─────────────────────────────────────────────────────
 
-_STRATEGY_CATALOGUE: list[dict[str, Any]] = [
-    {
-        "id": "trend_following",
-        "name": "Trend Following",
-        "type": "trend_following",
-        "description": "Follows market trends using moving averages and momentum indicators",
-        "timeframes": ["M1", "M5", "M15", "H1", "H4", "D1"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"],
-        "parameters": {
-            "fast_ma_period": {"type": "integer", "default": 10, "min": 2, "max": 50},
-            "slow_ma_period": {"type": "integer", "default": 30, "min": 5, "max": 200},
-            "rsi_period": {"type": "integer", "default": 14, "min": 5, "max": 50},
-            "rsi_overbought": {"type": "float", "default": 70.0, "min": 50.0, "max": 90.0},
-            "rsi_oversold": {"type": "float", "default": 30.0, "min": 10.0, "max": 50.0},
-        },
-    },
-    {
-        "id": "mean_reversion",
-        "name": "Mean Reversion",
-        "type": "mean_reversion",
-        "description": "Reverts to mean when price deviates significantly from average",
-        "timeframes": ["M15", "H1", "H4"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY"],
-        "parameters": {
-            "lookback_period": {"type": "integer", "default": 20, "min": 5, "max": 100},
-            "std_dev_threshold": {"type": "float", "default": 2.0, "min": 1.0, "max": 4.0},
-            "mean_type": {"type": "string", "default": "SMA", "options": ["SMA", "EMA", "WMA"]},
-        },
-    },
-    {
-        "id": "breakout",
-        "name": "Breakout",
-        "type": "breakout",
-        "description": "Trades breakouts from consolidation patterns",
-        "timeframes": ["H1", "H4", "D1"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY"],
-        "parameters": {
-            "lookback_bars": {"type": "integer", "default": 20, "min": 5, "max": 100},
-            "volume_threshold": {"type": "float", "default": 1.5, "min": 1.0, "max": 5.0},
-            "atr_multiplier": {"type": "float", "default": 1.5, "min": 0.5, "max": 4.0},
-        },
-    },
-    {
-        "id": "reversal",
-        "name": "Reversal",
-        "type": "reversal",
-        "description": "Identifies trend reversals using momentum divergences",
-        "timeframes": ["M15", "H1", "H4"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY"],
-        "parameters": {
-            "divergence_lookback": {"type": "integer", "default": 14, "min": 5, "max": 50},
-            "confirmation_bars": {"type": "integer", "default": 3, "min": 1, "max": 10},
-        },
-    },
-    {
-        "id": "scalping",
-        "name": "Scalping",
-        "type": "scalping",
-        "description": "Short-term trades on small price movements",
-        "timeframes": ["M1", "M5"],
-        "symbols": ["EUR/USD", "GBP/USD"],
-        "parameters": {
-            "pip_target": {"type": "float", "default": 5.0, "min": 1.0, "max": 20.0},
-            "max_hold_minutes": {"type": "integer", "default": 15, "min": 1, "max": 60},
-        },
-    },
-    {
-        "id": "swing",
-        "name": "Swing",
-        "type": "swing",
-        "description": "Medium-term trades on multi-day swings",
-        "timeframes": ["H4", "D1"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"],
-        "parameters": {
-            "swing_lookback": {"type": "integer", "default": 10, "min": 3, "max": 30},
-            "risk_reward_ratio": {"type": "float", "default": 2.0, "min": 1.0, "max": 5.0},
-        },
-    },
-    {
-        "id": "momentum",
-        "name": "Momentum",
-        "type": "momentum",
-        "description": "Trades based on momentum continuation patterns",
-        "timeframes": ["M5", "M15", "H1"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY"],
-        "parameters": {
-            "momentum_period": {"type": "integer", "default": 14, "min": 5, "max": 50},
-            "signal_threshold": {"type": "float", "default": 0.5, "min": 0.1, "max": 2.0},
-        },
-    },
-    {
-        "id": "carry_trade",
-        "name": "Carry Trade",
-        "type": "carry_trade",
-        "description": "Exploits interest rate differentials between currency pairs",
-        "timeframes": ["D1", "W1"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY", "AUD/USD"],
-        "parameters": {
-            "min_rate_differential": {"type": "float", "default": 0.5, "min": 0.1, "max": 3.0},
-            "max_drawdown_pct": {"type": "float", "default": 5.0, "min": 1.0, "max": 20.0},
-        },
-    },
-    {
-        "id": "news_trading",
-        "name": "News Trading",
-        "type": "news",
-        "description": "Trades around economic news events",
-        "timeframes": ["M1", "M5"],
-        "symbols": ["EUR/USD", "GBP/USD", "USD/JPY"],
-        "parameters": {
-            "pre_news_minutes": {"type": "integer", "default": 5, "min": 1, "max": 30},
-            "post_news_minutes": {"type": "integer", "default": 15, "min": 5, "max": 60},
-            "min_impact": {"type": "string", "default": "high", "options": ["low", "medium", "high"]},
-        },
-    },
-]
+
+def _build_strategy_catalogue() -> list[dict[str, Any]]:
+    """Build the catalogue of active strategies directly from StrategyRegistry.
+
+    Guarantees 100% parity between the exposed API catalogue and executable strategies.
+    Only strategies that can actually be resolved and executed by StrategyRegistry
+    are included.
+    """
+    catalogue: list[dict[str, Any]] = []
+    for entry in StrategyRegistry.list_strategies():
+        params: dict[str, Any] = {}
+        for p in entry.parameters:
+            p_def: dict[str, Any] = {
+                "type": p.param_type,
+                "default": p.default,
+            }
+            if p.min_value is not None:
+                p_def["min"] = p.min_value
+            if p.max_value is not None:
+                p_def["max"] = p.max_value
+            if p.options is not None:
+                p_def["options"] = list(p.options)
+            p_def["description"] = p.description
+            params[p.name] = p_def
+
+        catalogue.append(
+            {
+                "id": entry.strategy_id,
+                "name": entry.name,
+                "type": entry.strategy_id,
+                "description": entry.description,
+                "timeframes": list(entry.supported_timeframes),
+                "symbols": list(entry.supported_instruments),
+                "parameters": params,
+            }
+        )
+    return catalogue
+
+
+_STRATEGY_CATALOGUE: list[dict[str, Any]] = _build_strategy_catalogue()
 
 
 def _find_strategy(strategy_id: str) -> dict[str, Any] | None:
     """Lookup a strategy from the catalogue by ID."""
-    for s in _STRATEGY_CATALOGUE:
+    for s in _build_strategy_catalogue():
         if s["id"] == strategy_id:
             return s
     return None
@@ -194,7 +119,7 @@ async def list_strategies(
                 symbols=s["symbols"],
                 is_active=True,
             )
-            for s in _STRATEGY_CATALOGUE
+            for s in _build_strategy_catalogue()
         ]
 
         return StrategyListResponse(

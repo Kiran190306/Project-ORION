@@ -119,16 +119,31 @@ def mock_billing_adapter() -> MockBillingAdapter:
 
 
 @pytest.fixture
-def billing_service(db_session: AsyncSession, mock_billing_adapter: MockBillingAdapter) -> BillingService:
-    """Provide a BillingService instance backed by in-memory SQLite and mock adapter."""
+def billing_metrics() -> MetricsRegistry:
+    """Provide an isolated, pre-registered Prometheus MetricsRegistry fixture for billing tests."""
+    reg = MetricsRegistry(prefix="orion_test")
+    reg.counter("billing_checkout_sessions_total", "Total checkout sessions created")
+    reg.counter("billing_webhook_events_total", "Total webhook events processed")
+    reg.counter("billing_invoices_paid_total", "Total invoices paid")
+    reg.counter("billing_payment_failures_total", "Total payment failures")
+    return reg
+
+
+@pytest.fixture
+def billing_service(
+    db_session: AsyncSession,
+    mock_billing_adapter: MockBillingAdapter,
+    billing_metrics: MetricsRegistry,
+) -> BillingService:
+    """Provide a BillingService instance backed by in-memory SQLite, mock adapter, and metrics fixture."""
     config = mock_billing_adapter._config
-    metrics = MetricsRegistry(prefix="orion_test")
     return BillingService(
         session=db_session,
         provider=mock_billing_adapter,
         config=config,
-        metrics=metrics,
+        metrics=billing_metrics,
     )
+
 
 
 # ─── TEST 1: Customer Creation ────────────────────────────────────────────────
@@ -460,8 +475,9 @@ async def test_entitlement_service_integration(
     """Verifies EntitlementService checks reflect active billing tier."""
     entitlement_service = EntitlementService(db_session)
     summary = await entitlement_service.get_usage_summary("org_alpha_001")
-    assert "limits" in summary
-    assert "plan" in summary
+    assert "quotas" in summary
+    assert "plan_code" in summary
+    assert "plan_name" in summary
 
 
 # ─── TEST 13: Cross-Tenant Billing IDOR Rejection ─────────────────────────────

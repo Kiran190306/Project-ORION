@@ -50,3 +50,31 @@ class SymbolRegistry:
         """Return registered symbols in deterministic canonical-code order."""
         async with self._lock:
             return tuple(self._symbols[key] for key in sorted(self._symbols))
+
+    async def load_canonical_instruments(self) -> None:
+        """Seed registry with all active canonical instruments and standard aliases.
+
+        Uses the single central canonical authority `canonical_instruments()`.
+        """
+        from libraries.domain.market_data.normalization import (
+            _COMMON_SYMBOL_ALIASES,
+            canonical_instruments,
+        )
+
+        for inst in canonical_instruments().values():
+            symbol_obj = Symbol.from_instrument(inst)
+            aliases = tuple(
+                alias
+                for alias, canonical in _COMMON_SYMBOL_ALIASES.items()
+                if canonical == inst.symbol
+            )
+            await self.register(symbol_obj, aliases=aliases)
+
+    @classmethod
+    async def create_with_canonical_instruments(
+        cls, normalizer: NormalizationEngine | None = None
+    ) -> SymbolRegistry:
+        """Factory creating and initializing a SymbolRegistry seeded with all canonical instruments."""
+        registry = cls(normalizer=normalizer)
+        await registry.load_canonical_instruments()
+        return registry

@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from libraries.domain.market_data.exceptions import (
     SymbolNotFoundError,
     UnsupportedBarTypeError,
 )
 from libraries.domain.market_data.models import BarType, Instrument
+
+if TYPE_CHECKING:
+    from libraries.domain.backtesting.models import Timeframe
 
 _CANONICAL_INSTRUMENTS: dict[str, Instrument] = {
     "EUR/USD": Instrument(
@@ -85,6 +89,12 @@ _CANONICAL_INSTRUMENTS: dict[str, Instrument] = {
     ),
 }
 
+
+def canonical_instruments() -> dict[str, Instrument]:
+    """Return dictionary of all active canonical instruments."""
+    return dict(_CANONICAL_INSTRUMENTS)
+
+
 _COMMON_SYMBOL_ALIASES: dict[str, str] = {
     "EURUSD": "EUR/USD",
     "EUR_USD": "EUR/USD",
@@ -144,10 +154,45 @@ _TIMEFRAME_MAP: dict[str, BarType] = {
     "1W": BarType.W1,
     "W1": BarType.W1,
     "WEEKLY": BarType.W1,
+    "1WEEK": BarType.W1,
     "1MO": BarType.MN1,
     "MN1": BarType.MN1,
     "MONTHLY": BarType.MN1,
+    "1MONTH": BarType.MN1,
 }
+
+_BAR_TYPE_TO_TIMEFRAME: dict[BarType, Timeframe] | None = None
+_TIMEFRAME_TO_BAR_TYPE: dict[Timeframe, BarType] | None = None
+
+
+def _ensure_timeframe_bridges() -> tuple[dict[BarType, Timeframe], dict[Timeframe, BarType]]:
+    global _BAR_TYPE_TO_TIMEFRAME, _TIMEFRAME_TO_BAR_TYPE
+    if _BAR_TYPE_TO_TIMEFRAME is None or _TIMEFRAME_TO_BAR_TYPE is None:
+        from libraries.domain.backtesting.models import Timeframe
+
+        _BAR_TYPE_TO_TIMEFRAME = {
+            BarType.M1: Timeframe.M1,
+            BarType.M5: Timeframe.M5,
+            BarType.M15: Timeframe.M15,
+            BarType.M30: Timeframe.M30,
+            BarType.H1: Timeframe.H1,
+            BarType.H4: Timeframe.H4,
+            BarType.D1: Timeframe.D1,
+            BarType.W1: Timeframe.WEEKLY,
+            BarType.MN1: Timeframe.MONTHLY,
+        }
+        _TIMEFRAME_TO_BAR_TYPE = {
+            Timeframe.M1: BarType.M1,
+            Timeframe.M5: BarType.M5,
+            Timeframe.M15: BarType.M15,
+            Timeframe.M30: BarType.M30,
+            Timeframe.H1: BarType.H1,
+            Timeframe.H4: BarType.H4,
+            Timeframe.D1: BarType.D1,
+            Timeframe.WEEKLY: BarType.W1,
+            Timeframe.MONTHLY: BarType.MN1,
+        }
+    return _BAR_TYPE_TO_TIMEFRAME, _TIMEFRAME_TO_BAR_TYPE
 
 
 def normalize_symbol(raw_symbol: str) -> str:
@@ -188,16 +233,28 @@ def normalize_symbol(raw_symbol: str) -> str:
     raise SymbolNotFoundError(f"Unrecognized financial symbol: '{raw_symbol}'")
 
 
-def normalize_timeframe(raw_timeframe: str) -> BarType:
-    """Normalize a timeframe string into canonical BarType.
+def normalize_timeframe(raw_timeframe: str | Timeframe | BarType) -> BarType:
+    """Normalize a timeframe string, BarType, or Timeframe into canonical BarType.
 
     Examples:
         "1m", "M1", "60" -> BarType.M1
         "1h", "H1" -> BarType.H1
+        Timeframe.H1 -> BarType.H1
 
     Raises:
         UnsupportedBarTypeError: If timeframe is not recognized.
     """
+    if isinstance(raw_timeframe, BarType):
+        return raw_timeframe
+
+    from libraries.domain.backtesting.models import Timeframe
+
+    if isinstance(raw_timeframe, Timeframe):
+        _, tf_to_bar = _ensure_timeframe_bridges()
+        if raw_timeframe in tf_to_bar:
+            return tf_to_bar[raw_timeframe]
+        raise UnsupportedBarTypeError(f"Unsupported Timeframe: '{raw_timeframe}'")
+
     if not isinstance(raw_timeframe, str):
         raise UnsupportedBarTypeError(f"Timeframe must be a string, got {type(raw_timeframe).__name__}")
 
@@ -216,6 +273,64 @@ def normalize_timeframe(raw_timeframe: str) -> BarType:
     raise UnsupportedBarTypeError(f"Unsupported timeframe: '{raw_timeframe}'")
 
 
-def canonical_instruments() -> dict[str, Instrument]:
-    """Return dictionary of all active canonical instruments."""
-    return dict(_CANONICAL_INSTRUMENTS)
+def bar_type_to_timeframe(bar_type: BarType | Timeframe | str) -> Timeframe:
+    """Convert a canonical BarType (or timeframe string/enum) to backtesting Timeframe.
+
+    Args:
+        bar_type: BarType enum, Timeframe enum, or valid timeframe string representation.
+
+    Returns:
+        Corresponding backtesting Timeframe enum member.
+
+    Raises:
+        UnsupportedBarTypeError: If input cannot be converted to a supported Timeframe.
+    """
+    from libraries.domain.backtesting.models import Timeframe
+
+    if isinstance(bar_type, Timeframe):
+        return bar_type
+
+    if isinstance(bar_type, str) and not isinstance(bar_type, BarType):
+        bar_type = normalize_timeframe(bar_type)
+
+    if not isinstance(bar_type, BarType):
+        raise UnsupportedBarTypeError(
+            f"Expected BarType, Timeframe, or str, got {type(bar_type).__name__}"
+        )
+
+    bar_to_tf, _ = _ensure_timeframe_bridges()
+    if bar_type in bar_to_tf:
+        return bar_to_tf[bar_type]
+
+    raise UnsupportedBarTypeError(f"Unsupported BarType for domain Timeframe conversion: '{bar_type}'")
+
+
+def timeframe_to_bar_type(timeframe: Timeframe | BarType | str) -> BarType:
+    """Convert a domain Timeframe (or timeframe string/enum) to canonical BarType.
+
+    Args:
+        timeframe: Timeframe enum, BarType enum, or valid timeframe string representation.
+
+    Returns:
+        Corresponding market-data BarType enum member.
+
+    Raises:
+        UnsupportedBarTypeError: If input cannot be converted to a supported BarType.
+    """
+    if isinstance(timeframe, BarType):
+        return timeframe
+
+    from libraries.domain.backtesting.models import Timeframe
+
+    if isinstance(timeframe, Timeframe):
+        _, tf_to_bar = _ensure_timeframe_bridges()
+        if timeframe in tf_to_bar:
+            return tf_to_bar[timeframe]
+        raise UnsupportedBarTypeError(f"Unsupported Timeframe: '{timeframe}'")
+
+    if isinstance(timeframe, str):
+        return normalize_timeframe(timeframe)
+
+    raise UnsupportedBarTypeError(
+        f"Expected Timeframe, BarType, or str, got {type(timeframe).__name__}"
+    )

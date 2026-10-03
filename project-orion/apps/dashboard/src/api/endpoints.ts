@@ -34,6 +34,7 @@ import type {
   OnboardingStep,
   CompleteOnboardingStepRequest,
   MarketCandlesResponse,
+  MarketPatternsResponse,
   MarketHealth,
   MarketInstrument,
   MarketQuote,
@@ -506,6 +507,21 @@ export const marketDataApi = {
     params?: { timeframe?: string; limit?: number; start?: string; end?: string }
   ): Promise<MarketCandlesResponse> =>
     apiClient<MarketCandlesResponse>('/api/v1/market-data/candles', {
+      method: 'GET',
+      params: { symbol, ...params } as Record<string, string | number | boolean | undefined>,
+    }),
+
+  getPatterns: (
+    symbol: string,
+    params?: {
+      timeframe?: string;
+      limit?: number;
+      pattern_ids?: string;
+      start?: string;
+      end?: string;
+    }
+  ): Promise<MarketPatternsResponse> =>
+    apiClient<MarketPatternsResponse>('/api/v1/market-data/patterns', {
       method: 'GET',
       params: { symbol, ...params } as Record<string, string | number | boolean | undefined>,
     }),

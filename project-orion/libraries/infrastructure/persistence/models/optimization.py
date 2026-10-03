@@ -69,6 +69,13 @@ class OptimizationJobModel(Base, TimestampMixin):
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    @property
+    def dataset_provenance(self) -> dict[str, Any] | None:
+        """Dataset provenance dictionary if present in optimization_config."""
+        if isinstance(self.optimization_config, dict):
+            return self.optimization_config.get("provenance")
+        return None
+
     __table_args__ = (
         Index("ix_optimization_jobs_org_created", "organization_id", "created_at"),
         Index("ix_optimization_jobs_org_status", "organization_id", "status"),

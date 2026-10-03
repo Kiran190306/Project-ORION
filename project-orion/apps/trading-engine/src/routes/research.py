@@ -8,6 +8,10 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 
+from libraries.domain.market_data.exceptions import (
+    SymbolNotFoundError,
+    UnsupportedBarTypeError,
+)
 from libraries.domain.organization.permissions import Permission
 from libraries.domain.security.rate_limit import RateLimitPolicies
 from libraries.domain.strategy.registry import UnknownStrategyError
@@ -121,7 +125,7 @@ async def create_experiment(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=getattr(exc, "message", str(exc)),
         ) from exc
-    except ValueError as exc:
+    except (ValueError, UnsupportedBarTypeError, SymbolNotFoundError) as exc:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(exc),

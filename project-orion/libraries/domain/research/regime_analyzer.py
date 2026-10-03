@@ -111,9 +111,19 @@ class RegimeAnalyzer:
 
             pnls: list[Decimal] = []
             for t in r_trades:
-                pnl = getattr(t, "net_pnl", None) or getattr(t, "realized_pnl", None) or getattr(t, "pnl", None)
+                pnl = None
+                for attr in ("net_pnl", "realized_pnl", "pnl"):
+                    val = getattr(t, attr, None)
+                    if val is not None:
+                        pnl = val
+                        break
                 if pnl is None and isinstance(t, dict):
-                    pnl = t.get("net_pnl") or t.get("realized_pnl") or t.get("pnl", 0.0)
+                    for key in ("net_pnl", "realized_pnl", "pnl"):
+                        if key in t and t[key] is not None:
+                            pnl = t[key]
+                            break
+                if pnl is None:
+                    pnl = Decimal("0.0")
                 pnls.append(Decimal(str(pnl)))
 
             wins = [p for p in pnls if p > 0]

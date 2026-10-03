@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
+import logging.handlers
 import os
-import platform
 import socket
 import sys
 import traceback
@@ -18,14 +18,18 @@ from libraries.observability.config import LoggingConfig
 _thread_local = local()
 
 
-def set_correlation_id(correlation_id: str) -> None:
+def set_correlation_id(correlation_id: str | None) -> None:
     """Set correlation ID for the current thread/async context."""
-    _thread_local.correlation_id = correlation_id
+    if correlation_id:
+        _thread_local.correlation_id = correlation_id
+    else:
+        _thread_local.correlation_id = None
 
 
 def get_correlation_id() -> str | None:
     """Get the current correlation ID."""
-    return getattr(_thread_local, "correlation_id", None)
+    cid = getattr(_thread_local, "correlation_id", None)
+    return cid if cid else None
 
 
 def set_trace_ids(trace_id: str | None, span_id: str | None) -> None:
@@ -37,9 +41,9 @@ def set_trace_ids(trace_id: str | None, span_id: str | None) -> None:
 class StructuredFormatter(logging.Formatter):
     """JSON formatter for structured logging."""
 
-    def __init__(self, config: LoggingConfig) -> None:
+    def __init__(self, config: LoggingConfig | None = None) -> None:
         super().__init__()
-        self._config = config
+        self._config = config if config is not None else LoggingConfig()
         self._hostname = socket.gethostname()
 
     def format(self, record: logging.LogRecord) -> str:
@@ -66,7 +70,7 @@ class StructuredFormatter(logging.Formatter):
             }
         elif record.exc_text:
             log_entry["exception"] = {"text": record.exc_text}
-        elif record.exc_info is True:
+        elif bool(record.exc_info):
             log_entry["exception"] = {"type": "Exception", "resolved": True}
 
         # Add extra fields
